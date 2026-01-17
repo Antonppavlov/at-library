@@ -27,7 +27,6 @@ import ru.at.library.core.utils.helpers.PropertyLoader;
 /**
  * Шаги по включению/отключению прокси
  */
-//TODO вынести эти шаги в CORE
 @Log4j2
 public class ProxySteps {
 
@@ -42,17 +41,19 @@ public class ProxySteps {
      */
     @И("^используется proxy: \"([^\"]+)\" port: \"([^\"]+)\"$")
     public void turnOnProxy(String proxyHost, String proxyPort) {
-        if (useProxySteps) {
-            proxyHost = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(proxyHost);
-            proxyPort = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(proxyPort);
-
-            System.setProperty("http.proxyHost", proxyHost);
-            System.setProperty("http.proxyPort", proxyPort);
-            System.setProperty("https.proxyHost", proxyHost);
-            System.setProperty("https.proxyPort", proxyPort);
-
-            RestAssured.proxy = ProxySpecification.host(proxyHost).withPort(Integer.parseInt(proxyPort));
+        if (!useProxySteps) {
+            log.debug("Шаги ProxySteps отключены (useProxySteps=false), включение прокси пропущено");
+            return;
         }
+        proxyHost = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(proxyHost);
+        proxyPort = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(proxyPort);
+
+        System.setProperty("http.proxyHost", proxyHost);
+        System.setProperty("http.proxyPort", proxyPort);
+        System.setProperty("https.proxyHost", proxyHost);
+        System.setProperty("https.proxyPort", proxyPort);
+
+        RestAssured.proxy = ProxySpecification.host(proxyHost).withPort(Integer.parseInt(proxyPort));
     }
 
     /**
@@ -61,14 +62,16 @@ public class ProxySteps {
      */
     @И("^выключено использование proxy$")
     public void turnOffProxy() {
-        if (useProxySteps) {
-            System.clearProperty("http.proxyHost");
-            System.clearProperty("http.proxyPort");
-            System.clearProperty("https.proxyHost");
-            System.clearProperty("https.proxyPort");
-
-            RestAssured.proxy = null;
+        if (!useProxySteps) {
+            log.debug("Шаги ProxySteps отключены (useProxySteps=false), выключение прокси пропущено");
+            return;
         }
+        System.clearProperty("http.proxyHost");
+        System.clearProperty("http.proxyPort");
+        System.clearProperty("https.proxyHost");
+        System.clearProperty("https.proxyPort");
+
+        RestAssured.proxy = null;
     }
 
     /**

@@ -2,7 +2,7 @@ package ru.at.library.web.page.wiki;
 
 import com.codeborne.selenide.ElementsCollection;
 import org.openqa.selenium.support.FindBy;
-import ru.at.library.core.cucumber.annotations.Name;
+import ru.at.library.web.scenario.annotations.Name;
 
 @Name("Сведения о странице")
 public class WikiInfo extends WikipediaPage {

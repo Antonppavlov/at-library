@@ -22,7 +22,11 @@ import static net.minidev.json.parser.JSONParser.DEFAULT_PERMISSIVE_MODE;
 public class FormattedDataContainer {
 
     private final TextFormat dataFormat;
-    private JSONObject jsonObject;
+    /**
+     * Корневой JSON-объект/массив. Может быть как {@link JSONObject}, так и {@link net.minidev.json.JSONArray}.
+     * Хранится как {@link Object}, чтобы корректно обрабатывать ответы, где корнем является JSON-массив.
+     */
+    private Object jsonRoot;
     private Document xmlDocument;
     private Map<String, String> paramsMap;
 
@@ -35,9 +39,10 @@ public class FormattedDataContainer {
         switch (dataFormat) {
             case JSON:
                 try {
-                    jsonObject = (JSONObject) new JSONParser(DEFAULT_PERMISSIVE_MODE).parse(formattingValue);
+                    // JSON может иметь в корне как объект, так и массив, поэтому не кастуем к JSONObject
+                    jsonRoot = new JSONParser(DEFAULT_PERMISSIVE_MODE).parse(formattingValue);
                 } catch (ParseException e) {
-                    e.printStackTrace();
+                    throw new IllegalArgumentException("Некорректный JSON для проверки/сохранения: " + e.getMessage(), e);
                 }
                 break;
             case XML:
@@ -58,7 +63,7 @@ public class FormattedDataContainer {
     public String readValue(String path) {
         switch (dataFormat) {
             case JSON:
-                return String.valueOf((Object) JsonPath.read(jsonObject, path));
+                return String.valueOf((Object) JsonPath.read(jsonRoot, path));
             case XML:
                 NodeList valueList = Utils.filterNodesByXPath(xmlDocument, path);
                 if (valueList != null && valueList.getLength() > 0) {

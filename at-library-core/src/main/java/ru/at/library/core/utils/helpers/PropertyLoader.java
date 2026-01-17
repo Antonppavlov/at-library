@@ -12,7 +12,6 @@
 package ru.at.library.core.utils.helpers;
 
 import com.google.common.base.Strings;
-import io.restassured.response.Response;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
@@ -37,7 +36,7 @@ import java.util.regex.Pattern;
 @Log4j2
 public class PropertyLoader {
 
-    public static String PROPERTIES_FILE = "/" + System.getProperty("properties", "application.properties");
+    public static String PROPERTIES_FILE = System.getProperty("properties", "application.properties");
     private static final Properties PROPERTIES = getPropertiesInstance();
     private static final Properties PROFILE_PROPERTIES = getProfilePropertiesInstance();
 
@@ -184,10 +183,10 @@ public class PropertyLoader {
         }
         if (CoreScenario.getInstance().tryGetVar(valueToFind) != null) {
             Object var = CoreScenario.getInstance().getVar(valueToFind);
-            //TODO нужно зарефакторить
-            if (var instanceof Response) {
-                return ((Response) var).getBody().asString();
-            }
+//            TODO нужно зарефакторить проблема с тем что невозможно вернуть Response
+//            if (var instanceof Response) {
+//                return ((Response) var).getBody().asString();
+//            }
             return (String) var;
         }
         log.trace("Значение не найдено в хранилище. Будет исользовано значение по умолчанию " + valueToFind);
@@ -219,10 +218,10 @@ public class PropertyLoader {
         }
         if (CoreScenario.getInstance().tryGetVar(valueToFind) != null) {
             Object var = CoreScenario.getInstance().getVar(valueToFind);
-            //TODO нужно зарефакторить
-            if (var instanceof Response) {
-                return ((Response) var).getBody().asString();
-            }
+            //TODO нужно зарефакторить проблема с тем что невозможно вернуть Response
+//            if (var instanceof Response) {
+//                return ((Response) var).getBody().asString();
+//            }
             return (String) var;
         }
         log.trace("Значение не найдено в хранилище. Будет исользовано значение по умолчанию " + valueToFind);
@@ -267,7 +266,7 @@ public class PropertyLoader {
     public static HashMap<String, String> loadPropertiesMatchesByRegex(String regex) {
         HashMap<String, String> properties = new HashMap<>();
         for (Enumeration<?> e = PROPERTIES.propertyNames(); e.hasMoreElements(); ) {
-            String name = (String)e.nextElement();
+            String name = (String) e.nextElement();
             if (!getMatchesByRegex(name, regex).isEmpty()) {
                 String value = PROPERTIES.getProperty(name);
                 properties.put(name, value);
@@ -284,12 +283,54 @@ public class PropertyLoader {
     @SneakyThrows(IOException.class)
     private static Properties getPropertiesInstance() {
         Properties instance = new Properties();
-        try (
-                InputStream resourceStream = PropertyLoader.class.getResourceAsStream(PROPERTIES_FILE);
-                InputStreamReader inputStream = new InputStreamReader(resourceStream, StandardCharsets.UTF_8)
-        ) {
+
+        // Имя файла без возможного ведущего слеша (значение берётся из -Dproperties)
+        String fileName = PROPERTIES_FILE.startsWith("/")
+                ? PROPERTIES_FILE.substring(1)
+                : PROPERTIES_FILE;
+
+        // 1) Пробуем загрузить через context classloader (видит test/main ресурсы модулей)
+        InputStream resourceStream = Thread.currentThread()
+                .getContextClassLoader()
+                .getResourceAsStream(fileName);
+
+        // 2) Fallback на старый механизм через PROPERTIES_FILE относительно PropertyLoader.class
+        if (resourceStream == null) {
+            resourceStream = PropertyLoader.class.getResourceAsStream(PROPERTIES_FILE);
+        }
+
+        // 3) Если до сих пор не нашли, делаем файловый поиск, начиная от user.dir и поднимаясь вверх,
+        //    проверяя как корень, так и стандартную папку src/test/resources на каждом уровне.
+        if (resourceStream == null) {
+            Path dir = Paths.get(System.getProperty("user.dir", "."));
+            while (dir != null) {
+                // a) файл лежит прямо в текущем каталоге
+                Path direct = dir.resolve(fileName);
+                if (Files.exists(direct)) {
+                    log.warn("Не найден {} в classpath, но найден файл по пути '{}'. Будет использован он.", PROPERTIES_FILE, direct);
+                    resourceStream = Files.newInputStream(direct);
+                    break;
+                }
+                // b) файл лежит под src/test/resources относительно текущего каталога
+                Path testResources = dir.resolve("src").resolve("test").resolve("resources").resolve(fileName);
+                if (Files.exists(testResources)) {
+                    log.warn("Не найден {} в classpath, но найден файл по пути '{}'. Будет использован он.", PROPERTIES_FILE, testResources);
+                    resourceStream = Files.newInputStream(testResources);
+                    break;
+                }
+                dir = dir.getParent();
+            }
+        }
+
+        if (resourceStream == null) {
+            log.warn("Не найден файл properties ({}). Свойства будут пустыми.", PROPERTIES_FILE);
+            return instance;
+        }
+
+        try (InputStreamReader inputStream = new InputStreamReader(resourceStream, StandardCharsets.UTF_8)) {
             instance.load(inputStream);
         }
+
         return instance;
     }
 
@@ -306,10 +347,12 @@ public class PropertyLoader {
         if (!Strings.isNullOrEmpty(profile)) {
             String path = Paths.get(profile, PROPERTIES_FILE).toString();
             URL url = PropertyLoader.class.getClassLoader().getResource(path);
-            try (
-                    InputStream resourceStream = url.openStream();
-                    InputStreamReader inputStream = new InputStreamReader(resourceStream, StandardCharsets.UTF_8)
-            ) {
+            if (url == null) {
+                log.warn("Не найден profile properties по пути '{}'. Профиль '{}' будет проигнорирован.", path, profile);
+                return instance;
+            }
+            try (InputStream resourceStream = url.openStream();
+                 InputStreamReader inputStream = new InputStreamReader(resourceStream, StandardCharsets.UTF_8)) {
                 instance.load(inputStream);
             }
         }
@@ -328,6 +371,31 @@ public class PropertyLoader {
             result.add(m.group(0));
         }
         return result;
+    }
+
+    /**
+     * Загружает обязательное строковое свойство (system/profile/application.properties).
+     * Если свойство не найдено или пустое, выбрасывается IllegalArgumentException.
+     */
+    public static String requireNonEmptyProperty(String propertyName) {
+        String value = tryLoadProperty(propertyName);
+        if (value == null || value.trim().isEmpty()) {
+            throw new IllegalArgumentException("Не найдено обязательное свойство '" + propertyName + "' в system/properties");
+        }
+        return value;
+    }
+
+    /**
+     * Загружает свойство как URI и валидирует его формат.
+     * Удобно для baseURI, endpoint'ов и других URL-подобных свойств.
+     */
+    public static java.net.URI loadUriProperty(String propertyName) {
+        String raw = loadProperty(propertyName);
+        try {
+            return new java.net.URI(raw);
+        } catch (java.net.URISyntaxException e) {
+            throw new IllegalArgumentException("Свойство '" + propertyName + "' не является корректным URI: " + raw, e);
+        }
     }
 
 }

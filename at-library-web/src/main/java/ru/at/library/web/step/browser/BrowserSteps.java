@@ -21,6 +21,7 @@ import lombok.extern.log4j.Log4j2;
 import org.openqa.selenium.*;
 import org.openqa.selenium.interactions.Actions;
 import ru.at.library.core.cucumber.api.CoreScenario;
+import ru.at.library.web.scenario.WebScenario;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -378,8 +379,20 @@ public class BrowserSteps {
      */
     @И("^снят скриншот текущей страницы$")
     public synchronized static void takeScreenshot() {
-        getScreenshotBytes().ifPresent((bytes) -> CoreScenario.getInstance().getScenario().attach(bytes, "image/png",
-                CoreScenario.getInstance().getCurrentPage().getName()));
+        String attachmentName = "screenshot";
+        try {
+            attachmentName = WebScenario.getCurrentPage().getName();
+        } catch (Exception ignored) {
+            try {
+                attachmentName = "screenshot_" + WebDriverRunner.url();
+            } catch (Exception ignoredUrl) {
+                // оставим attachmentName по умолчанию
+            }
+        }
+        final String finalName = attachmentName;
+        getScreenshotBytes().ifPresent(bytes ->
+                CoreScenario.getInstance().getScenario().attach(bytes, "image/png", finalName)
+        );
     }
 
     /**

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration monitorinterval="30" status="info" strict="true">
+    <Properties>
+        <Property name="filename">logs/api_log.log</Property>
+        <Property name="logPatternConsole">%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%20.20t] %C{10} : %m%n</Property>
+    </Properties>
+    <Appenders>
+        <Console name="Console">
+            <PatternLayout pattern="${logPatternConsole}"/>
+        </Console>
+        <RollingRandomAccessFile name="File" fileName="${filename}"
+                                 filePattern="logs/%d{yyyy-MM-dd}-%i.at-library-api.log.gz">
+            <PatternLayout charset="UTF-8" pattern="${logPatternConsole}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <OnStartupTriggeringPolicy/>
+            </Policies>
+        </RollingRandomAccessFile>
+    </Appenders>
+
+    <Loggers>
+        <Root level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/>
+        </Root>
+        <Logger name="ru.at.library.api.log.Log4jRestAssuredFilter" level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/>
+        </Logger>
+    </Loggers>
+</Configuration>

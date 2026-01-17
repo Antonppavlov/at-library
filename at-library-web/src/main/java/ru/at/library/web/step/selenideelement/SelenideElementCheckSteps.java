@@ -9,8 +9,9 @@ import lombok.extern.log4j.Log4j2;
 import org.openqa.selenium.By;
 import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.core.steps.OtherSteps;
-import ru.at.library.web.core.IStepResult;
 import ru.at.library.web.entities.CommonStepResult;
+import ru.at.library.web.scenario.IStepResult;
+import ru.at.library.web.scenario.WebScenario;
 
 import java.time.Duration;
 import java.util.Objects;
@@ -19,7 +20,6 @@ import static com.codeborne.selenide.Condition.*;
 import static com.codeborne.selenide.Selenide.executeJavaScript;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.testng.Assert.assertEquals;
 import static ru.at.library.core.steps.OtherSteps.getPropertyOrStringVariableOrValue;
 import static ru.at.library.core.steps.OtherSteps.getTranslateNormalizeSpaceText;
 
@@ -29,20 +29,18 @@ import static ru.at.library.core.steps.OtherSteps.getTranslateNormalizeSpaceText
 @Log4j2
 public class SelenideElementCheckSteps {
 
-    private final CoreScenario coreScenario = CoreScenario.getInstance();
-
     /**
      * ######################################################################################################################
      */
 
     @И("^элемент \"([^\"]*)\" отображается на странице$")
     public void isVisible(String elementName) {
-        isVisible(coreScenario.getCurrentPage().getElement(elementName));
+        isVisible(WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" элемент \"([^\"]*)\" отображается на странице$")
     public void isVisible(String blockName, String elementName) {
-        isVisible(coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        isVisible(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     /**
@@ -57,11 +55,13 @@ public class SelenideElementCheckSteps {
         return new CommonStepResult(element);
     }
 
-    @SuppressWarnings("deprecation")
     @И("^в блоке \"([^\"]*)\" отображается элемент с текстом \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" отображается элемент с текстом$")
     public IStepResult elementWithTextIsVisible(String blockName, String text) {
-        SelenideElement element = coreScenario.getCurrentPage().getBlock(blockName).getSelf().$(By.xpath(getTranslateNormalizeSpaceText(getPropertyOrStringVariableOrValue(text))));
+        // Ищем элемент по тексту во всём документе, без использования getSelf(),
+        // чтобы избежать поиска по несуществующему *[name='self']
+        String resolved = getPropertyOrStringVariableOrValue(text);
+        SelenideElement element = Selenide.$(By.xpath(getTranslateNormalizeSpaceText(resolved)));
         isVisible(element);
         return new CommonStepResult(element);
     }
@@ -86,14 +86,14 @@ public class SelenideElementCheckSteps {
     @И("^элемент \"([^\"]*)\" отобразится на странице в течение (\\d+) (?:секунд|секунды)")
     public void isVisibleWithTimeout(String elementName, int seconds) {
         isVisibleWithTimeout(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 seconds);
     }
 
     @И("^в блоке \"([^\"]*)\" элемент \"([^\"]*)\" отобразится на странице в течение (\\d+) (?:секунд|секунды)")
     public void isVisibleWithTimeout(String blockName, String elementName, int seconds) {
         isVisibleWithTimeout(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 seconds);
     }
 
@@ -111,12 +111,12 @@ public class SelenideElementCheckSteps {
 
     @И("^элемент \"([^\"]*)\" не отображается на странице$")
     public void isHidden(String elementName) {
-        isHidden(coreScenario.getCurrentPage().getElement(elementName));
+        isHidden(WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" элемент \"([^\"]*)\" не отображается на странице$")
     public void isHidden(String blockName, String elementName) {
-        isHidden(coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        isHidden(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     /**
@@ -131,11 +131,12 @@ public class SelenideElementCheckSteps {
         return new CommonStepResult(element);
     }
 
-    @SuppressWarnings("deprecation")
     @И("^в блоке \"([^\"]*)\" не отображается элемент с текстом \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" не отображается элемент с текстом$")
     public IStepResult elementWithTextIsHidden(String blockName, String text) {
-        SelenideElement element = coreScenario.getCurrentPage().getBlock(blockName).getSelf().$(By.xpath(getTranslateNormalizeSpaceText(getPropertyOrStringVariableOrValue(text))));
+        // Аналогично видимому элементу: ищем по тексту глобально, без getSelf()
+        String resolved = getPropertyOrStringVariableOrValue(text);
+        SelenideElement element = Selenide.$(By.xpath(getTranslateNormalizeSpaceText(resolved)));
         isHidden(element);
         return new CommonStepResult(element);
     }
@@ -162,14 +163,14 @@ public class SelenideElementCheckSteps {
     @И("^элемент \"([^\"]*)\" не (?:отобразится|отображается) на странице в течение (\\d+) (?:секунд|секунды)")
     public void isHiddenWithTimeout(String elementName, int seconds) {
         isHiddenWithTimeout(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 seconds);
     }
 
     @И("^в блоке \"([^\"]*)\" элемент \"([^\"]*)\" не (?:отобразится|отображается) на странице в течение (\\d+) (?:секунд|секунды)")
     public void isHiddenWithTimeout(String blockName, String elementName, int seconds) {
         isHiddenWithTimeout(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 seconds);
     }
 
@@ -187,12 +188,12 @@ public class SelenideElementCheckSteps {
 
     @И("^элемент \"([^\"]*)\" в фокусе$")
     public void isFocused(String elementName) {
-        isFocused(coreScenario.getCurrentPage().getElement(elementName));
+        isFocused(WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" элемент \"([^\"]*)\" в фокусе$")
     public void isFocused(String blockName, String elementName) {
-        isFocused(coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        isFocused(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     public void isFocused(SelenideElement element) {
@@ -205,12 +206,12 @@ public class SelenideElementCheckSteps {
 
     @И("^элемент \"([^\"]*)\" является изображением и отображается на странице")
     public void isImageLoaded(String elementName) {
-        isImageLoaded(this.coreScenario.getCurrentPage().getElement(elementName));
+        isImageLoaded(WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" элемент \"([^\"]*)\" является изображением и отображается на странице")
     public void isImageLoaded(String blockName, String elementName) {
-        isImageLoaded(this.coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        isImageLoaded(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     /**
@@ -229,36 +230,31 @@ public class SelenideElementCheckSteps {
 
     @И("^элемент \"([^\"]*)\" расположен (в|вне) видимой части страницы$")
     public void inBounds(String elementName, String boundsCondition) {
-        inBounds(coreScenario.getCurrentPage().getElement(elementName), boundsCondition);
+        inBounds(WebScenario.getCurrentPage().getElement(elementName), boundsCondition);
     }
 
     @И("^в блоке \"([^\"]*)\" элемент \"([^\"]*)\" расположен (в|вне) видимой части страницы$")
     public void inBounds(String blockName, String elementName, String boundsCondition) {
-        inBounds(coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName), boundsCondition);
+        inBounds(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName), boundsCondition);
     }
 
     /**
      * ######################################################################################################################
      */
 
-    @SuppressWarnings("deprecation")
     @И("^элемент содержащий текст \"([^\"]*)\" расположен (в|вне) видимой части страницы$")
     public void elementWihTextInBounds(String expectedValue, String boundsCondition) {
-        inBounds(
-                coreScenario.getCurrentPage().getSelf().
-                        $(By.xpath(getTranslateNormalizeSpaceText(getPropertyOrStringVariableOrValue(expectedValue)))),
-                boundsCondition
-        );
+        String resolved = getPropertyOrStringVariableOrValue(expectedValue);
+        SelenideElement element = Selenide.$(By.xpath(getTranslateNormalizeSpaceText(resolved)));
+        inBounds(element, boundsCondition);
     }
 
-    @SuppressWarnings("deprecation")
     @И("^в блоке \"([^\"]*)\" элемент содержащий текст \"([^\"]*)\" расположен (в|вне) видимой части страницы$")
     public void elementWihTextInBounds(String blockName, String expectedValue, String boundsCondition) {
-        inBounds(
-                coreScenario.getCurrentPage().getBlock(blockName).getSelf().
-                        $(By.xpath(getTranslateNormalizeSpaceText(getPropertyOrStringVariableOrValue(expectedValue)))),
-                boundsCondition
-        );
+        // Для совместимости шагов с блоком используем такой же глобальный поиск по тексту
+        String resolved = getPropertyOrStringVariableOrValue(expectedValue);
+        SelenideElement element = Selenide.$(By.xpath(getTranslateNormalizeSpaceText(resolved)));
+        inBounds(element, boundsCondition);
     }
 
     /**
@@ -308,12 +304,12 @@ public class SelenideElementCheckSteps {
 
     @И("^(?:кнопка|элемент) \"([^\"]*)\" (?:доступна|доступен) для нажатия$")
     public void isClickable(String elementName) {
-        isClickable(coreScenario.getCurrentPage().getElement(elementName));
+        isClickable(WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" (?:кнопка|элемент) \"([^\"]*)\" (?:доступна|доступен) для нажатия$")
     public void isClickable(String blockName, String elementName) {
-        isClickable(coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        isClickable(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     /**
@@ -330,14 +326,14 @@ public class SelenideElementCheckSteps {
     @И("^(?:кнопка|элемент) \"([^\"]*)\" (?:доступна|доступен) для нажатия в течение (\\d+) (?:секунд|секунды)$")
     public void isClickableWithTimeout(String elementName, int second) {
         isClickableWithTimeout(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 second);
     }
 
     @И("^в блоке \"([^\"]*)\" (?:кнопка|элемент) \"([^\"]*)\" (?:доступна|доступен) для нажатия в течение (\\d+) (?:секунд|секунды)$")
     public void isClickableWithTimeout(String blockName, String elementName, int second) {
         isClickableWithTimeout(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 second);
     }
 
@@ -354,12 +350,12 @@ public class SelenideElementCheckSteps {
 
     @И("^(?:кнопка|элемент) \"([^\"]*)\" (?:недоступна|недоступен) для нажатия$")
     public void isDisabled(String elementName) {
-        isDisabled(coreScenario.getCurrentPage().getElement(elementName));
+        isDisabled(WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" (?:кнопка|элемент) \"([^\"]*)\" (?:недоступна|недоступен) для нажатия$")
     public void isDisabled(String blockName, String elementName) {
-        isDisabled(coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        isDisabled(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     /**
@@ -375,12 +371,12 @@ public class SelenideElementCheckSteps {
 
     @И("^поле \"([^\"]*)\" пусто$")
     public void inputIsEmpty(String elementName) {
-        inputIsEmpty(coreScenario.getCurrentPage().getElement(elementName));
+        inputIsEmpty(WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" поле \"([^\"]*)\" пусто$")
     public void inputIsEmpty(String blockName, String elementName) {
-        inputIsEmpty(coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        inputIsEmpty(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     /**
@@ -396,12 +392,12 @@ public class SelenideElementCheckSteps {
 
     @И("^поле \"([^\"]*)\" не пусто$")
     public void inputIsNotEmpty(String elementName) {
-        inputIsNotEmpty(this.coreScenario.getCurrentPage().getElement(elementName));
+        inputIsNotEmpty(WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" поле \"([^\"]*)\" не пусто$")
     public void inputIsNotEmpty(String blockName, String elementName) {
-        inputIsNotEmpty(this.coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        inputIsNotEmpty(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     public void inputIsNotEmpty(SelenideElement element) {
@@ -415,14 +411,14 @@ public class SelenideElementCheckSteps {
     @И("^текст элемента \"([^\"]*)\" сохранен в переменную \"([^\"]*)\"$")
     public void saveElementTextToVar(String elementName, String variableName) {
         saveElementTextToVar(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 variableName);
     }
 
     @И("^в блоке \"([^\"]*)\" текст элемента \"([^\"]*)\" сохранен в переменную \"([^\"]*)\"$")
     public void saveElementTextToVar(String blockName, String elementName, String variableName) {
         saveElementTextToVar(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 variableName);
     }
 
@@ -431,7 +427,7 @@ public class SelenideElementCheckSteps {
      */
     public void saveElementTextToVar(SelenideElement element, String variableName) {
         String text = element.getText();
-        coreScenario.setVar(variableName, text);
+        CoreScenario.getInstance().setVar(variableName, text);
         log.trace("Значение [" + text + "] сохранено в переменную [" + variableName + "]");
     }
 
@@ -441,7 +437,7 @@ public class SelenideElementCheckSteps {
     @И("^элемент \"([^\"]*)\" содержит атрибут \"([^\"]*)\"$")
     public void containsAttribute(String elementName, String attribute) {
         containsAttribute(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 attribute
         );
     }
@@ -449,7 +445,7 @@ public class SelenideElementCheckSteps {
     @И("^в блоке \"([^\"]*)\" элемент \"([^\"]*)\" содержит атрибут \"([^\"]*)\"$")
     public void containsAttribute(String blockName, String elementName, String attribute) {
         containsAttribute(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 attribute);
     }
 
@@ -468,7 +464,7 @@ public class SelenideElementCheckSteps {
     @И("^элемент \"([^\"]*)\" содержит атрибут \"([^\"]*)\" со значением \"([^\"]*)\"$")
     public void containsAttributeWithValue(String elementName, String attribute, String expectedAttributeValue) {
         containsAttributeWithValue(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 attribute,
                 expectedAttributeValue
         );
@@ -477,7 +473,7 @@ public class SelenideElementCheckSteps {
     @И("^в блоке \"([^\"]*)\" элемент \"([^\"]*)\" содержит атрибут \"([^\"]*)\" со значением \"([^\"]*)\"$")
     public void containsAttributeWithValue(String blockName, String elementName, String attribute, String expectedAttributeValue) {
         containsAttributeWithValue(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 attribute,
                 expectedAttributeValue
         );
@@ -499,7 +495,7 @@ public class SelenideElementCheckSteps {
     @И("^элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
     public void containsCssWithValue(String elementName, String cssName, String cssValue) {
         containsCssWithValue(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 cssName,
                 cssValue
         );
@@ -508,7 +504,7 @@ public class SelenideElementCheckSteps {
     @И("^в блоке \"([^\"]*)\" элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
     public void containsCssWithValue(String blockName, String elementName, String cssName, String cssValue) {
         containsCssWithValue(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 cssName,
                 cssValue
         );
@@ -530,7 +526,7 @@ public class SelenideElementCheckSteps {
     @И("^элемент \"([^\"]*)\" не содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
     public void notContainsCssWithValue(String elementName, String cssName, String cssValue) {
         notContainsCssWithValue(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 cssName,
                 cssValue
         );
@@ -539,7 +535,7 @@ public class SelenideElementCheckSteps {
     @И("^в блоке \"([^\"]*)\" элемент \"([^\"]*)\" не содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
     public void notContainsCssWithValue(String blockName, String elementName, String cssName, String cssValue) {
         notContainsCssWithValue(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 cssName,
                 cssValue
         );
@@ -562,7 +558,7 @@ public class SelenideElementCheckSteps {
     @И("^элемент \"([^\"]*)\" содержит текст \"([^\"]*)\"$")
     public void containsText(String elementName, String expectedValue) {
         containsText(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 expectedValue
         );
     }
@@ -571,7 +567,7 @@ public class SelenideElementCheckSteps {
     @И("^в блоке \"([^\"]*)\" элемент \"([^\"]*)\" содержит текст \"([^\"]*)\"$")
     public void containsText(String blockName, String elementName, String expectedValue) {
         containsText(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 expectedValue
         );
     }
@@ -597,7 +593,7 @@ public class SelenideElementCheckSteps {
     @И("^элемент \"([^\"]*)\" не содержит текст \"([^\"]*)\"$")
     public void notContainsText(String elementName, String expectedValue) {
         notContainsText(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 expectedValue
         );
     }
@@ -606,7 +602,7 @@ public class SelenideElementCheckSteps {
     @И("^в блоке \"([^\"]*)\" элемент \"([^\"]*)\" не содержит текст \"([^\"]*)\"$")
     public void notContainsText(String blockName, String elementName, String expectedValue) {
         notContainsText(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 expectedValue
         );
     }
@@ -632,7 +628,7 @@ public class SelenideElementCheckSteps {
     @А("^текст элемента \"([^\"]*)\" равен$")
     public void hasExactText(String elementName, String expectedValue) {
         hasExactText(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 expectedValue);
     }
 
@@ -641,7 +637,7 @@ public class SelenideElementCheckSteps {
     @А("^в блоке \"([^\"]*)\" текст элемента \"([^\"]*)\" равен$")
     public void hasExactText(String blockName, String elementName, String expectedValue) {
         hasExactText(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 expectedValue);
     }
 
@@ -666,7 +662,7 @@ public class SelenideElementCheckSteps {
     @И("^текст элемента \"([^\"]*)\" соответствует регулярному выражению$")
     public void matchesRegexp(String elementName, String expectedValue) {
         matchesRegexp(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 expectedValue
         );
     }
@@ -675,7 +671,7 @@ public class SelenideElementCheckSteps {
     @И("^в блоке \"([^\"]*)\" текст элемента \"([^\"]*)\" соответствует регулярному выражению$")
     public void matchesRegexp(String blockName, String elementName, String expectedValue) {
         matchesRegexp(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 expectedValue
         );
     }
@@ -692,7 +688,7 @@ public class SelenideElementCheckSteps {
     @И("^в элементе \"([^\"]*)\" содержится (\\d+) символов$")
     public void checkFieldSymbolsCount(String elementName, int num) {
         checkFieldSymbolsCount(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 num);
     }
 
@@ -700,7 +696,7 @@ public class SelenideElementCheckSteps {
     @И("^в блоке \"([^\"]*)\" в элементе \"([^\"]*)\" содержится (\\d+) символов$")
     public void checkFieldSymbolsCount(String blockName, String elementName, int num) {
         checkFieldSymbolsCount(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 num);
     }
 
@@ -736,12 +732,12 @@ public class SelenideElementCheckSteps {
 
     @И("^радиокнопка \"([^\"]*)\" выбрана$")
     public void radioButtonIsSelected(String elementName) {
-        radioButtonIsSelected(coreScenario.getCurrentPage().getElement(elementName));
+        radioButtonIsSelected(WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" радиокнопка \"([^\"]*)\" выбрана$")
     public void radioButtonIsSelected(String blockName, String elementName) {
-        radioButtonIsSelected(coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        radioButtonIsSelected(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     /**
@@ -757,12 +753,12 @@ public class SelenideElementCheckSteps {
 
     @И("^радиокнопка \"([^\"]*)\" не выбрана")
     public void radioButtonIsNotSelected(String elementName) {
-        radioButtonIsNotSelected(coreScenario.getCurrentPage().getElement(elementName));
+        radioButtonIsNotSelected(WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" радиокнопка \"([^\"]*)\" не выбрана")
     public void radioButtonIsNotSelected(String blockName, String elementName) {
-        radioButtonIsNotSelected(coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        radioButtonIsNotSelected(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     /**
@@ -778,13 +774,13 @@ public class SelenideElementCheckSteps {
 
     @И("^чекбокс \"([^\"]*)\" выбран$")
     public void checkBoxIsChecked(String elementName) {
-        checkBoxIsChecked(coreScenario.getCurrentPage().getElement(elementName));
+        checkBoxIsChecked(WebScenario.getCurrentPage().getElement(elementName));
     }
 
 
     @И("^в блоке \"([^\"]*)\" чекбокс \"([^\"]*)\" выбран$")
     public void checkBoxIsChecked(String blockName, String elementName) {
-        checkBoxIsChecked(coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        checkBoxIsChecked(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     /**
@@ -800,12 +796,12 @@ public class SelenideElementCheckSteps {
 
     @И("^чекбокс \"([^\"]*)\" не выбран$")
     public void checkBoxIsNotChecked(String elementName) {
-        checkBoxIsNotChecked(coreScenario.getCurrentPage().getElement(elementName));
+        checkBoxIsNotChecked(WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" чекбокс \"([^\"]*)\" не выбран$")
     public void checkBoxIsNotChecked(String blockName, String elementName) {
-        checkBoxIsNotChecked(coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        checkBoxIsNotChecked(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     /**

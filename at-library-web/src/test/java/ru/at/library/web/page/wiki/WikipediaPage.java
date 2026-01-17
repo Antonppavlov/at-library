@@ -3,19 +3,16 @@ package ru.at.library.web.page.wiki;
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
 import org.openqa.selenium.support.FindBy;
-import ru.at.library.core.cucumber.annotations.Name;
-import ru.at.library.core.cucumber.api.CorePage;
+import ru.at.library.web.scenario.CorePage;
+import ru.at.library.web.scenario.annotations.Hidden;
+import ru.at.library.web.scenario.annotations.Name;
 
 @Name("Википедия")
 public class WikipediaPage extends CorePage {
 
     @Name("Заголовок")
-    @FindBy(css = "[id=\"firstHeading\"]")
+    @FindBy(css = "[class=\"main-top-left\"] h1")
     public SelenideElement pageHeader;
-
-    @Name("Заглавная страница")
-    @FindBy(css = "[id=\"p-navigation\"] ul[class=\"vector-menu-content-list\"] li")
-    public ElementsCollection homeLinkList;
 
     @Name("Список ссылок")
     @FindBy(css = "[id=\"mw-panel\"] li")
@@ -29,6 +26,7 @@ public class WikipediaPage extends CorePage {
     @FindBy(css = "[id=\"p-tb\"] li")
     public ElementsCollection listToolsLink;
 
+    @Hidden
     @Name("Нет списка")
     @FindBy(css = "[id=\"not-spisok\"] li")
     public ElementsCollection notList;
@@ -44,5 +42,4 @@ public class WikipediaPage extends CorePage {
     @Name("Заявление о куки")
     @FindBy(css = "#footer-places-cookiestatement>a")
     public SelenideElement aboutCookiesBtn;
-
 }

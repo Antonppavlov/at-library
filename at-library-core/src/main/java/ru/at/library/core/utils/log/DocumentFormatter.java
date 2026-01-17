@@ -1,6 +1,6 @@
 package ru.at.library.core.utils.log;
 
-import com.google.gson.*;
+import io.cucumber.messages.internal.com.google.gson.*;
 import lombok.extern.log4j.Log4j2;
 
 import javax.xml.transform.OutputKeys;

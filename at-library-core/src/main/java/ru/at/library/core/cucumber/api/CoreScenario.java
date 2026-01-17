@@ -43,28 +43,6 @@ public final class CoreScenario {
     }
 
 
-    /**
-     * Позволяет получить доступ к полям и методам конкретной страницы, которая передается в метод в качестве аргумента.
-     * Пример использования: {@code withPage(CorePage.class, page -> { some actions with CorePage methods});}
-     * Проверка отображения всех элементов страницы выполняется всегда
-     *
-     * @param clazz класс страницы, доступ к полям и методам которой необходимо получить
-     */
-    public static <T extends CorePage> void withPage(Class<T> clazz, Consumer<T> consumer) {
-        withPage(clazz, true, consumer);
-    }
-
-    /**
-     * Позволяет получить доступ к полям и методам конкретной страницы.
-     * Пример использования: {@code withPage(CorePage.class, page -> { some actions with CorePage methods});}
-     * Проверка отображения всех элементов страницы опциональна
-     *
-     * @param clazz                   класс страницы, доступ к полям и методам которой необходимо получить
-     * @param checkIfElementsAppeared флаг, отвечающий за проверку отображения всех элементов страницы, не помеченных аннотацией @Optional
-     */
-    public static <T extends CorePage> void withPage(Class<T> clazz, boolean checkIfElementsAppeared, Consumer<T> consumer) {
-        Pages.withPage(clazz, checkIfElementsAppeared, consumer);
-    }
 
     public CoreEnvironment getEnvironment() {
         return environment.get();
@@ -78,25 +56,6 @@ public final class CoreScenario {
     }
 
     public void setAssertionHelper(AssertionHelper assertionHlp) { assertionHelper.set(assertionHlp);}
-    /**
-     * Получение страницы, тестирование которой производится в данный момент
-     */
-    public CorePage getCurrentPage() {
-        return environment.get().getPages().getCurrentPage();
-    }
-
-    /**
-     * Задание страницы, тестирование которой производится в данный момент
-     */
-    public void setCurrentPage(CorePage page) {
-        if (page == null) {
-            throw new IllegalArgumentException("Происходит переход на несуществующую страницу. " +
-                    "Проверь аннотации @Name у используемых страниц");
-        }
-
-        getPages().put(page.getName(), page.getClass());
-        environment.get().getPages().setCurrentPage(page);
-    }
 
     /**
      * Возвращает текущий сценарий (Cucumber.api)
@@ -105,21 +64,12 @@ public final class CoreScenario {
         return this.getEnvironment().getScenario();
     }
 
-    /**
-     * Получение списка страниц
-     */
-    public Pages getPages() {
-        return this.getEnvironment().getPages();
-    }
-
-    public CorePage getPage(String name) {
-        return this.getEnvironment().getPage(name);
-    }
 
     /**
-     * Получение переменной по имени, заданного пользователем, из пула переменных "variables" в CoreEnvironment
+     * Получение переменной по имени, заданного пользователем, из пула переменных "variables" в CoreEnvironment.
+     * Если переменная не найдена, выбрасывается {@link IllegalArgumentException}.
      *
-     * @param name - имя переменной, для которй необходимо получить ранее сохраненное значение
+     * @param name имя переменной, для которой необходимо получить ранее сохранённое значение
      */
     public Object getVar(String name) {
         Object obj = this.getEnvironment().getVar(name);
@@ -130,40 +80,34 @@ public final class CoreScenario {
     }
 
     /**
-     * Получение переменной без проверки на NULL
+     * Типобезопасное получение переменной по имени с проверкой типа.
+     * Удобно использовать вместо ручного приведения типов:
+     * <pre>
+     *   Response resp = coreScenario.getVar("response", Response.class);
+     * </pre>
+     * Если переменная отсутствует или имеет другой тип, выбрасывается {@link IllegalArgumentException}.
+     */
+    public <T> T getVar(String name, Class<T> type) {
+        Object value = getVar(name);
+        if (!type.isInstance(value)) {
+            throw new IllegalArgumentException(String.format(
+                    "Переменная '%s' имеет тип %s, ожидается %s",
+                    name,
+                    value != null ? value.getClass().getName() : "null",
+                    type.getName()
+            ));
+        }
+        return type.cast(value);
+    }
+
+    /**
+     * Получение переменной без проверки на NULL.
+     * Возвращает значение переменной или {@code null}, если переменная отсутствует.
      */
     public Object tryGetVar(String name) {
         return this.getEnvironment().getVar(name);
     }
 
-    /**
-     * Получение страницы по классу с возможностью выполнить проверку отображения элементов страницы
-     *
-     * @param clazz                   - класс страницы, которую необходимо получить
-     * @param checkIfElementsAppeared - флаг, определяющий проверку отображения элементов на странице
-     */
-    public <T extends CorePage> CorePage getPage(Class<T> clazz, boolean checkIfElementsAppeared) {
-        return Pages.getPage(clazz, checkIfElementsAppeared).initialize();
-    }
-
-    /**
-     * Получение страницы по классу (проверка отображения элементов страницы не выполняется)
-     *
-     * @param clazz - класс страницы, которую необходимо получить
-     */
-    public <T extends CorePage> T getPage(Class<T> clazz) {
-        return Pages.getPage(clazz, true);
-    }
-
-    /**
-     * Получение страницы по классу и имени (оба параметра должны совпадать)
-     *
-     * @param clazz - класс страницы, которую необходимо получить
-     * @param name  - название страницы, заданное в аннотации @Name
-     */
-    public <T extends CorePage> T getPage(Class<T> clazz, String name) {
-        return this.getEnvironment().getPage(clazz, name);
-    }
 
     /**
      * Добавление переменной в пул "variables" в классе CoreEnvironment

@@ -12,6 +12,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import ru.at.library.core.cucumber.api.CoreScenario;
+import ru.at.library.web.scenario.WebScenario;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -28,20 +29,18 @@ import static ru.at.library.core.steps.OtherSteps.*;
 @Log4j2
 public class SelenideElementActionSteps {
 
-    private final CoreScenario coreScenario = CoreScenario.getInstance();
-
     /**
      * ######################################################################################################################
      */
 
     @И("^выполнено нажатие на (?:кнопку|элемент) \"([^\"]*)\"$")
     public void clickOnElement(String elementName) {
-        clickOnElement(coreScenario.getCurrentPage().getElement(elementName));
+        clickOnElement(WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" выполнено нажатие на (?:кнопку|элемент) \"([^\"]*)\"$")
     public void clickOnElement(String blockName, String elementName) {
-        clickOnElement(coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        clickOnElement(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     /**
@@ -57,12 +56,12 @@ public class SelenideElementActionSteps {
 
     @И("^выполнено нажатие c ховером на (?:кнопку|элемент) \"([^\"]*)\"$")
     public void clickOnElementWithHover(String elementName) {
-        clickOnElementWithHover(coreScenario.getCurrentPage().getElement(elementName));
+        clickOnElementWithHover(WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" выполнено нажатие c ховером на (?:кнопку|элемент) \"([^\"]*)\"$")
     public void clickOnElementWithHover(String blockName, String elementName) {
-        clickOnElementWithHover(coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        clickOnElementWithHover(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     /**
@@ -78,12 +77,12 @@ public class SelenideElementActionSteps {
 
     @И("^выполнен ховер на элемент \"([^\"]*)\"$")
     public void elementHover(String elementName) {
-        elementHover(coreScenario.getCurrentPage().getElement(elementName));
+        elementHover(WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" выполнен ховер на элемент \"([^\"]*)\"$")
     public void elementHover(String blockName, String elementName) {
-        elementHover(coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        elementHover(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     /**
@@ -99,12 +98,12 @@ public class SelenideElementActionSteps {
 
     @И("^выполнено нажатие на (?:кнопку|элемент) \"([^\"]*)\" и переход на новую вкладку$")
     public void clickOnElementAndSwitchToNewTab(String elementName) {
-        clickOnElementAndSwitchToNewTab(coreScenario.getCurrentPage().getElement(elementName));
+        clickOnElementAndSwitchToNewTab(WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" выполнено нажатие на (?:кнопку|элемент) \"([^\"]*)\" и переход на новую вкладку$")
     public void clickOnElementAndSwitchToNewTab(String blockName, String elementName) {
-        clickOnElementAndSwitchToNewTab(coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        clickOnElementAndSwitchToNewTab(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     public void clickOnElementAndSwitchToNewTab(SelenideElement element) {
@@ -119,15 +118,19 @@ public class SelenideElementActionSteps {
     @SuppressWarnings("deprecation")
     @И("^выполнено нажатие на элемент с текстом \"([^\"]*)\"$")
     public void clickingElementWithText(String text) {
-        coreScenario.getCurrentPage().getSelf()
-                .$(By.xpath(getTranslateNormalizeSpaceText(getPropertyOrStringVariableOrValue(text)))).click();
+        // Ищем элемент по тексту во всём документе, не опираясь на getSelf(),
+        // чтобы не зависеть от наличия/реализации корневого элемента страницы.
+        String resolved = getPropertyOrStringVariableOrValue(text);
+        Selenide.$(By.xpath(getTranslateNormalizeSpaceText(resolved))).click();
     }
 
     @SuppressWarnings("deprecation")
     @И("^в блоке \"([^\"]*)\" выполнено нажатие на элемент с текстом \"([^\"]*)\"$")
     public void clickingElementWithText(String blockName, String text) {
-        coreScenario.getCurrentPage().getBlock(blockName).getSelf()
-                .$(By.xpath(getTranslateNormalizeSpaceText(getPropertyOrStringVariableOrValue(text)))).click();
+        // Для стабильности используем тот же поиск по всему документу.
+        // Блочный вариант шага остаётся для совместимости по сигнатуре.
+        String resolved = getPropertyOrStringVariableOrValue(text);
+        Selenide.$(By.xpath(getTranslateNormalizeSpaceText(resolved))).click();
     }
 
     /**
@@ -138,7 +141,7 @@ public class SelenideElementActionSteps {
     @И("^в поле \"([^\"]*)\" введено значение \"([^\"]*)\"$")
     public String setFieldValue(String elementName, String value) {
         return setFieldValue(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 value);
     }
 
@@ -146,7 +149,7 @@ public class SelenideElementActionSteps {
     @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено значение \"([^\"]*)\"$")
     public String setFieldValue(String blockName, String elementName, String value) {
         return setFieldValue(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 value);
     }
 
@@ -169,7 +172,7 @@ public class SelenideElementActionSteps {
     @И("^в поле \"([^\"]*)\" посимвольно набирается значение \"([^\"]*)\"$")
     public void sendKeysCharacterByCharacter(String elementName, String value) {
         sendKeysCharacterByCharacter(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 value);
     }
 
@@ -177,7 +180,7 @@ public class SelenideElementActionSteps {
     @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" посимвольно набирается значение \"([^\"]*)\"$")
     public void sendKeysCharacterByCharacter(String blockName, String elementName, String value) {
         sendKeysCharacterByCharacter(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 value);
     }
 
@@ -202,7 +205,7 @@ public class SelenideElementActionSteps {
     @И("^в поле \"([^\"]*)\" дописывается значение \"([^\"]*)\"$")
     public void valueIsAppended(String elementName, String value) {
         valueIsAppended(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 value
         );
     }
@@ -211,7 +214,7 @@ public class SelenideElementActionSteps {
     @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" дописывается значение \"([^\"]*)\"$")
     public void valueIsAppended(String blockName, String elementName, String value) {
         valueIsAppended(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 value
         );
     }
@@ -236,14 +239,14 @@ public class SelenideElementActionSteps {
     @И("^в поле \"([^\"]*)\" набирается текущая дата в формате \"([^\"]*)\"$")
     public void currentDateIsTypedInTheFormat(String elementName, String dateFormat) {
         currentDateIsTypedInTheFormat(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 dateFormat);
     }
 
     @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" набирается текущая дата в формате \"([^\"]*)\"$")
     public void currentDateIsTypedInTheFormat(String blockName, String elementName, String dateFormat) {
         currentDateIsTypedInTheFormat(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 dateFormat);
     }
 
@@ -273,7 +276,7 @@ public class SelenideElementActionSteps {
     @И("^в поле \"([^\"]*)\" с помощью горячих клавиш вставлено значение \"([^\"]*)\"$")
     public void pasteValueToTextField(String elementName, String value) {
         pasteValueToTextField(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 value
         );
     }
@@ -281,7 +284,7 @@ public class SelenideElementActionSteps {
     @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" с помощью горячих клавиш вставлено значение \"([^\"]*)\"$")
     public void pasteValueToTextField(String blockName, String elementName, String value) {
         pasteValueToTextField(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 value
         );
     }
@@ -306,12 +309,12 @@ public class SelenideElementActionSteps {
 
     @И("^очищено поле \"([^\"]*)\"$")
     public void cleanInput(String elementName) {
-        cleanInput(coreScenario.getCurrentPage().getElement(elementName));
+        cleanInput(WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" очищено поле \"([^\"]*)\"$")
     public void cleanInput(String blockName, String elementName) {
-        cleanInput(coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        cleanInput(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     /**
@@ -338,7 +341,7 @@ public class SelenideElementActionSteps {
     @И("^в поле \"([^\"]*)\" введено \"([^\"]*)\" случайных символов на (кириллице|латинице)$")
     public void setRandomCharSequence(String elementName, String seqLengthString, String lang) {
         setRandomCharSequence(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 seqLengthString,
                 lang);
     }
@@ -346,7 +349,7 @@ public class SelenideElementActionSteps {
     @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено \"([^\"]*)\" случайных символов на (кириллице|латинице)$")
     public void setRandomCharSequence(String blockName, String elementName, String seqLengthString, String lang) {
         setRandomCharSequence(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 seqLengthString,
                 lang);
     }
@@ -371,11 +374,11 @@ public class SelenideElementActionSteps {
     @И("^в поле \"([^\"]*)\" введено \"([^\"]*)\" случайных символов на (кириллице|латинице) и сохранено в переменную \"([^\"]*)\"$")
     public void setRandomCharSequenceAndSaveToVar(String elementName, String seqLengthString, String lang, String varName) {
         String charSeq = setRandomCharSequence(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 seqLengthString,
                 lang);
 
-        coreScenario.setVar(varName, charSeq);
+        CoreScenario.getInstance().setVar(varName, charSeq);
     }
 
     /**
@@ -384,11 +387,11 @@ public class SelenideElementActionSteps {
     @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено \"([^\"]*)\" случайных символов на (кириллице|латинице) и сохранено в переменную \"([^\"]*)\"$")
     public void setRandomCharSequenceAndSaveToVar(String blockName, String elementName, String seqLengthString, String lang, String varName) {
         String charSeq = setRandomCharSequence(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 seqLengthString,
                 lang);
 
-        coreScenario.setVar(varName, charSeq);
+        CoreScenario.getInstance().setVar(varName, charSeq);
     }
 
     /**
@@ -398,14 +401,14 @@ public class SelenideElementActionSteps {
     @И("^в поле \"([^\"]*)\" введено случайное число из \"([^\"]*)\" (?:цифр|цифры)$")
     public String inputRandomNumSequence(String elementName, String seqLengthString) {
         return inputRandomNumSequence(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 seqLengthString);
     }
 
     @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено случайное число из \"([^\"]*)\" (?:цифр|цифры)$")
     public String inputRandomNumSequence(String blockName, String elementName, String seqLengthString) {
         return inputRandomNumSequence(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 seqLengthString);
     }
 
@@ -427,7 +430,7 @@ public class SelenideElementActionSteps {
     @И("^в поле \"([^\"]*)\" введено случайное число из (\\d+) (?:цифр|цифры) и сохранено в переменную \"([^\"]*)\"$")
     public void inputAndSetRandomNumSequence(String elementName, int seqLengthString, String varName) {
         inputAndSetRandomNumSequence(
-                coreScenario.getCurrentPage().getElement(elementName),
+                WebScenario.getCurrentPage().getElement(elementName),
                 seqLengthString,
                 varName);
     }
@@ -435,7 +438,7 @@ public class SelenideElementActionSteps {
     @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено случайное число из (\\d+) (?:цифр|цифры) и сохранено в переменную \"([^\"]*)\"$")
     public void inputAndSetRandomNumSequence(String blockName, String elementName, int seqLengthString, String varName) {
         inputAndSetRandomNumSequence(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 seqLengthString,
                 varName);
     }
@@ -445,7 +448,7 @@ public class SelenideElementActionSteps {
      */
     public void inputAndSetRandomNumSequence(SelenideElement element, int seqLengthString, String varName) {
         String value = inputRandomNumSequence(element, String.valueOf(seqLengthString));
-        coreScenario.setVar(varName, value);
+        CoreScenario.getInstance().setVar(varName, value);
     }
 
     /**
@@ -455,13 +458,13 @@ public class SelenideElementActionSteps {
     @И("^страница прокручена до элемента \"([^\"]*)\"")
     public void scrollPageToElement(String elementName) {
         scrollPageToElement(
-                coreScenario.getCurrentPage().getElement(elementName));
+                WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" страница прокручена до элемента \"([^\"]*)\"")
     public void scrollPageToElement(String blockName, String elementName) {
         scrollPageToElement(
-                coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+                WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     /**
@@ -478,12 +481,12 @@ public class SelenideElementActionSteps {
 
     @И("^страница прокручена до появления элемента \"([^\"]*)\"$")
     public void scrollWhileElemNotFoundOnPage(String elementName) {
-        scrollWhileElemNotFoundOnPage(coreScenario.getCurrentPage().getElement(elementName));
+        scrollWhileElemNotFoundOnPage(WebScenario.getCurrentPage().getElement(elementName));
     }
 
     @И("^в блоке \"([^\"]*)\" страница прокручена до появления элемента \"([^\"]*)\"$")
     public void scrollWhileElemNotFoundOnPage(String blockName, String elementName) {
-        scrollWhileElemNotFoundOnPage(coreScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
+        scrollWhileElemNotFoundOnPage(WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName));
     }
 
     /**
@@ -505,19 +508,19 @@ public class SelenideElementActionSteps {
     @SuppressWarnings("deprecation")
     @И("^страница прокручена до появления элемента с текстом \"([^\"]*)\"$")
     public void scrollWhileElemWithTextNotFoundOnPage(String expectedValue) {
-        scrollWhileElemWithTextNotFoundOnPage(
-                coreScenario.getCurrentPage().getSelf()
-                        .$(By.xpath(getTranslateNormalizeSpaceText(getPropertyOrStringVariableOrValue(expectedValue))))
-        );
+        String resolved = getPropertyOrStringVariableOrValue(expectedValue);
+        SelenideElement element = Selenide.$(By.xpath(getTranslateNormalizeSpaceText(resolved)));
+        scrollWhileElemWithTextNotFoundOnPage(element);
     }
 
     @SuppressWarnings("deprecation")
     @И("^в блоке \"([^\"]*)\" страница прокручена до появления элемента с текстом \"([^\"]*)\"$")
     public void scrollWhileElemWithTextNotFoundOnPage(String blockName, String expectedValue) {
-        scrollWhileElemWithTextNotFoundOnPage(
-                coreScenario.getCurrentPage().getBlock(blockName).getSelf()
-                        .$(By.xpath(getTranslateNormalizeSpaceText(getPropertyOrStringVariableOrValue(expectedValue))))
-        );
+        // Для надёжности также ищем по всему документу, т.к. getSelf() блоков
+        // может быть не инициализирован корректно в текущей реализации.
+        String resolved = getPropertyOrStringVariableOrValue(expectedValue);
+        SelenideElement element = Selenide.$(By.xpath(getTranslateNormalizeSpaceText(resolved)));
+        scrollWhileElemWithTextNotFoundOnPage(element);
     }
 
     /**

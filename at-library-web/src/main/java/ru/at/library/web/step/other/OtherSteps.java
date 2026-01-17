@@ -4,7 +4,7 @@ import com.codeborne.selenide.Selenide;
 import com.codeborne.selenide.SelenideElement;
 import io.cucumber.java.ru.И;
 import org.openqa.selenium.Keys;
-import ru.at.library.core.cucumber.api.CoreScenario;
+import ru.at.library.web.scenario.WebScenario;
 
 import java.io.File;
 import java.util.List;
@@ -21,7 +21,6 @@ import static ru.at.library.core.utils.helpers.PropertyLoader.loadValueFromFileO
  */
 public class OtherSteps {
 
-    private final CoreScenario coreScenario = CoreScenario.getInstance();
 
     /**
      * Эмулирует нажатие клавиш на клавиатуре
@@ -71,7 +70,7 @@ public class OtherSteps {
     public void uploadFile(String path, String fieldName) {
         path = getPropertyOrStringVariableOrValue(path);
 
-        coreScenario.getCurrentPage()
+        WebScenario.getCurrentPage()
                 .getElement(fieldName)
                 .uploadFile(new File(path));
     }
@@ -85,7 +84,7 @@ public class OtherSteps {
     public void clickOnButtonAndUploadFile(String buttonName, String fileName) {
         String file = loadValueFromFileOrPropertyOrVariableOrDefault(fileName);
         File attachmentFile = new File(file);
-        coreScenario.getCurrentPage().getElement(buttonName).uploadFile(attachmentFile);
+        WebScenario.getCurrentPage().getElement(buttonName).uploadFile(attachmentFile);
     }
 
     /**

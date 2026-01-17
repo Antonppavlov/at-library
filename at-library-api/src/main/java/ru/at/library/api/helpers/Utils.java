@@ -28,54 +28,38 @@ import java.util.regex.Pattern;
 import static ru.at.library.core.utils.helpers.PropertyLoader.loadProperty;
 
 @Log4j2
+/**
+ * Вспомогательные методы для валидации и обработки JSON/XML/URL-параметров и подстановки переменных в JSON.
+ */
 public class Utils {
     public static final String CURVE_BRACES_PATTERN = "\\{([^{}]+)\\}";
     private static final SoftAssert sa = new SoftAssert();
+
     /**
      * Проверяет, является ли переданная в качестве аргумента строка соответствующей переданному формату, или,
-     * если формат не передан, определяет формат
+     * если формат не передан, определяет формат.
      *
-     * @param checkingValueString - строка для валидации
-     * @param expectedTextFormat  - формат из множества
-     * @return Определенный формат
+     * @param checkingValueString строка для валидации
+     * @param expectedTextFormat  формат из множества или {@code null} для автоопределения
+     * @return определённый или ожидаемый формат
      */
     public static TextFormat defineOrCheckDataFormat(String checkingValueString, TextFormat expectedTextFormat) {
         if (expectedTextFormat != null) {
-            switch (expectedTextFormat) {
-//                case JSON:
-//                    assertTrue(
-//                            "Неверный формат данных:" +
-//                                    "\nожидаемое: " + TextFormat.JSON +
-//                                    "\nреальное: " + checkingValueString +
-//                                    "\n",
-//                            isJSONValid(checkingValueString));
-//                    break;
-//                case XML:
-//                    assertTrue(
-//                            "Неверный формат данных:" +
-//                                    "\nожидаемое: " + TextFormat.XML +
-//                                    "\nреальное: " + checkingValueString +
-//                                    "\n",
-//                            isXMLValid(checkingValueString));
-//                    break;
-//                case PARAMS:
-//                    assertTrue(
-//                            "Неверный формат данных:" +
-//                                    "\nожидаемое: " + TextFormat.PARAMS +
-//                                    "\nреальное: " + checkingValueString +
-//                                    "\n",
-//                            isParamsValid(checkingValueString));
-//                    break;
-            }
-        } else if (isJSONValid(checkingValueString)) {
-            expectedTextFormat = TextFormat.JSON;
-        } else if (isXMLValid(checkingValueString)) {
-            expectedTextFormat = TextFormat.XML;
-        } else if (isParamsValid(checkingValueString)) {
-            expectedTextFormat = TextFormat.PARAMS;
-        } else {
-            sa.fail("Нечитаемый формат данных");
+            // Формат явно задан вызывающим кодом, просто возвращаем его без дополнительной проверки
+            return expectedTextFormat;
         }
+
+        if (isJSONValid(checkingValueString)) {
+            return TextFormat.JSON;
+        }
+        if (isXMLValid(checkingValueString)) {
+            return TextFormat.XML;
+        }
+        if (isParamsValid(checkingValueString)) {
+            return TextFormat.PARAMS;
+        }
+
+        sa.fail("Нечитаемый формат данных");
         return expectedTextFormat;
     }
 

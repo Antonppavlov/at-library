@@ -27,10 +27,7 @@
             <AppenderRef ref="Console"/>
             <AppenderRef ref="File"/>
         </Root>
-        <Logger name="ru.at.library.core.utils.log.Log4jRestAssuredFilter" level="INFO" additivity="false">
-            <AppenderRef ref="Console"/>
-            <AppenderRef ref="File"/>
-        </Logger>
+        <!-- RestAssured логгер перенесён в at-library-api (ru.at.library.api.log.Log4jRestAssuredFilter) -->
         <Logger name="ru" level="INFO" additivity="false">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="File"/>

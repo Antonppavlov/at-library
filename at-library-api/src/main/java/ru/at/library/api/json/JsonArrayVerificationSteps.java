@@ -12,9 +12,10 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+/**
+ * Набор шагов для проверки JSON-массивов в HTTP-ответах (размер, сортировка, значения и интервалы дат).
+ */
 public class JsonArrayVerificationSteps {
-
-    private CoreScenario coreScenario = CoreScenario.getInstance();
 
     /**
      * Проверка что массив найденный по jsonPath в ответе responseName содержит value

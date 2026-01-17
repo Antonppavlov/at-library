@@ -1,9 +1,9 @@
 package ru.at.library.api.json;
 
-import com.google.gson.JsonSyntaxException;
 import com.jayway.jsonpath.JsonPath;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.ru.И;
+import io.cucumber.messages.internal.com.google.gson.JsonSyntaxException;
 import io.restassured.module.jsv.JsonSchemaValidator;
 import io.restassured.response.Response;
 import lombok.extern.log4j.Log4j2;
@@ -11,9 +11,9 @@ import net.minidev.json.JSONObject;
 import net.minidev.json.parser.JSONParser;
 import net.minidev.json.parser.ParseException;
 import org.hamcrest.Matchers;
-import ru.at.library.core.utils.helpers.PropertyLoader;
 import ru.at.library.api.helpers.Utils;
 import ru.at.library.core.cucumber.api.CoreScenario;
+import ru.at.library.core.utils.helpers.PropertyLoader;
 
 import java.util.List;
 
@@ -23,9 +23,12 @@ import static org.testng.AssertJUnit.assertEquals;
 
 
 @Log4j2
+/**
+ * Шаги для проверки и обработки JSON/XML-ответов: сравнение значений, извлечение по jsonpath и проверка по JSON-схемам.
+ */
 public class JsonVerificationSteps {
 
-    private CoreScenario coreScenario = CoreScenario.getInstance();
+    private final CoreScenario coreScenario = CoreScenario.getInstance();
 
     /**
      * Создание json на основе json-шаблона
@@ -34,7 +37,6 @@ public class JsonVerificationSteps {
      *                     обчная замена текста
      * @param variableName переменная для сохраняения заполненного json
      */
-    //TODO проверить работу c XML
     @И("заполняю ([^\"]*)-шаблон \"([^\"]*)\" данными из таблицы и сохраняю в переменную \"([^\"]*)\"")
     public void iFillInTheJsonTypeDataFromTheTableSafeguardTheVariable(String type, String pathExpectedJson, String variableName, DataTable dataTable) {
         String jsonPath = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(pathExpectedJson);
@@ -94,8 +96,7 @@ public class JsonVerificationSteps {
     }
 
     private void checkValuesBody(String typeContentBody, String valueToFind, boolean caseInsensitive, DataTable dataTable) {
-        //TODO посмотреть есть ли более изящное решение проверки boolean
-        Response response = (Response) CoreScenario.getInstance().getVar(valueToFind);
+        Response response = (Response) coreScenario.getVar(valueToFind);
         for (List<String> row : dataTable.asLists()) {
             String path = row.get(0);
 
@@ -137,7 +138,7 @@ public class JsonVerificationSteps {
      */
     @И("^значения из ((?:json|xml)) ответа \"([^\"]*)\", найденные по jsonpath из таблицы, сохранены в переменные$")
     public void getValuesFromBodyAsString(String typeContentBody, String valueToFind, DataTable dataTable) {
-        Response response = (Response) CoreScenario.getInstance().getVar(valueToFind);
+        Response response = (Response) coreScenario.getVar(valueToFind);
 
         for (List<String> row : dataTable.asLists()) {
             String path = row.get(0);
@@ -251,8 +252,8 @@ public class JsonVerificationSteps {
      */
     @И("^значения найденные по jsonPath из json ответа \"([^\"]*)\" равны значениям из json ответа \"([^\"]*)\"$")
     public void valuesFoundByPathEqual(String nameResponseOne, String nameResponseTwo, DataTable dataTable) {
-        Response response1 = (Response) CoreScenario.getInstance().getVar(nameResponseOne);
-        Response response2 = (Response) CoreScenario.getInstance().getVar(nameResponseTwo);
+        Response response1 = (Response) coreScenario.getVar(nameResponseOne);
+        Response response2 = (Response) coreScenario.getVar(nameResponseTwo);
 
         for (List<String> row : dataTable.asLists()) {
             String path = row.get(0);
@@ -291,7 +292,7 @@ public class JsonVerificationSteps {
     public void checkResponseJson(String variableName, String pathExpectedJson) {
         String json = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(pathExpectedJson);
         json = Utils.resolveJsonVars(json);
-        Response response = (Response) CoreScenario.getInstance().getVar(variableName);
+        Response response = (Response) coreScenario.getVar(variableName);
         response
                 .then().body(
                 Matchers.equalTo(json)
@@ -306,7 +307,7 @@ public class JsonVerificationSteps {
      */
     @И("^ответ \"([^\"]*)\" соответсвует json схеме: \"([^\"]*)\"$")
     public void verifyingResponseMatchesJsonScheme(String variableName, String expectedJsonSchema) {
-        Response response = (Response) CoreScenario.getInstance().getVar(variableName);
+        Response response = (Response) coreScenario.getVar(variableName);
         expectedJsonSchema =
                 PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(expectedJsonSchema);
 

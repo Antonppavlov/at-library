@@ -12,7 +12,6 @@
 
     <modules>
         <module>at-library-core</module>
-        <module>at-library-mobile</module>
         <module>at-library-web</module>
         <module>at-library-api</module>
         <module>distribution</module>
@@ -21,11 +20,9 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!--WEB ТЕСТИРОВАНИЕ-->
-        <selenide.version>5.17.4</selenide.version>
+        <selenide.version>7.7.2</selenide.version>
         <!--API ТЕСТИРОВАНИЕ-->
         <rest-assured.version>4.3.3</rest-assured.version>
-        <!--MOBILE ТЕСТИРОВАНИЕ-->
-        <io.appium.java-client.version>7.3.0</io.appium.java-client.version>
         <!--CUCUMBER-->
         <cucumber.version>6.9.1</cucumber.version>
         <junit-jupiter-engine.version>5.7.0</junit-jupiter-engine.version>
@@ -35,7 +32,7 @@
         <!--ОТЧЕТ ALLURE-->
         <allure.version>2.13.8</allure.version>
         <!--LOMBOK-->
-        <lombok.version>1.18.16</lombok.version>
+        <lombok.version>1.18.32</lombok.version>
         <!--JACKSON-->
         <jackson.version>2.12.1</jackson.version>
         <!--HAMCREST-->
@@ -73,23 +70,7 @@
             <artifactId>aspectjrt</artifactId>
             <version>${aspectj.version}</version>
         </dependency>
-        <!--WEB ТЕСТИРОВАНИЕ-->
-        <dependency>
-            <groupId>com.codeborne</groupId>
-            <artifactId>selenide</artifactId>
-            <version>${selenide.version}</version>
-        </dependency>
-        <!--API ТЕСТИРОВАНИЕ-->
-        <dependency>
-            <groupId>io.rest-assured</groupId>
-            <artifactId>rest-assured</artifactId>
-            <version>${rest-assured.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.rest-assured</groupId>
-            <artifactId>json-schema-validator</artifactId>
-            <version>${rest-assured.version}</version>
-        </dependency>
+        <!--WEB/API специфичные зависимости вынесены в соответствующие модули (at-library-web, at-library-api)-->
         <!--CUCUMBER-->
         <dependency>
             <groupId>org.testng</groupId>
@@ -111,17 +92,6 @@
             <groupId>io.qameta.allure</groupId>
             <artifactId>allure-cucumber6-jvm</artifactId>
             <version>${allure.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.qameta.allure</groupId>
-            <artifactId>allure-selenide</artifactId>
-            <version>${allure.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.codeborne</groupId>
-                    <artifactId>selenide</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <!--LOMBOK-->
         <dependency>
@@ -156,17 +126,7 @@
 <!--            <artifactId>json-simple</artifactId>-->
 <!--            <version>1.1</version>-->
 <!--        </dependency>-->
-        <dependency>
-            <groupId>com.assertthat</groupId>
-            <artifactId>selenium-shutterbug</artifactId>
-            <version>${version.shutterbug}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.seleniumhq.selenium</groupId>
-                    <artifactId>selenium-java</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+        <!-- selenium-shutterbug используется только в at-library-web и подключается там -->
         <!--HAMCREST-->
         <dependency>
             <groupId>org.hamcrest</groupId>
@@ -189,8 +149,8 @@
                 <version>${maven-compiler.version}</version>
                 <configuration>
                     <encoding>UTF-8</encoding>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>17</source>
+                    <target>17</target>
                 </configuration>
             </plugin>
             <plugin>

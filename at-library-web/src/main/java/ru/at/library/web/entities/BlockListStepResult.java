@@ -1,13 +1,13 @@
 package ru.at.library.web.entities;
 
 import org.openqa.selenium.WebElement;
-import ru.at.library.core.cucumber.api.CorePage;
-import ru.at.library.web.core.IStepResult;
+import ru.at.library.web.scenario.CorePage;
+import ru.at.library.web.scenario.IStepResult;
 
 import java.util.*;
 
-import static ru.at.library.web.core.CastToWebElements.getBlockListAsWebElementsList;
-import static ru.at.library.web.core.CastToWebElements.tryGetWebElement;
+import static ru.at.library.web.scenario.CastToWebElements.getBlockListAsWebElementsList;
+import static ru.at.library.web.scenario.CastToWebElements.tryGetWebElement;
 
 /**
  * Класс используемый для выделения элементов на скриншоте страницы в результате выполения

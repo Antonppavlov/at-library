@@ -3,8 +3,8 @@ package ru.at.library.web.entities;
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
 import org.openqa.selenium.WebElement;
-import ru.at.library.web.core.CastToWebElements;
-import ru.at.library.web.core.IStepResult;
+import ru.at.library.web.scenario.CastToWebElements;
+import ru.at.library.web.scenario.IStepResult;
 
 import java.util.ArrayList;
 import java.util.Arrays;

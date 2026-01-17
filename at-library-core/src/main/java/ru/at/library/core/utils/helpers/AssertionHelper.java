@@ -1,7 +1,5 @@
 package ru.at.library.core.utils.helpers;
 
-import com.codeborne.selenide.AssertionMode;
-import com.codeborne.selenide.Configuration;
 import org.hamcrest.Matcher;
 
 import java.util.List;
@@ -9,7 +7,11 @@ import java.util.List;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class AssertionHelper {
-    private final boolean SOFT_ASSERT_ENABLED = Configuration.assertionMode.equals(AssertionMode.SOFT);
+    /**
+     * Включение режима "мягких" ассертов, когда ошибки накапливаются, а не падают сразу.
+     * Управляется системным свойством core.softAssert=true (по умолчанию: false).
+     */
+    private final boolean SOFT_ASSERT_ENABLED = Boolean.parseBoolean(System.getProperty("core.softAssert", "false"));
     private final ThreadLocal<StringList> stepErrors = new ThreadLocal<>();
 
     public <T> void hamcrestAssert(String reason, T actual, Matcher<? super T> matcher) throws AssertionError {

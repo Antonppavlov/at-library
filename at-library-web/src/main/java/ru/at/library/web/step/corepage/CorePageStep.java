@@ -6,8 +6,8 @@ import com.codeborne.selenide.WebDriverRunner;
 import io.cucumber.java.ru.И;
 import lombok.extern.log4j.Log4j2;
 import org.openqa.selenium.JavascriptExecutor;
-import ru.at.library.core.cucumber.api.CorePage;
-import ru.at.library.core.cucumber.api.CoreScenario;
+import ru.at.library.web.scenario.CorePage;
+import ru.at.library.web.scenario.WebScenario;
 
 import static com.codeborne.selenide.Selenide.open;
 import static com.codeborne.selenide.WebDriverRunner.url;
@@ -20,7 +20,10 @@ import static ru.at.library.core.utils.helpers.ScopedVariables.resolveVars;
 @Log4j2
 public class CorePageStep {
 
-    private final CoreScenario coreScenario = CoreScenario.getInstance();
+    /**
+     * Для работы с элементами страниц используется WebScenario (страницы),
+     * а для переменных/ассертов по-прежнему CoreScenario.
+     */
 
     /**
      * Проверка того, что все элементы, которые описаны в классе страницы с аннотацией @Name,
@@ -30,9 +33,9 @@ public class CorePageStep {
      */
     @И("^(?:страница|форма|вкладка) \"([^\"]*)\" загрузилась$")
     public void loadPage(String nameOfPage) {
-        CorePage page = coreScenario.getPage(nameOfPage);
-        coreScenario.setCurrentPage(page);
-        coreScenario.getCurrentPage().isAppeared();
+        CorePage page = WebScenario.getPage(nameOfPage);
+        WebScenario.setCurrentPage(page);
+        WebScenario.getCurrentPage().isAppeared();
     }
 
     /**
@@ -43,9 +46,9 @@ public class CorePageStep {
      */
     @И("^блок \"([^\"]*)\" загрузился$")
     public void loadBlock(String nameOfPage) {
-        CorePage page = coreScenario.getCurrentPage().getBlock(nameOfPage);
-        coreScenario.setCurrentPage(page);
-        coreScenario.getCurrentPage().isAppeared();
+        CorePage page = WebScenario.getCurrentPage().getBlock(nameOfPage);
+        WebScenario.setCurrentPage(page);
+        WebScenario.getCurrentPage().isAppeared();
     }
 
     /**
@@ -56,8 +59,8 @@ public class CorePageStep {
      */
     @И("^(?:страница|форма|вкладка) \"([^\"]*)\" не загрузилась$")
     public void loadPageDisappeared(String nameOfPage) {
-        coreScenario.setCurrentPage(coreScenario.getPage(nameOfPage));
-        coreScenario.getCurrentPage().isDisappeared();
+        WebScenario.setCurrentPage(WebScenario.getPage(nameOfPage));
+        WebScenario.getCurrentPage().isDisappeared();
     }
 
     /**
@@ -67,8 +70,8 @@ public class CorePageStep {
      */
     @И("^совершен переход на страницу \"([^\"]*)\"$")
     public void setCurrentPage(String pageName) {
-        CorePage page = CoreScenario.getInstance().getPage(pageName);
-        CoreScenario.getInstance().setCurrentPage(page);
+        CorePage page = WebScenario.getPage(pageName);
+        WebScenario.setCurrentPage(page);
     }
 
     /**
@@ -113,7 +116,7 @@ public class CorePageStep {
      */
     @И("^выполнен переход на страницу \"([^\"]*)\" после нажатия на (?:кнопку|ссылку|поле|чекбокс|радиокнопу|текст|элемент) \"([^\"]*)\"$")
     public void urlClickAndCheckRedirection(String nameOfPage, String elementName) {
-        coreScenario.getCurrentPage().getElement(elementName).click();
+        WebScenario.getCurrentPage().getElement(elementName).click();
         loadPage(nameOfPage);
         log.trace(" url = " + url());
     }
@@ -123,10 +126,10 @@ public class CorePageStep {
      */
     @И("^все элементы текущей страницы отображаются$")
     public void pageAppeared() {
-        coreScenario.setCurrentPage(
-                coreScenario.getPage(coreScenario.getCurrentPage().getName())
+        WebScenario.setCurrentPage(
+                WebScenario.getPage(WebScenario.getCurrentPage().getName())
         );
-        coreScenario.getCurrentPage().checkPrimary(true);
+        WebScenario.getCurrentPage().checkPrimary(true);
     }
 
     /**
@@ -136,7 +139,7 @@ public class CorePageStep {
      */
     @И("^блок \"([^\"]*)\" отображается на странице$")
     public void blockAppeared(String blockName) {
-        CorePage block = this.coreScenario.getCurrentPage().getBlock(blockName);
+        CorePage block = WebScenario.getCurrentPage().getBlock(blockName);
         blockAppeared(block);
     }
 
@@ -147,7 +150,7 @@ public class CorePageStep {
      */
     @И("^блок \"([^\"]*)\" не отображается на странице$")
     public void blockDisappeared(String blockName) {
-        CorePage block = this.coreScenario.getCurrentPage().getBlock(blockName);
+        CorePage block = WebScenario.getCurrentPage().getBlock(blockName);
         block.isDisappeared();
     }
 
@@ -159,7 +162,7 @@ public class CorePageStep {
     @SuppressWarnings("deprecation")
     @И("^блок \"([^\"]*)\" не присутствует в DOM$")
     public void blockDoesntExist(String blockName) {
-        this.coreScenario.getCurrentPage().getBlock(blockName).getSelf().shouldHave(Condition.not(Condition.exist));
+        WebScenario.getCurrentPage().getBlock(blockName).getSelf().shouldHave(Condition.not(Condition.exist));
     }
 
     /**
@@ -170,7 +173,7 @@ public class CorePageStep {
      */
     @И("^в блоке \"([^\"]*)\" блок \"([^\"]*)\" отображается на странице$")
     public void blockAppeared(String parentBlockName, String childBlockName) {
-        CorePage block = this.coreScenario.getCurrentPage().getBlock(parentBlockName).getBlock(childBlockName);
+        CorePage block = WebScenario.getCurrentPage().getBlock(parentBlockName).getBlock(childBlockName);
         blockAppeared(block);
     }
 

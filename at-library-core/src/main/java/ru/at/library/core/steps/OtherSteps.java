@@ -7,8 +7,6 @@ import io.cucumber.java.ru.То;
 import lombok.extern.log4j.Log4j2;
 import ru.at.library.core.cucumber.api.CoreScenario;
 
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -22,7 +20,6 @@ import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.codeborne.selenide.Selenide.sleep;
 import static java.util.Objects.isNull;
 import static org.hamcrest.Matchers.*;
 import static org.testng.Assert.assertNotNull;
@@ -316,21 +313,21 @@ public class OtherSteps {
         coreScenario.setVar(varName, template);
     }
 
-    /**
-     * Валидация что текст является email-ом
-     */
-    @И("^значение переменной \"([^\"]*)\" является email-ом$")
-    public void checkEmail(String variableName) throws AddressException {
-        String valueVariable = coreScenario.getVar(variableName).toString();
-        new InternetAddress(valueVariable)
-                .validate();
-    }
+//    /**
+//     * Валидация что текст является email-ом
+//     */
+//    @И("^значение переменной \"([^\"]*)\" является email-ом$")
+//    public void checkEmail(String variableName) throws AddressException {
+//        String valueVariable = coreScenario.getVar(variableName).toString();
+//        new InternetAddress(valueVariable)
+//                .validate();
+//    }
 
     /**
      * Валидация что текст является email-ом
      */
     @И("^длина строки переменной \"([^\"]*)\" ((?:больше|меньше|равна)) (\\d+)$")
-    public void checkEmail(String variableName, String condition, int expectedLength) throws AddressException {
+    public void checkEmail(String variableName, String condition, int expectedLength) {
         int actualLength = coreScenario.getVar(variableName).toString().length();
         String message = "Длина строки переменной " + variableName + condition + " " + expectedLength;
         org.hamcrest.Matcher<Integer> matcher;
@@ -408,7 +405,12 @@ public class OtherSteps {
      */
     @И("^выполнено ожидание в течение (\\d+) (?:секунд|секунды)")
     public void waitForSeconds(long seconds) {
-        sleep(1000 * seconds);
+        try {
+            Thread.sleep(1000 * seconds);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Ожидание было прервано", e);
+        }
     }
 
     /**
