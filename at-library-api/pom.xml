@@ -5,7 +5,7 @@
     <parent>
         <artifactId>at-library</artifactId>
         <groupId>ru</groupId>
-        <version>30.07.2021</version>
+        <version>17.02.2025</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -20,7 +20,7 @@
         <dependency>
             <groupId>ru</groupId>
             <artifactId>at-library-core</artifactId>
-            <version>30.07.2021</version>
+            <version>17.02.2025</version>
             <scope>compile</scope>
         </dependency>
 
