@@ -3,18 +3,20 @@ package ru.at.library.web.step.listcorepage;
 import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.SelenideElement;
+import com.codeborne.selenide.WebElementCondition;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.ru.И;
 import io.cucumber.java.ru.То;
 import lombok.extern.log4j.Log4j2;
 import org.openqa.selenium.Point;
 import org.testng.Assert;
-import ru.at.library.core.cucumber.api.CorePage;
 import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.core.steps.OtherSteps;
-import ru.at.library.web.core.CustomCondition;
-import ru.at.library.web.core.IStepResult;
 import ru.at.library.web.entities.BlockListStepResult;
+import ru.at.library.web.scenario.CorePage;
+import ru.at.library.web.scenario.CustomCondition;
+import ru.at.library.web.scenario.IStepResult;
+import ru.at.library.web.scenario.WebScenario;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -264,7 +266,7 @@ public class ListCorePageCheckSteps {
         List<CorePage> blocksList =
                 getBlockListWithCheckingTheQuantity(blockListName, CustomCondition.Comparison.more, 0);
 
-        SelenideElement element = this.coreScenario.getCurrentPage().getElement(elementOuter);
+        SelenideElement element = WebScenario.getCurrentPage().getElement(elementOuter);
         int elementLeftBound = element.getLocation().x;
         int elementRightBound = elementLeftBound + element.getSize().width;
 
@@ -290,7 +292,7 @@ public class ListCorePageCheckSteps {
                 0
         );
 
-        SelenideElement element = this.coreScenario.getCurrentPage().getBlock(blockName).getElement(elementOuter);
+        SelenideElement element = WebScenario.getCurrentPage().getBlock(blockName).getElement(elementOuter);
         int elementLeftBound = element.getLocation().x;
         int elementRightBound = elementLeftBound + element.getSize().width;
 
@@ -467,7 +469,7 @@ public class ListCorePageCheckSteps {
             methodCheckHasCssInBlockList(block, elementName, cssName, cssValue);
         }
 
-        return new BlockListStepResult(this.coreScenario.getCurrentPage().getBlocksList(blockListName), elementName);
+        return new BlockListStepResult(WebScenario.getCurrentPage().getBlocksList(blockListName), elementName);
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
@@ -480,7 +482,7 @@ public class ListCorePageCheckSteps {
             methodCheckHasCssInBlockList(block, elementName, cssName, cssValue);
         }
 
-        return new BlockListStepResult(this.coreScenario.getCurrentPage().getBlocksList(blockListName), elementName);
+        return new BlockListStepResult(WebScenario.getCurrentPage().getBlocksList(blockListName), elementName);
     }
 
 
@@ -498,7 +500,7 @@ public class ListCorePageCheckSteps {
             methodCheckNotHasCssInBlockList(block, elementName, cssName, cssValue);
         }
 
-        return new BlockListStepResult(this.coreScenario.getCurrentPage().getBlocksList(blockListName), elementName);
+        return new BlockListStepResult(WebScenario.getCurrentPage().getBlocksList(blockListName), elementName);
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" не содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
@@ -511,7 +513,7 @@ public class ListCorePageCheckSteps {
             methodCheckNotHasCssInBlockList(block, elementName, cssName, cssValue);
         }
 
-        return new BlockListStepResult(this.coreScenario.getCurrentPage().getBlocksList(blockListName), elementName);
+        return new BlockListStepResult(WebScenario.getCurrentPage().getBlocksList(blockListName), elementName);
     }
 
     /**
@@ -613,7 +615,7 @@ public class ListCorePageCheckSteps {
         long time = System.currentTimeMillis() + Configuration.timeout;
 
         do {
-            blocksList = this.coreScenario.getCurrentPage().getBlock(blockName).getBlocksList(blockListName);
+            blocksList = WebScenario.getCurrentPage().getBlock(blockName).getBlocksList(blockListName);
             try {
                 resultList = getBlockListWithComplexCondition(blocksList, conditionsTable);
                 if (resultList.size() > 0) {
@@ -1155,7 +1157,7 @@ public class ListCorePageCheckSteps {
 
         CorePage block = blocksList.get(blockIndex - 1);
 
-        Condition condition = null;
+        WebElementCondition condition = null;
         expectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
         switch (conditionString) {
             case "равен":
@@ -1177,7 +1179,7 @@ public class ListCorePageCheckSteps {
 
         CorePage block = blocksList.get(blockIndex - 1);
 
-        Condition condition = null;
+        WebElementCondition condition = null;
         expectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
         switch (conditionString) {
             case "равен":

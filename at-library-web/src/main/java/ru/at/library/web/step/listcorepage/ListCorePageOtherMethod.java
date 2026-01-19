@@ -1,17 +1,14 @@
 package ru.at.library.web.step.listcorepage;
 
-import com.codeborne.selenide.Condition;
-import com.codeborne.selenide.Configuration;
-import com.codeborne.selenide.Selenide;
-import com.codeborne.selenide.SelenideElement;
+import com.codeborne.selenide.*;
 import io.cucumber.datatable.DataTable;
 import io.qameta.allure.Step;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.NoSuchElementException;
-import ru.at.library.core.cucumber.api.CorePage;
-import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.core.steps.OtherSteps;
-import ru.at.library.web.core.CustomCondition;
+import ru.at.library.web.scenario.CorePage;
+import ru.at.library.web.scenario.CustomCondition;
+import ru.at.library.web.scenario.WebScenario;
 import ru.at.library.web.step.browser.BrowserSteps;
 
 import java.util.ArrayList;
@@ -189,23 +186,23 @@ public class ListCorePageOtherMethod {
         sleep(3000);
         for (int i = 0; i < Configuration.timeout; i = (int) (i + Configuration.pollingInterval)) {
             sleep(100);
-            blocksList = CoreScenario.getInstance().getCurrentPage().getBlocksList(listName);
+            blocksList = WebScenario.getCurrentPage().getBlocksList(listName);
             blocksListSize = blocksList.size();
             if (CustomCondition.comparisonInt(comparison, blocksListSize, count)) {
                 return blocksList;
-            }
+            } 
         }
 
         BrowserSteps.takeScreenshot();
         throw new AssertionError(
-                "CurrentPage: '" + CoreScenario.getInstance().getCurrentPage().getName() + "'" +
+                "CurrentPage: '" + WebScenario.getCurrentPage().getName() + "'" +
                         "\nList<CorePage>: '" + listName + "'" +
                         "\nРеальное количество блоков: '" + blocksListSize + "'" +
                         "\nПроверяемое условие: '" + comparison.toString() + "'" +
                         "\nПроверяемое количество: '" + count + "'"
         );
 //        String message = String.format("CurrentPage: '%s'\nList<CorePage>: '%s'\nФактическое количество блоков: '%s'\nПроверяемое условие: '%s'\nОжидаемое количество: '%s'\n",
-//                CoreScenario.getInstance().getCurrentPage().getName(), listName, blocksListSize, comparison.toString(), count);
+//                WebScenario.getCurrentPage().getName(), listName, blocksListSize, comparison.toString(), count);
 //
 //        CoreScenario.getInstance().getAssertionHelper()
 //                .hamcrestAssert(message, CustomCondition.comparisonInt(comparison, blocksListSize, count), is(equalTo(true)));
@@ -221,7 +218,7 @@ public class ListCorePageOtherMethod {
         sleep(3000);
         for (int i = 0; i < Configuration.timeout; i = (int) (i + Configuration.pollingInterval)) {
             sleep(100);
-            blocksList = CoreScenario.getInstance().getCurrentPage().getBlock(blockName).getBlocksList(listName);
+            blocksList = WebScenario.getCurrentPage().getBlock(blockName).getBlocksList(listName);
             blocksListSize = blocksList.size();
 
             if (CustomCondition.comparisonInt(comparison, blocksListSize, count)) {
@@ -231,7 +228,7 @@ public class ListCorePageOtherMethod {
 
         BrowserSteps.takeScreenshot();
         throw new AssertionError(
-                "CurrentPage: '" + CoreScenario.getInstance().getCurrentPage().getName() + "'" +
+                "CurrentPage: '" + WebScenario.getCurrentPage().getName() + "'" +
                         "\nblockName: '" + blockName + "'" +
                         "\nList<CorePage>: '" + listName + "'" +
                         "\nРеальное количество блоков: '" + blocksListSize + "'" +
@@ -276,7 +273,7 @@ public class ListCorePageOtherMethod {
     @Step("поиск блока в котором текст элемента {elementName} {textCondition} {expectedText}")
     private static List<CorePage> findCorePageByConditionInElement(List<CorePage> blockList, String elementName, String elementCondition, String expectedValue) {
         List<CorePage> resultList = new ArrayList<>();
-        Condition condition = getSelenideCondition(elementCondition, expectedValue);
+        WebElementCondition condition = getSelenideCondition(elementCondition, expectedValue);
         for (CorePage page : blockList) {
             SelenideElement element = page.getElement(elementName);
             if (element.is(Condition.exist)) {
@@ -296,8 +293,8 @@ public class ListCorePageOtherMethod {
         return resultList;
     }
 
-    public static Condition getSelenideCondition(String elementCondition, String expectedValue) {
-        Condition condition;
+    public static WebElementCondition getSelenideCondition(String elementCondition, String expectedValue) {
+        WebElementCondition condition;
         switch (elementCondition) {
             case "текст равен": {
                 condition = Condition.or("текст элемента равен",

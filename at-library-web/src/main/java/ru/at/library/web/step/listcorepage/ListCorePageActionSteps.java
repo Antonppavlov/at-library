@@ -5,12 +5,12 @@ import com.codeborne.selenide.SelenideElement;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.ru.И;
 import io.cucumber.java.ru.То;
-import ru.at.library.core.cucumber.api.CorePage;
 import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.core.steps.OtherSteps;
-import ru.at.library.web.core.CustomCondition;
-import ru.at.library.web.core.IStepResult;
 import ru.at.library.web.entities.BlockListStepResult;
+import ru.at.library.web.scenario.CorePage;
+import ru.at.library.web.scenario.CustomCondition;
+import ru.at.library.web.scenario.IStepResult;
 
 import java.util.List;
 import java.util.stream.Collectors;
