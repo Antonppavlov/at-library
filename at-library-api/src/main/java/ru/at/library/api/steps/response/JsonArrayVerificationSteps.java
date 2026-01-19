@@ -1,12 +1,12 @@
-package ru.at.library.api.json;
+package ru.at.library.api.steps.response;
 
 import com.google.common.collect.Ordering;
 import io.cucumber.java.ru.И;
 import io.restassured.response.Response;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import ru.at.library.core.utils.helpers.PropertyLoader;
 import ru.at.library.core.cucumber.api.CoreScenario;
+import ru.at.library.core.utils.helpers.PropertyLoader;
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -111,7 +111,7 @@ public class JsonArrayVerificationSteps {
                 throw new AssertionError(
                         "Найденный по jsonPath" + jsonPath +
                                 "\n список: " + list +
-                                "\n содержит значения которые не соответствуют периуду между : " + valueStart + " и "
+                                "\n содержит значения которые не соответствуют периоду между : " + valueStart + " и "
                                 + valueEnd);
             }
         }

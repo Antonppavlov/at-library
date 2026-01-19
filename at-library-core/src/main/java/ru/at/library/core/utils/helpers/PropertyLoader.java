@@ -173,13 +173,31 @@ public class PropertyLoader {
     public static String loadValueFromFileOrVariableOrDefault(String valueToFind) {
         String pathAsString = StringUtils.EMPTY;
         try {
-            Path path = Paths.get(System.getProperty("user.dir") + valueToFind);
+            Path path = Paths.get(System.getProperty("user.dir", "."))
+                    .resolve(valueToFind);
             pathAsString = path.toString();
             String fileValue = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
-            log.trace("Значение из файла " + valueToFind + " = " + fileValue);
+            log.warn("Значение из файла " + valueToFind + " = " + fileValue);
             return fileValue;
         } catch (IOException | InvalidPathException e) {
-            log.trace("Значение не найдено по пути " + pathAsString);
+            log.warn("Значение не найдено по пути " + pathAsString);
+        }
+        // Попытка загрузить значение как ресурс из classpath (src/test/resources, src/main/resources и т.п.)
+        String resourcePath = valueToFind.startsWith("/") ? valueToFind.substring(1) : valueToFind;
+        try {
+            InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourcePath);
+            if (is == null) {
+                is = PropertyLoader.class.getClassLoader().getResourceAsStream(resourcePath);
+            }
+            if (is != null) {
+                try (InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+                    String fileValue = readAll(reader);
+                    log.warn("Значение из classpath ресурса " + valueToFind + " = " + fileValue);
+                    return fileValue;
+                }
+            }
+        } catch (IOException e) {
+            log.warn("Ошибка чтения classpath ресурса " + valueToFind, e);
         }
         if (CoreScenario.getInstance().tryGetVar(valueToFind) != null) {
             Object var = CoreScenario.getInstance().getVar(valueToFind);
@@ -189,7 +207,7 @@ public class PropertyLoader {
 //            }
             return (String) var;
         }
-        log.trace("Значение не найдено в хранилище. Будет исользовано значение по умолчанию " + valueToFind);
+        log.warn("Значение не найдено в хранилище. Будет исользовано значение по умолчанию " + valueToFind);
         return valueToFind;
     }
 
@@ -204,17 +222,35 @@ public class PropertyLoader {
         String pathAsString = StringUtils.EMPTY;
         String propertyValue = tryLoadProperty(valueToFind);
         if (StringUtils.isNotBlank(propertyValue)) {
-            log.trace("Значение переменной: " + valueToFind + " из " + PROPERTIES_FILE + " = " + propertyValue);
+            log.warn("Значение переменной: " + valueToFind + " из " + PROPERTIES_FILE + " = " + propertyValue);
             return propertyValue;
         }
         try {
-            Path path = Paths.get(System.getProperty("user.dir") + valueToFind);
+            Path path = Paths.get(System.getProperty("user.dir", "."))
+                    .resolve(valueToFind);
             pathAsString = path.toString();
             String fileValue = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
-            log.trace("Значение из файла " + valueToFind + " = " + fileValue);
+            log.warn("Значение из файла " + valueToFind + " = " + fileValue);
             return fileValue;
         } catch (IOException | InvalidPathException e) {
-            log.trace("Значение не найдено по пути: " + pathAsString);
+            log.warn("Значение не найдено по пути: " + pathAsString);
+        }
+        // Попытка загрузить значение как ресурс из classpath (src/test/resources, src/main/resources и т.п.)
+        String resourcePath = valueToFind.startsWith("/") ? valueToFind.substring(1) : valueToFind;
+        try {
+            InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourcePath);
+            if (is == null) {
+                is = PropertyLoader.class.getClassLoader().getResourceAsStream(resourcePath);
+            }
+            if (is != null) {
+                try (InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+                    String fileValue = readAll(reader);
+                    log.warn("Значение из classpath ресурса " + valueToFind + " = " + fileValue);
+                    return fileValue;
+                }
+            }
+        } catch (IOException e) {
+            log.warn("Ошибка чтения classpath ресурса " + valueToFind, e);
         }
         if (CoreScenario.getInstance().tryGetVar(valueToFind) != null) {
             Object var = CoreScenario.getInstance().getVar(valueToFind);
@@ -224,7 +260,7 @@ public class PropertyLoader {
 //            }
             return (String) var;
         }
-        log.trace("Значение не найдено в хранилище. Будет исользовано значение по умолчанию " + valueToFind);
+        log.warn("Значение не найдено в хранилище. Будет исользовано значение по умолчанию " + valueToFind);
         return valueToFind;
     }
 
@@ -371,6 +407,16 @@ public class PropertyLoader {
             result.add(m.group(0));
         }
         return result;
+    }
+
+    private static String readAll(InputStreamReader reader) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        char[] buffer = new char[4096];
+        int read;
+        while ((read = reader.read(buffer)) != -1) {
+            sb.append(buffer, 0, read);
+        }
+        return sb.toString();
     }
 
     /**

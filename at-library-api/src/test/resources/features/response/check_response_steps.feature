@@ -39,12 +39,8 @@
     И значения из JSON "{pets_available_body}" сохранены в переменные по таблице:
       | $[0].id | first_pet_id |
 
-  # saveBase64ToPdf
-  Сценарий: Декодирование base64 и сохранение в файл
-    И переменная "JVBERi0xLjQKJcTl8uXrp/Og0MTGCjEgMCBvYmoKPDwKL0xlbmd0aCAyIDAgUgovRmlsdGVyIC9GbGF0ZURlY29kZQo+PgpcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXG4KZW5kb2JqCg==" содержит base64 кодирование, декодирована в pdf и сохранена по пути "./target" с именем "sample" в формате "pdf"
 
   # Дополнительные сценарии для проверки ответов POST/PUT/DELETE с использованием CheckResponseSteps
-
   Сценарий: Проверка кода и тела ответа для POST создания питомца
     И отправлен HTTP POST запрос на URL "url.pet" с параметрами запроса и ожидается код ответа 200, а ответ сохранён в переменную "create_pet_response_for_check"
       | HEADER | Accept       | application/json        |

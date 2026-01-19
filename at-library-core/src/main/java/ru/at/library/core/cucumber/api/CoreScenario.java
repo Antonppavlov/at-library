@@ -17,8 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import ru.at.library.core.utils.helpers.AssertionHelper;
 import ru.at.library.core.utils.helpers.ScopedVariables;
 
-import java.util.function.Consumer;
-
 /**
  * Главный класс, отвечающий за сопровождение тестовых шагов
  */

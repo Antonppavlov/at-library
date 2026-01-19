@@ -1,4 +1,4 @@
-package ru.at.library.api.steps;
+package ru.at.library.api.steps.request;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;

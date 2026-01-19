@@ -4,9 +4,9 @@ import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import ru.at.library.web.scenario.CorePage;
 import ru.at.library.web.scenario.annotations.Hidden;
 import ru.at.library.web.scenario.annotations.Mandatory;
-import ru.at.library.web.scenario.CorePage;
 import ru.at.library.web.scenario.annotations.Optional;
 
 import java.lang.reflect.Field;

@@ -1,22 +1,18 @@
-package ru.at.library.api.steps;
+package ru.at.library.api.steps.response;
 
-import io.cucumber.java.ru.И;
 import io.cucumber.datatable.DataTable;
+import io.cucumber.java.ru.И;
 import io.restassured.response.Response;
 import lombok.extern.log4j.Log4j2;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.text.MatchesPattern;
 import ru.at.library.api.helpers.FormattedDataContainer;
-import ru.at.library.core.utils.helpers.PropertyLoader;
 import ru.at.library.api.helpers.TextFormat;
 import ru.at.library.api.helpers.Utils;
 import ru.at.library.core.cucumber.api.CoreScenario;
+import ru.at.library.core.utils.helpers.PropertyLoader;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Base64;
 import java.util.List;
 import java.util.function.Function;
 
@@ -290,26 +286,6 @@ public class CheckResponseSteps {
     }
 
     /**
-     * Возвращает {@link Response} из хранилища переменных по имени.
-     * Бросает осмысленные исключения, если имя пустое или в переменной лежит не {@link Response}.
-     *
-     * @param responseNameVariable имя переменной, в которой ожидается {@link Response}
-     * @return объект {@link Response}
-     */
-    private Response getResponse(String responseNameVariable) {
-        if (responseNameVariable == null || responseNameVariable.trim().isEmpty()) {
-            throw new IllegalArgumentException("Имя переменной с Response не может быть null или пустым");
-        }
-
-        Object value = coreScenario.getVar(responseNameVariable);
-        if (!(value instanceof Response)) {
-            throw new IllegalStateException("Переменная '" + responseNameVariable + "' не содержит объект Response");
-        }
-
-        return (Response) value;
-    }
-
-    /**
      * Получение Cookies из ответа
      *
      * @param responseNameVariable имя переменной которая содержит Response
@@ -359,24 +335,24 @@ public class CheckResponseSteps {
         }
     }
 
-    @И("^переменная \"([^\"]+)\" содержит base64 кодирование, декодирована в pdf и сохранена по пути \"([^\"]+)\" с именем \"([^\"]+)\" в формате \"([^\"]+)\"$")
-    public void saveBase64ToPdf(String encodeBytes, String path, String fName, String fFormat) throws IOException {
-        String base64Code = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(encodeBytes);
-        String fileName = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(fName);
-        String fileFormat = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(fFormat);
-        String baseDir = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(path);
 
-        byte[] decodedBytes = Base64.getDecoder().decode(base64Code);
-
-        File dir = new File(baseDir);
-        if (!dir.exists() && !dir.mkdirs()) {
-            throw new IOException("Не удалось создать директорию для сохранения файла: " + baseDir);
+    /**
+     * Возвращает {@link Response} из хранилища переменных по имени.
+     * Бросает осмысленные исключения, если имя пустое или в переменной лежит не {@link Response}.
+     *
+     * @param responseNameVariable имя переменной, в которой ожидается {@link Response}
+     * @return объект {@link Response}
+     */
+    private Response getResponse(String responseNameVariable) {
+        if (responseNameVariable == null || responseNameVariable.trim().isEmpty()) {
+            throw new IllegalArgumentException("Имя переменной с Response не может быть null или пустым");
         }
 
-        File file = new File(dir, fileName + "." + fileFormat);
-        try (FileOutputStream fos = new FileOutputStream(file)) {
-            fos.write(decodedBytes);
-            fos.flush();
+        Object value = coreScenario.getVar(responseNameVariable);
+        if (!(value instanceof Response)) {
+            throw new IllegalStateException("Переменная '" + responseNameVariable + "' не содержит объект Response");
         }
+
+        return (Response) value;
     }
 }

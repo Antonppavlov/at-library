@@ -1,4 +1,4 @@
-package ru.at.library.api.json;
+package ru.at.library.api.steps.response;
 
 import com.jayway.jsonpath.JsonPath;
 import io.cucumber.datatable.DataTable;
@@ -17,9 +17,7 @@ import ru.at.library.core.utils.helpers.PropertyLoader;
 
 import java.util.List;
 
-import static org.testng.Assert.assertNotNull;
-import static org.testng.Assert.assertTrue;
-import static org.testng.AssertJUnit.assertEquals;
+import static org.testng.Assert.*;
 
 
 @Log4j2
@@ -37,7 +35,7 @@ public class JsonVerificationSteps {
      *                     обчная замена текста
      * @param variableName переменная для сохраняения заполненного json
      */
-    @И("заполняю ([^\"]*)-шаблон \"([^\"]*)\" данными из таблицы и сохраняю в переменную \"([^\"]*)\"")
+    @И("^заполняю (JSON|XML)-шаблон \"([^\"]*)\" данными из таблицы и сохраняю в переменную \"([^\"]*)\"$")
     public void iFillInTheJsonTypeDataFromTheTableSafeguardTheVariable(String type, String pathExpectedJson, String variableName, DataTable dataTable) {
         String jsonPath = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(pathExpectedJson);
         String fileExample = PropertyLoader.loadValueFromFileOrVariableOrDefault(jsonPath);
@@ -52,13 +50,13 @@ public class JsonVerificationSteps {
         }
         if (type.equals("JSON")) {
             if (!Utils.isJSONValid(fileExample)) {
-                throw new JsonSyntaxException("Json " + variableName + "не прошел валидацию" +
+                throw new JsonSyntaxException("Json " + variableName + " не прошел валидацию" +
                         "\nубедитесь в его корретности:\n" + fileExample);
             }
         }
         if (type.equals("XML")) {
             if (!Utils.isXMLValid(fileExample)) {
-                throw new JsonSyntaxException("Xml " + variableName + "не прошел валидацию" +
+                throw new JsonSyntaxException("Xml " + variableName + " не прошел валидацию" +
                         "\nубедитесь в его корретности:\n" + fileExample);
             }
         }
@@ -103,12 +101,16 @@ public class JsonVerificationSteps {
             String expectedValue =
                     PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(row.get(1));
 
-            String actualValue = "";
+            String actualValue = null;
 
-            if (typeContentBody.equals("json")) {
+            if ("json".equals(typeContentBody)) {
                 actualValue = response.jsonPath().getString(path);
-            } else if (typeContentBody.equals("xml")) {
+            } else if ("xml".equals(typeContentBody)) {
                 actualValue = response.xmlPath().getString(path);
+            }
+
+            if (actualValue == null) {
+                throw new AssertionError("В " + typeContentBody.toUpperCase() + " не найдено значение по пути: " + path);
             }
 
             if (caseInsensitive) {
@@ -116,12 +118,11 @@ public class JsonVerificationSteps {
                 actualValue = actualValue.toLowerCase();
             }
 
-           assertEquals(
-                    expectedValue, actualValue,
-                   "Содержимое по " + typeContentBody + "path: " + path + " не равно" +
-                           "\nожидаемое: " + expectedValue +
-                           "\nреальное: " + actualValue +
-                           "\n");
+            assertEquals(actualValue, expectedValue,
+                    "Содержимое по " + typeContentBody + "path: " + path + " не равно" +
+                            "\nожидаемое: " + expectedValue +
+                            "\nреальное: " + actualValue +
+                            "\n");
         }
     }
 
@@ -210,12 +211,11 @@ public class JsonVerificationSteps {
                 actualValue = actualValue.toLowerCase();
             }
 
-            assertEquals(
+            assertEquals(actualValue, expectedValue,
                     "Содержимое по jsonpath: " + path + " не равно" +
                             "\nожидаемое: " + expectedValue +
                             "\nреальное: " + actualValue +
-                            "\n",
-                    expectedValue, actualValue);
+                            "\n");
         }
     }
 
@@ -261,23 +261,20 @@ public class JsonVerificationSteps {
             String actualValue = response1.jsonPath().getString(path);
             String expectedValue = response2.jsonPath().getString(path);
 
-            assertNotNull(
+            assertNotNull(actualValue,
                     "Содержимое по jsonpath: " + path +
                             "\nВ ответе: " + nameResponseOne +
-                            "\nНе должно быть: null ",
-                    actualValue);
-            assertNotNull(
+                            "\nНе должно быть: null ");
+            assertNotNull(expectedValue,
                     "Содержимое по jsonpath: " + path +
                             "\nВ ответе: " + nameResponseTwo +
-                            "\nНе должно быть: null ",
-                    expectedValue);
+                            "\nНе должно быть: null ");
 
-            assertEquals(
+            assertEquals(actualValue, expectedValue,
                     "Содержимое по jsonpath: " + path + " не равно" +
                             "\nВ ответе: " + expectedValue +
                             "\nВ переменной: " + actualValue +
-                            "\n",
-                    expectedValue, actualValue);
+                            "\n");
         }
 
     }
@@ -300,19 +297,17 @@ public class JsonVerificationSteps {
     }
 
     /**
-     * Проверка что тело ответа соответсвует json схеме
+     * Проверка что тело ответа соответствует json схеме
      *
      * @param variableName       переменная в которой сохранен Response
      * @param expectedJsonSchema путь до .json файла со схемой
      */
-    @И("^ответ \"([^\"]*)\" соответсвует json схеме: \"([^\"]*)\"$")
-    public void verifyingResponseMatchesJsonScheme(String variableName, String expectedJsonSchema) {
+    @И("^ответ \"([^\"]*)\" соответствует json схеме: \"([^\"]*)\"$")
+    public void verifyingResponseMatchesJsonScheme(String variableName, String expectedJsonSchemaPath) {
         Response response = (Response) coreScenario.getVar(variableName);
-        expectedJsonSchema =
-                PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(expectedJsonSchema);
 
         response.then()
                 .assertThat()
-                .body(JsonSchemaValidator.matchesJsonSchemaInClasspath(expectedJsonSchema));
+                .body(JsonSchemaValidator.matchesJsonSchemaInClasspath(expectedJsonSchemaPath));
     }
 }

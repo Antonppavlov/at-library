@@ -8,7 +8,7 @@ at-library-web
 <dependency>
       <groupId>ru</groupId>
       <artifactId>at-library-web</artifactId>
-      <version>17.02.2025</version>
+      <version>19.02.2025</version>
 </dependency>
 ```
 
@@ -17,15 +17,13 @@ at-library-web
 ```gherkin
 # language: ru
 @web
-Функция: Создание демо аккаунта
+Функция: Нажатие на элемент
 
-  Сценарий: Проверка валидации поля Email
-    Когда совершен переход на страницу "BCS demo аккаунт" по ссылке "https://broker.ru/demo"
-    И в поле "ФИО" введено значение "Иванов Иван Иванович"
-    И в поле "Номер телефона" введено значение "9123456789"
-    И в поле "Email" введено значение "555.mail.ru"
-    И выполнено нажатие на кнопку "Открыть счет"
-    Тогда форма "Окно ввода SMS-кода" скрыта
+  Сценарий: Нажатие на элемент с текстом в списке "Список ссылок" [VARIABLE]
+    Когда совершен переход на страницу "Википедия" по ссылке "url.wikipedia"
+    И установлено значение переменной "text_var" равным "Избранные статьи"
+    Тогда в списке элементов "Список ссылок" выполнено нажатие на элемент с текстом "text_var"
+    И заголовок страницы равен "Википедия:Избранные статьи — Википедия"
 ```
 
 Работа с страницами
@@ -38,10 +36,6 @@ at-library-web
 Когда страница "<Имя страницы>" загрузилась
 ```
 
-Для страницы BCS demo аккаунт шаг может выглядеть так
-```gherkin
-Когда страница "BCS demo аккаунт" загрузилась
-```
 
 - Каждая страница, с которой предполагается взаимодействие, должна быть описана в классе наследующемся от CorePage.
 - Для страницы и ее элементов следует задать имя на русском, через аннотацию Name, чтобы искать можно было именно по русскому описанию.
@@ -49,55 +43,29 @@ at-library-web
 
 Пример описания страницы:
 ```java
-   @Name("BCS demo аккаунт")
-   public class BrokerDemoPage extends CorePage {
-   
-       private static final String demoAccountForm = "[class='become-demo__form form js-demo-quik-form'] ";
-   
-       @Name("ФИО")
-       @FindBy(css = demoAccountForm + "[name=\"name\"]")
-       private SelenideElement inputFIO;
-   
-       @Name("Номер телефона")
-       @FindBy(css = demoAccountForm + "[name=\"phone\"]")
-       private SelenideElement inputPhone;
-   
-       @Name("Email")
-       @FindBy(css = demoAccountForm + "[name=\"email\"]")
-       private SelenideElement inputEmail;
-   
-       @Name("Открыть счет")
-       @FindBy(css = demoAccountForm + "[class='become-demo__form-submit'] button")
-       private SelenideElement buttonOpenScore;
-   }
+    @Name("Google")
+    public class GooglePage extends CorePage {
+    
+        @Name("Поиск")
+        @FindBy(css = "[title=\"Поиск\"]")
+        public SelenideElement searchInput;
+    
+        @Name("Кнопка Почта")
+        @FindBy(css = "header [aria-label*=\"Почта\"]")
+        public SelenideElement menuBtn;
+    
+        @Name("Google Header")
+        @FindBy(css = "header")
+        public GoogleHeader googleHeader;
+    }
 ```
 
 Инициализация страницы
 =================================
 Если непобходимо создавать собсвенные шаги по работе с web элементами'
 
-Пример инициализации страницы "BCS demo аккаунт":
 ```java
-public class BrokerDemoPageSteps {
-    
-    private CoreScenario coreScenario = CoreScenario.getInstance();
 
-    @И("создание пользователя с ФИО: \"([^\"]*)\" телефон: \"([^\"]*)\" email: \"([^\"]*)\"")
-    public void loginSystem(String fio, String password, String email) {
-        fio = getPropertyOrStringVariableOrValue(fio);
-        password = getPropertyOrStringVariableOrValue(password);
-        email = getPropertyOrStringVariableOrValue(email);
-
-        BrokerDemoPage brokerDemoPage =
-                (BrokerDemoPage) coreScenario.getPage("BCS demo аккаунт");
-
-        brokerDemoPage.getElement("ФИО").sendKeys(fio);
-        brokerDemoPage.getElement("Номер телефона").sendKeys(password);
-        brokerDemoPage.getElement("Email").sendKeys(email);
-        
-        brokerDemoPage.getElement("Открыть счет").click();
-    }
-}
 ```
 
 - Для страницы инициализируется карта ее элементов - это те поля, что помечены аннотацией Name.
@@ -117,11 +85,7 @@ public class BrokerDemoPageSteps {
 Данные строки позволяют по имени элемента найти его в карте элементов текущей страницы.
 
 ```java
-brokerDemoPage.getElement("ФИО").sendKeys(fio);
-brokerDemoPage.getElement("Номер телефона").sendKeys(password);
-brokerDemoPage.getElement("Email").sendKeys(email);
 
-brokerDemoPage.getElement("Открыть счет").click();
  ```
 
 

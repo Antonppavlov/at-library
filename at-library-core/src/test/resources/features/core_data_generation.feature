@@ -30,3 +30,7 @@
       | два      |
       | THREE    |
       | 123!@#   |
+
+      # saveBase64ToPdf
+  Сценарий: Декодирование base64 и сохранение в файл
+    И переменная "JVBERi0xLjQKJcTl8uXrp/Og0MTGCjEgMCBvYmoKPDwKL0xlbmd0aCAyIDAgUgovRmlsdGVyIC9GbGF0ZURlY29kZQo+PgpcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXG4KZW5kb2JqCg==" содержит base64 кодирование, декодирована в pdf и сохранена по пути "./target" с именем "sample" в формате "pdf"

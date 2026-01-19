@@ -17,9 +17,9 @@ import io.cucumber.java.Scenario;
 import io.qameta.allure.Step;
 import lombok.experimental.Delegate;
 import lombok.extern.log4j.Log4j2;
-import ru.at.library.core.utils.helpers.AssertionHelper;
 import ru.at.library.core.cucumber.api.CoreEnvironment;
 import ru.at.library.core.cucumber.api.CoreScenario;
+import ru.at.library.core.utils.helpers.AssertionHelper;
 
 /**
  * Начальная настройка ядра: создание CoreEnvironment и AssertionHelper,
