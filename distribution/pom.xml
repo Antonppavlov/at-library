@@ -25,6 +25,11 @@
             <artifactId>at-library-web</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>ru</groupId>
+            <artifactId>at-library-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <properties>
@@ -47,6 +52,30 @@
                         <configuration>
                             <finalName>at-library-${project.version}</finalName>
                             <createSourcesJar>true</createSourcesJar>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.6.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-module-jars</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Копируем только наши модульные JAR'ы -->
+                            <includeGroupIds>ru</includeGroupIds>
+                            <includeArtifactIds>at-library-core,at-library-web,at-library-api</includeArtifactIds>
+                            <includeTypes>jar</includeTypes>
+                            <includeScope>compile</includeScope>
+                            <!-- Складываем прямо в distribution/target -->
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                            <overWriteReleases>false</overWriteReleases>
                         </configuration>
                     </execution>
                 </executions>

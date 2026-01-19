@@ -121,7 +121,7 @@ test
 -Dwebdriver.ie.driver="C:\\Program Files\\Selenium\\Drivers\\IEDriver\\IEDriverServer.exe" 
 allure:serve
 ```
-- Имена ключей для прописавание path к разным браузерам:
+- Имена ключей для прописывания path к разным браузерам:
 ```
 "webdriver.chrome.driver"
 "webdriver.edge.driver"
@@ -190,7 +190,7 @@ allure:serve - запуск allure отчетов
 -Dselenide.remote=http://localhost:4444/wd/hub/ -Dproxy=172.18.62.68:8080 - для запуска тестов на selenoid
 ```
 - Чтобы установить базовый url(для api и ui тестов) его можно указать в properties по ключу baseURI=https://ef.tusvc.ru
-или передать параметром (если передан параметр и присутсивует в properties то будет использован тот что передан параметром)
+или передать параметром (если передан параметр и присутсвует в properties то будет использован тот что передан параметром)
 
 ```mvn
 -DbaseURI=https://url.you.need
