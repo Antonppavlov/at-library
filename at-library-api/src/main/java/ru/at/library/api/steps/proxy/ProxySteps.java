@@ -20,15 +20,17 @@ import io.restassured.path.json.config.JsonPathConfig;
 import io.restassured.response.Response;
 import io.restassured.specification.ProxySpecification;
 import io.restassured.specification.RequestSpecification;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.hamcrest.Matchers;
 import ru.at.library.core.utils.helpers.PropertyLoader;
 
 /**
  * Шаги по включению/отключению прокси
  */
-@Log4j2
 public class ProxySteps {
+
+    private static final Logger log = LogManager.getLogger(ProxySteps.class);
 
     private static boolean useProxySteps = Boolean.parseBoolean(System.getProperty("useProxySteps", "true"));
 

@@ -6,14 +6,16 @@ import io.restassured.http.Headers;
 import io.restassured.response.Response;
 import io.restassured.specification.FilterableRequestSpecification;
 import io.restassured.specification.FilterableResponseSpecification;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ru.at.library.core.utils.log.DocumentFormatter;
 
 /**
  * Класс утилит, для чтения RestAssured в Log4j2
  */
-@Log4j2
 public class Log4jRestAssuredFilter implements OrderedFilter {
+
+    private static final Logger log = LogManager.getLogger(Log4jRestAssuredFilter.class);
 
     @Override
     public int getOrder() {

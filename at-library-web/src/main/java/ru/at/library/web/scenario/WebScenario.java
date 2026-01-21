@@ -1,7 +1,7 @@
 package ru.at.library.web.scenario;
 
-import lombok.experimental.UtilityClass;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ru.at.library.web.scenario.annotations.Name;
 
 import java.util.Set;
@@ -12,13 +12,16 @@ import java.util.Set;
  * Держит реестр страниц в ThreadLocal и инициализирует его, сканируя классы,
  * аннотированные {@link Name} и наследующие {@link CorePage}.
  */
-@UtilityClass
-@Log4j2
-public class WebScenario {
+public final class WebScenario {
+
+    private static final Logger log = LogManager.getLogger(WebScenario.class);
 
     private static final ThreadLocal<Pages> PAGES_HOLDER = ThreadLocal.withInitial(Pages::new);
 
-    public Pages getPages() {
+    private WebScenario() {
+    }
+
+    public static Pages getPages() {
         return PAGES_HOLDER.get();
     }
 
@@ -27,7 +30,7 @@ public class WebScenario {
      * Вызывается перед каждым @web-сценарием.
      */
     @SuppressWarnings("unchecked")
-    public void initPages() {
+    public static void initPages() {
         Pages pages = new Pages();
         Set<Class<?>> annotated = new AnnotationScanner().getClassesAnnotatedWith(Name.class);
         annotated.stream().forEach(clazz -> {
@@ -56,7 +59,7 @@ public class WebScenario {
      * Это нужно, чтобы примеры вроде WikipediaPage корректно работали при запуске тестов библиотеки.
      */
     @SuppressWarnings("unchecked")
-    private void registerExamplePages(Pages pages) {
+    private static void registerExamplePages(Pages pages) {
         try {
             Class<?> wikiClass = Class.forName("ru.at.library.web.page.wiki.WikipediaPage");
             if (CorePage.class.isAssignableFrom(wikiClass)) {
@@ -68,19 +71,19 @@ public class WebScenario {
         }
     }
 
-    public CorePage getCurrentPage() {
+    public static CorePage getCurrentPage() {
         return getPages().getCurrentPage();
     }
 
-    public void setCurrentPage(CorePage page) {
+    public static void setCurrentPage(CorePage page) {
         getPages().setCurrentPage(page);
     }
 
-    public CorePage getPage(String name) {
+    public static CorePage getPage(String name) {
         return getPages().get(name);
     }
 
-    public <T extends CorePage> T getPage(Class<T> clazz, String name) {
+    public static <T extends CorePage> T getPage(Class<T> clazz, String name) {
         return getPages().get(clazz, name);
     }
 }

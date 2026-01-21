@@ -5,7 +5,6 @@ import com.google.common.io.Resources;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.ru.И;
 import io.restassured.RestAssured;
-import io.restassured.config.HttpClientConfig;
 import io.restassured.config.JsonConfig;
 import io.restassured.config.RestAssuredConfig;
 import io.restassured.config.SSLConfig;
@@ -15,8 +14,8 @@ import io.restassured.path.json.config.JsonPathConfig;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSender;
 import io.restassured.specification.RequestSpecification;
-import lombok.extern.log4j.Log4j2;
-import org.apache.http.params.CoreConnectionPNames;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ru.at.library.api.helpers.Utils;
 import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.core.utils.helpers.PropertyLoader;
@@ -37,8 +36,9 @@ import static org.hamcrest.Matchers.is;
  * Новая линейка шагов ориентирована на краткие и понятные формулировки,
  * но сохраняет всю гибкость старой реализации (таблица параметров, polling, проверка ответа).
  */
-@Log4j2
 public class SendRequestSteps {
+
+    private static final Logger log = LogManager.getLogger(SendRequestSteps.class);
 
     private static final int DEFAULT_TIMEOUT = PropertyLoader.loadPropertyInt("http.timeout", 10);
     private static final String HTTP_METHOD_PATTERN = "((?:GET|PUT|POST|DELETE|HEAD|TRACE|OPTIONS|PATCH))";
@@ -283,11 +283,7 @@ public class SendRequestSteps {
                 RestAssuredConfig.newConfig()
                         .sslConfig(new SSLConfig().allowAllHostnames())
                         .jsonConfig(JsonConfig.jsonConfig()
-                                .numberReturnType(JsonPathConfig.NumberReturnType.BIG_DECIMAL))
-                        .httpClient(HttpClientConfig.httpClientConfig()
-                                .setParam(CoreConnectionPNames.CONNECTION_TIMEOUT, DEFAULT_TIMEOUT * 1000)
-                                .setParam(CoreConnectionPNames.SO_TIMEOUT, DEFAULT_TIMEOUT * 1000)
-                        );
+                                .numberReturnType(JsonPathConfig.NumberReturnType.BIG_DECIMAL));
     }
 
     /**

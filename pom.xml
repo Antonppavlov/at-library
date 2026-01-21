@@ -22,39 +22,40 @@
         <!--WEB ТЕСТИРОВАНИЕ-->
         <selenide.version>7.7.2</selenide.version>
         <!--API ТЕСТИРОВАНИЕ-->
-        <rest-assured.version>4.3.3</rest-assured.version>
-        <!--CUCUMBER-->
+        <rest-assured.version>5.5.0</rest-assured.version>
+        <!--CUCUMBER / TESTNG-->
         <cucumber.version>6.9.1</cucumber.version>
+        <testng.version>7.10.2</testng.version>
         <!--ASPECTJ (rt + weaver)-->
-        <aspectj.version>1.9.6</aspectj.version>
-        <allure-cucumber6-jvm.version>2.13.8</allure-cucumber6-jvm.version>
+        <aspectj.version>1.9.22</aspectj.version>
         <!--ALLURE-->
+        <allure-cucumber6-jvm.version>2.13.8</allure-cucumber6-jvm.version>
         <allure.version>2.13.8</allure.version>
-        <allure-maven.version>2.10.0</allure-maven.version>
+        <allure-maven.version>2.15.2</allure-maven.version>
         <!--LOMBOK-->
-        <lombok.version>1.18.32</lombok.version>
+        <lombok.version>1.18.40</lombok.version>
         <!--JACKSON-->
-        <jackson.version>2.12.1</jackson.version>
+        <jackson.version>2.18.0</jackson.version>
         <!--HAMCREST-->
         <hamcrest.version>2.1</hamcrest.version>
         <!--LOG-->
-        <logging.version>2.13.3</logging.version>
+        <logging.version>2.24.0</logging.version>
         <!--ВСПОМОГАТЕЛЬНЫЕ БИБЛИОТЕКИ-->
         <reflections.version>0.9.12</reflections.version>
-        <guava.version>30.1-jre</guava.version>
-        <jsonpath.version>2.5.0</jsonpath.version>
+        <guava.version>33.0.0-jre</guava.version>
+        <jsonpath.version>2.9.0</jsonpath.version>
         <version.shutterbug>1.3</version.shutterbug>
         <jcifs.version>1.3.17</jcifs.version>
-        <commons-lang3.version>3.14.0</commons-lang3.version>
-        <groovy.version>3.0.7</groovy.version>
+        <commons-lang3.version>3.15.0</commons-lang3.version>
+        <groovy.version>3.0.21</groovy.version>
         <unirest-java.version>1.4.9</unirest-java.version>
         <jsch.version>0.1.55</jsch.version>
 
-        <maven-compiler.version>3.8.1</maven-compiler.version>
+        <maven-compiler.version>3.13.0</maven-compiler.version>
         <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
-        <maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
-        <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
-        <maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
+        <maven-javadoc-plugin.version>3.7.0</maven-javadoc-plugin.version>
+        <maven-surefire-plugin.version>3.3.1</maven-surefire-plugin.version>
+        <maven-shade-plugin.version>3.4.1</maven-shade-plugin.version>
     </properties>
 
 
@@ -70,7 +71,7 @@
             <dependency>
                 <groupId>org.testng</groupId>
                 <artifactId>testng</artifactId>
-                <version>7.3.0</version>
+                <version>${testng.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.cucumber</groupId>
@@ -86,7 +87,7 @@
             <dependency>
                 <groupId>io.qameta.allure</groupId>
                 <artifactId>allure-cucumber6-jvm</artifactId>
-                <version>${allure.version}</version>
+                <version>${allure-cucumber6-jvm.version}</version>
             </dependency>
             <!--LOMBOK-->
             <dependency>
@@ -155,8 +156,8 @@
                 <version>${maven-compiler.version}</version>
                 <configuration>
                     <encoding>UTF-8</encoding>
-                    <source>17</source>
-                    <target>17</target>
+                    <source>25</source>
+                    <target>25</target>
                 </configuration>
             </plugin>
             <plugin>

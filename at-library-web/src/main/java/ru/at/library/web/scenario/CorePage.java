@@ -1,9 +1,6 @@
 package ru.at.library.web.scenario;
 
 import com.codeborne.selenide.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 import ru.at.library.web.scenario.annotations.Name;
 import ru.at.library.web.selenide.ElementCheck;
 import ru.at.library.web.selenide.IElementCheck;
@@ -26,7 +23,6 @@ import static ru.at.library.web.selenide.ElementChecker.*;
 /**
  * Класс для реализации паттерна PageObject (web-специфичный, основан на Selenide).
  */
-@Slf4j
 public abstract class CorePage {
 
     public static boolean isAppeared = Boolean.parseBoolean(loadProperty("isAppeared", "false"));
@@ -36,8 +32,6 @@ public abstract class CorePage {
     /**
      * Имя страницы
      */
-    @Getter
-    @Setter
     private String name;
 
     /**
@@ -51,6 +45,14 @@ public abstract class CorePage {
      * Список всех элементов страницы
      */
     private Map<String, PageElement> namedElements;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 
     public CorePage() {
         super();

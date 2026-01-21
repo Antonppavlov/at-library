@@ -4,7 +4,8 @@ import io.cucumber.datatable.DataTable;
 import io.cucumber.java.PendingException;
 import io.cucumber.java.ru.И;
 import io.cucumber.java.ru.То;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ru.at.library.core.cucumber.api.CoreScenario;
 
 import java.io.File;
@@ -28,8 +29,9 @@ import static ru.at.library.core.utils.helpers.PropertyLoader.*;
 /**
  * Набор общих шагов под api/web/mob</>
  */
-@Log4j2
 public class OtherSteps {
+
+    private static final Logger log = LogManager.getLogger(OtherSteps.class);
 
     private static CoreScenario coreScenario = CoreScenario.getInstance();
 

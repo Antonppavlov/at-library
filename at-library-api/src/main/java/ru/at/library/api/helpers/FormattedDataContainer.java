@@ -2,7 +2,6 @@ package ru.at.library.api.helpers;
 
 import com.google.common.base.Splitter;
 import com.jayway.jsonpath.JsonPath;
-import com.sun.istack.NotNull;
 import net.minidev.json.JSONObject;
 import net.minidev.json.parser.JSONParser;
 import net.minidev.json.parser.ParseException;
@@ -33,7 +32,10 @@ public class FormattedDataContainer {
     /**
      * Инициализация
      */
-    public FormattedDataContainer(@NotNull TextFormat format, String formattingValue) {
+    public FormattedDataContainer(TextFormat format, String formattingValue) {
+        if (format == null) {
+            throw new IllegalArgumentException("TextFormat не может быть null");
+        }
         dataFormat = format;
 
         switch (dataFormat) {

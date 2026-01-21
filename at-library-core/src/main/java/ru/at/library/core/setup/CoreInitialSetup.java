@@ -16,7 +16,8 @@ import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
 import io.qameta.allure.Step;
 import lombok.experimental.Delegate;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ru.at.library.core.cucumber.api.CoreEnvironment;
 import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.core.utils.helpers.AssertionHelper;
@@ -28,8 +29,9 @@ import ru.at.library.core.utils.helpers.AssertionHelper;
  * Веб-драйвер и RestAssured настраиваются в специализированных модулях
  * (at-library-web, at-library-api) через отдельные хуки.
  */
-@Log4j2
 public class CoreInitialSetup {
+
+    private static final Logger log = LogManager.getLogger(CoreInitialSetup.class);
 
     public volatile static int scenarioNumber = 1;
 

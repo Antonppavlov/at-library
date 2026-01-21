@@ -2,7 +2,8 @@ package ru.at.library.web.step.elementcollection;
 
 import com.codeborne.selenide.*;
 import io.cucumber.java.ru.И;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.web.entities.CommonStepResult;
 import ru.at.library.web.scenario.CustomCondition;
@@ -19,8 +20,9 @@ import static ru.at.library.core.steps.OtherSteps.getRandom;
 /**
  * Проверки ElementsCollection
  */
-@Log4j2
 public class ElementsCollectionCheckSteps {
+
+    private static final Logger log = LogManager.getLogger(ElementsCollectionCheckSteps.class);
 
     @И("^список элементов \"([^\"]*)\" отображается на странице$")
     public IStepResult shouldVisible(String listName) {

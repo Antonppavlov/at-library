@@ -2,7 +2,6 @@ package ru.at.library.web.scenario;
 
 import com.codeborne.selenide.Selenide;
 import com.google.common.collect.Maps;
-import lombok.SneakyThrows;
 
 import java.lang.reflect.Constructor;
 import java.util.Map;
@@ -14,12 +13,12 @@ import java.util.function.Consumer;
 public final class Pages {
 
     /**
-     * Страницы, на которых будет производится тестирование < Имя, Страница >
+     * Страницы, на которых будет производиться тестирование < Имя, Страница >
      */
     private Map<String, CorePage> pages;
 
     /**
-     * Страница, на которой в текущий момент производится тестирование
+     * Страница, на которой в текущий момент производиться тестирование
      */
     private CorePage currentPage;
 
@@ -50,7 +49,7 @@ public final class Pages {
     }
 
     /**
-     * Возвращает текущую страницу, на которой в текущий момент производится тестирование.
+     * Возвращает текущую страницу, на которой в текущий момент производиться тестирование.
      */
     public CorePage getCurrentPage() {
         if (currentPage == null) throw new IllegalStateException("Текущая страница не задана");
@@ -95,7 +94,7 @@ public final class Pages {
         if (page == null)
             throw new IllegalArgumentException(
                     pageName + " страница не указана в списке доступных страниц\n" +
-                            "Список доступных стнаниц: " + getPageMapInstanceInternal().toString());
+                            "Список доступных страниц: " + getPageMapInstanceInternal().toString());
         return page;
     }
 
@@ -111,14 +110,18 @@ public final class Pages {
     /**
      * Добавление страницы в "pages" по классу.
      */
-    @SneakyThrows
     public void put(String pageName, Class<? extends CorePage> page) {
-        if (page == null)
+        if (page == null) {
             throw new IllegalArgumentException("Была передана пустая страница");
-        Constructor<? extends CorePage> constructor = page.getDeclaredConstructor();
-        constructor.setAccessible(true);
-        CorePage p = page.newInstance();
-        p.setName(pageName);
-        pages.put(pageName, p);
+        }
+        try {
+            Constructor<? extends CorePage> constructor = page.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            CorePage p = constructor.newInstance();
+            p.setName(pageName);
+            pages.put(pageName, p);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Не удалось создать страницу " + page.getName(), e);
+        }
     }
 }

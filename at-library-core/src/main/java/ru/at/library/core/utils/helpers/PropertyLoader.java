@@ -12,9 +12,9 @@
 package ru.at.library.core.utils.helpers;
 
 import com.google.common.base.Strings;
-import lombok.SneakyThrows;
-import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ru.at.library.core.cucumber.api.CoreScenario;
 
 import java.io.IOException;
@@ -33,8 +33,9 @@ import java.util.regex.Pattern;
 /**
  * Класс для получения свойств
  */
-@Log4j2
 public class PropertyLoader {
+
+    private static final Logger log = LogManager.getLogger(PropertyLoader.class);
 
     public static String PROPERTIES_FILE = System.getProperty("properties", "application.properties");
     private static final Properties PROPERTIES = getPropertiesInstance();
@@ -316,7 +317,6 @@ public class PropertyLoader {
      *
      * @return свойства из файла properties
      */
-    @SneakyThrows(IOException.class)
     private static Properties getPropertiesInstance() {
         Properties instance = new Properties();
 
@@ -343,15 +343,23 @@ public class PropertyLoader {
                 // a) файл лежит прямо в текущем каталоге
                 Path direct = dir.resolve(fileName);
                 if (Files.exists(direct)) {
-                    log.warn("Не найден {} в classpath, но найден файл по пути '{}'. Будет использован он.", PROPERTIES_FILE, direct);
-                    resourceStream = Files.newInputStream(direct);
+                    try {
+                        log.warn("Не найден {} в classpath, но найден файл по пути '{}'. Будет использован он.", PROPERTIES_FILE, direct);
+                        resourceStream = Files.newInputStream(direct);
+                    } catch (IOException e) {
+                        log.warn("Не удалось открыть файл properties по пути '{}'. Будут использованы пустые свойства.", direct, e);
+                    }
                     break;
                 }
                 // b) файл лежит под src/test/resources относительно текущего каталога
                 Path testResources = dir.resolve("src").resolve("test").resolve("resources").resolve(fileName);
                 if (Files.exists(testResources)) {
-                    log.warn("Не найден {} в classpath, но найден файл по пути '{}'. Будет использован он.", PROPERTIES_FILE, testResources);
-                    resourceStream = Files.newInputStream(testResources);
+                    try {
+                        log.warn("Не найден {} в classpath, но найден файл по пути '{}'. Будет использован он.", PROPERTIES_FILE, testResources);
+                        resourceStream = Files.newInputStream(testResources);
+                    } catch (IOException e) {
+                        log.warn("Не удалось открыть файл properties по пути '{}'. Будут использованы пустые свойства.", testResources, e);
+                    }
                     break;
                 }
                 dir = dir.getParent();
@@ -365,6 +373,8 @@ public class PropertyLoader {
 
         try (InputStreamReader inputStream = new InputStreamReader(resourceStream, StandardCharsets.UTF_8)) {
             instance.load(inputStream);
+        } catch (IOException e) {
+            log.warn("Ошибка чтения файла properties '{}'. Свойства будут пустыми.", PROPERTIES_FILE, e);
         }
 
         return instance;
@@ -376,7 +386,6 @@ public class PropertyLoader {
      *
      * @return прочитанные свойства из кастомного файла properties, если свойство "profile" указано, иначе пустой объект
      */
-    @SneakyThrows(IOException.class)
     private static Properties getProfilePropertiesInstance() {
         Properties instance = new Properties();
         String profile = System.getProperty("profile", "");
@@ -390,6 +399,8 @@ public class PropertyLoader {
             try (InputStream resourceStream = url.openStream();
                  InputStreamReader inputStream = new InputStreamReader(resourceStream, StandardCharsets.UTF_8)) {
                 instance.load(inputStream);
+            } catch (IOException e) {
+                log.warn("Ошибка чтения profile properties по пути '{}'. Профиль '{}' будет проигнорирован.", path, profile, e);
             }
         }
         return instance;

@@ -4,7 +4,8 @@ import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
 import io.cucumber.java.ru.И;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ru.at.library.web.entities.CommonStepResult;
 import ru.at.library.web.scenario.IStepResult;
 import ru.at.library.web.scenario.WebScenario;
@@ -16,8 +17,9 @@ import static ru.at.library.web.step.elementcollection.ElementsCollectionCheckSt
 /**
  * Действия с ElementsCollection
  */
-@Log4j2
 public class ElementsCollectionActionSteps {
+
+    private static final Logger log = LogManager.getLogger(ElementsCollectionActionSteps.class);
 
 
     @И("^в списке элементов \"([^\"]*)\" выполнено нажатие на элемент с текстом \"([^\"]*)\"$")

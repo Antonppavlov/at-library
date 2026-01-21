@@ -7,7 +7,8 @@ import com.codeborne.selenide.WebElementCondition;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.ru.И;
 import io.cucumber.java.ru.То;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.Point;
 import org.testng.Assert;
 import ru.at.library.core.cucumber.api.CoreScenario;
@@ -34,8 +35,9 @@ import static ru.at.library.core.utils.helpers.ScopedVariables.resolveVars;
 import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.*;
 import static ru.at.library.web.step.selenideelement.SelenideElementCheckSteps.inBounds;
 
-@Log4j2
 public class BlocksCollectionCheckSteps {
+
+    private static final Logger log = LogManager.getLogger(BlocksCollectionCheckSteps.class);
 
     private final CoreScenario coreScenario = CoreScenario.getInstance();
 

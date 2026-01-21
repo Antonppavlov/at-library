@@ -1,8 +1,8 @@
 package ru.at.library.api.helpers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import groovy.util.XmlParser;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.testng.asserts.SoftAssert;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
@@ -12,10 +12,12 @@ import ru.at.library.core.cucumber.api.CoreScenario;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.stream.StreamSource;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -27,11 +29,12 @@ import java.util.regex.Pattern;
 
 import static ru.at.library.core.utils.helpers.PropertyLoader.loadProperty;
 
-@Log4j2
 /**
  * Вспомогательные методы для валидации и обработки JSON/XML/URL-параметров и подстановки переменных в JSON.
  */
 public class Utils {
+    private static final Logger log = LogManager.getLogger(Utils.class);
+
     public static final String CURVE_BRACES_PATTERN = "\\{([^{}]+)\\}";
     private static final SoftAssert sa = new SoftAssert();
 
@@ -80,18 +83,25 @@ public class Utils {
         return true;
     }
 
-    /**
+/**
      * @param xmlInString - строка для валидации
      * @return Проверяет, является ли переданная в качестве аргумента строка валидным XML
      */
     public static boolean isXMLValid(String xmlInString) {
+        if (xmlInString == null || xmlInString.isEmpty()) {
+            return false;
+        }
         try {
-            final XmlParser parser = new XmlParser();
-            parser.parseText(xmlInString);
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            dbf.setNamespaceAware(true);
+            DocumentBuilder db = dbf.newDocumentBuilder();
+            try (InputStream is = new ByteArrayInputStream(xmlInString.getBytes())) {
+                db.parse(is);
+            }
+            return true;
         } catch (ParserConfigurationException | IOException | SAXException e) {
             return false;
         }
-        return true;
     }
 
     /**

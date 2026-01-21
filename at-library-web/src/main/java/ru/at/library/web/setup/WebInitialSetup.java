@@ -9,7 +9,8 @@ import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
 import io.qameta.allure.Step;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
@@ -31,8 +32,9 @@ import static ru.at.library.core.utils.helpers.PropertyLoader.tryLoadProperty;
  * Web-специфичная начальная настройка: запуск и остановка WebDriver'а.
  * Выполняется только для сценариев с тегом @web.
  */
-@Log4j2
 public class WebInitialSetup {
+
+    private static final Logger log = LogManager.getLogger(WebInitialSetup.class);
 
     @Before(order = 600, value = "@web")
     @Step("Запуск браузера для web-сценария")
@@ -76,7 +78,7 @@ public class WebInitialSetup {
     @Step("Запуск теста локально")
     private void initLocalStart(Scenario scenario) {
         log.info(String.format("%s: ОС: %s", getScenarioId(scenario), System.getProperty("os.name")));
-        log.info(String.format("%s: локальный бразуер: %s", getScenarioId(scenario), browser));
+        log.info(String.format("%s: локальный браузер: %s", getScenarioId(scenario), browser));
 
         if (browser.equals(Browsers.CHROME)) {
             DesiredCapabilities capabilities = new DesiredCapabilities();

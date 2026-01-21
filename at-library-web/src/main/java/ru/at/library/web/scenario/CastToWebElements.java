@@ -15,11 +15,11 @@ import java.util.Optional;
 public class CastToWebElements {
 
     /**
-     * Преобразование списка объектов {@link CorePage} в список объектов {@link WebElement} для выдедения списка блоков на скриншоте страницы
+     * Преобразование списка объектов {@link CorePage} в список объектов {@link WebElement} для выбора списка блоков на скриншоте страницы
      *
-     * @param blockList список блоков {@link CorePage} для выделения на скриншоте страницы
-     * @return список объектов {@link WebElement} в обертке {@link Optional#of(Object)} для выделения на скришоте страницы
-     * или {@link Optional#empty()} в случае если список блоков blockList отсутствуют или пропал со страниы
+     * @param blockList список блоков {@link CorePage} для выбора на скриншоте страницы
+     * @return список объектов {@link WebElement} в обертке {@link Optional#of(Object)} для выбора на скриншоте страницы
+     * или {@link Optional#empty()} в случае если список блоков blockList отсутствуют или пропал со страницы
      */
     public static Optional<List<WebElement>> getBlockListAsWebElementsList(List<CorePage> blockList) {
         if (blockList == null || blockList.isEmpty()) {
@@ -35,11 +35,11 @@ public class CastToWebElements {
     }
 
     /**
-     * Преобразование объекта {@link ElementsCollection} в список объектов {@link WebElement} для выделения на скриншоте страницы
+     * Преобразование объекта {@link ElementsCollection} в список объектов {@link WebElement} для выбора на скриншоте страницы
      *
-     * @param elementsCollection коллекция элементов {@link ElementsCollection} для выделения на скриншоте страницы
-     * @return список объектов {@link WebElement} в обертке {@link Optional#of(Object)} для выделения на скришоте страницы
-     * или {@link Optional#empty()} в случае если список elementsCollection отсутствуют или пропал со страниы
+     * @param elementsCollection коллекция элементов {@link ElementsCollection} для выбора на скриншоте страницы
+     * @return список объектов {@link WebElement} в обертке {@link Optional#of(Object)} для выбора на скриншоте страницы
+     * или {@link Optional#empty()} в случае если список elementsCollection отсутствуют или пропал со страницы
      */
     public static Optional<List<WebElement>> getElementsCollectionAsElementsList(ElementsCollection elementsCollection) {
         if (elementsCollection == null) return Optional.empty();
@@ -50,11 +50,11 @@ public class CastToWebElements {
     }
 
     /**
-     * Преобразование объекта {@link SelenideElement} в объект {@link WebElement} для выделения на скриншоте страницы
+     * Преобразование объекта {@link SelenideElement} в объект {@link WebElement} для выбора на скриншоте страницы
      *
-     * @param selenideElement элемент {@link SelenideElement} для выделения на скриншоте страницы
-     * @return объект {@link WebElement} в обертке {@link Optional#of(Object)} для выделения на скришоте страницы
-     * или {@link Optional#empty()} в случае если элемент selenideElement отсутствуют или пропал со страниы
+     * @param selenideElement элемент {@link SelenideElement} для выбора на скриншоте страницы
+     * @return объект {@link WebElement} в обертке {@link Optional#of(Object)} для выбора на скриншоте страницы
+     * или {@link Optional#empty()} в случае если элемент selenideElement отсутствуют или пропал со страницы
      */
     public static Optional<WebElement> tryGetWebElement(SelenideElement selenideElement) {
         WebElement webElement;

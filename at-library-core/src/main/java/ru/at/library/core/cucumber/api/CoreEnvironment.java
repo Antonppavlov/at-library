@@ -13,14 +13,12 @@ package ru.at.library.core.cucumber.api;
 
 import io.cucumber.java.Scenario;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 import ru.at.library.core.utils.helpers.ScopedVariables;
 
 /**
  * Класс, связанный с CoreScenario, используется для хранения Cucumber-сценария и переменных внутри сценария.
  * Веб-страницы и WebDriver-специфичная логика вынесены в модуль at-library-web.
  */
-@Slf4j
 public class CoreEnvironment {
 
     /**
@@ -39,6 +37,14 @@ public class CoreEnvironment {
     public CoreEnvironment(Scenario scenario) {
         this.scenario = scenario;
         variables.set(new ScopedVariables());
+    }
+
+    public Scenario getScenario() {
+        return scenario;
+    }
+
+    public ThreadLocal<ScopedVariables> getVariables() {
+        return variables;
     }
 
     public Object getVar(String name) {

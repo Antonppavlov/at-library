@@ -3,7 +3,8 @@ package ru.at.library.api.steps.response;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.ru.И;
 import io.restassured.response.Response;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.text.MatchesPattern;
@@ -22,11 +23,12 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.text.MatchesPattern.matchesPattern;
 import static org.testng.Assert.fail;
 
-@Log4j2
 /**
  * Шаги проверки HTTP-ответов: статус-коды, заголовки, cookies, тело ответа и форматированные данные (JSON/XML/PARAMS).
  */
 public class CheckResponseSteps {
+
+    private static final Logger log = LogManager.getLogger(CheckResponseSteps.class);
 
     private final CoreScenario coreScenario = CoreScenario.getInstance();
 

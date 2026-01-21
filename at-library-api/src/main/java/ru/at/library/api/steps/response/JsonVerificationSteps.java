@@ -3,11 +3,11 @@ package ru.at.library.api.steps.response;
 import com.jayway.jsonpath.JsonPath;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.ru.И;
-import io.cucumber.messages.internal.com.google.gson.JsonSyntaxException;
 import io.restassured.module.jsv.JsonSchemaValidator;
 import io.restassured.response.Response;
-import lombok.extern.log4j.Log4j2;
 import net.minidev.json.JSONObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import net.minidev.json.parser.JSONParser;
 import net.minidev.json.parser.ParseException;
 import org.hamcrest.Matchers;
@@ -19,12 +19,12 @@ import java.util.List;
 
 import static org.testng.Assert.*;
 
-
-@Log4j2
 /**
  * Шаги для проверки и обработки JSON/XML-ответов: сравнение значений, извлечение по jsonpath и проверка по JSON-схемам.
  */
 public class JsonVerificationSteps {
+
+    private static final Logger log = LogManager.getLogger(JsonVerificationSteps.class);
 
     private final CoreScenario coreScenario = CoreScenario.getInstance();
 
@@ -50,13 +50,13 @@ public class JsonVerificationSteps {
         }
         if (type.equals("JSON")) {
             if (!Utils.isJSONValid(fileExample)) {
-                throw new JsonSyntaxException("Json " + variableName + " не прошел валидацию" +
+                throw new IllegalArgumentException("Json " + variableName + " не прошел валидацию" +
                         "\nубедитесь в его корретности:\n" + fileExample);
             }
         }
         if (type.equals("XML")) {
             if (!Utils.isXMLValid(fileExample)) {
-                throw new JsonSyntaxException("Xml " + variableName + " не прошел валидацию" +
+                throw new IllegalArgumentException("Xml " + variableName + " не прошел валидацию" +
                         "\nубедитесь в его корретности:\n" + fileExample);
             }
         }

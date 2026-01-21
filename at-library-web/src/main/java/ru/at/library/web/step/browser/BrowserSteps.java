@@ -17,7 +17,8 @@ import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.Selenide;
 import com.codeborne.selenide.WebDriverRunner;
 import io.cucumber.java.ru.И;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.*;
 import org.openqa.selenium.interactions.Actions;
 import ru.at.library.core.cucumber.api.CoreScenario;
@@ -42,8 +43,9 @@ import static ru.at.library.core.utils.helpers.ScopedVariables.resolveVars;
 /**
  * Шаги браузера
  */
-@Log4j2
 public class BrowserSteps {
+
+    private static final Logger log = LogManager.getLogger(BrowserSteps.class);
 
     private final CoreScenario coreScenario = CoreScenario.getInstance();
 
@@ -558,7 +560,7 @@ public class BrowserSteps {
     }
 
     /**
-     * Получание скриншота побайтно
+     * Получение скриншота побайтно
      */
     public synchronized static Optional<byte[]> getScreenshotBytes() {
         try {

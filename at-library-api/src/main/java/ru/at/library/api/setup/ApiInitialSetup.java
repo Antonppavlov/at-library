@@ -4,15 +4,17 @@ import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
 import io.qameta.allure.Step;
 import io.restassured.RestAssured;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import ru.at.library.core.utils.helpers.PropertyLoader;
 
 /**
  * Начальная настройка для API-сценариев: установка baseURI RestAssured.
  * Рекомендуется помечать API-фичи тегом @api, чтобы не выполнять этот хук для не-API сценариев.
  */
-@Log4j2
 public class ApiInitialSetup {
+
+    private static final Logger log = LogManager.getLogger(ApiInitialSetup.class);
 
     @Before(order = 2, value = "@api")
     @Step("Настройка RestAssured baseURI для API-сценария")

@@ -2,8 +2,6 @@ package ru.at.library.web.selenide;
 
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 import ru.at.library.web.scenario.CorePage;
 import ru.at.library.web.scenario.annotations.Hidden;
 import ru.at.library.web.scenario.annotations.Mandatory;
@@ -12,13 +10,50 @@ import ru.at.library.web.scenario.annotations.Optional;
 import java.lang.reflect.Field;
 import java.util.List;
 
-@Data
-@AllArgsConstructor
 public class PageElement {
     private Object element;
     private String name;
     private ElementType type;
     private ElementMode mode;
+
+    public PageElement(Object element, String name, ElementType type, ElementMode mode) {
+        this.element = element;
+        this.name = name;
+        this.type = type;
+        this.mode = mode;
+    }
+
+    public Object getElement() {
+        return element;
+    }
+
+    public void setElement(Object element) {
+        this.element = element;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public ElementType getType() {
+        return type;
+    }
+
+    public void setType(ElementType type) {
+        this.type = type;
+    }
+
+    public ElementMode getMode() {
+        return mode;
+    }
+
+    public void setMode(ElementMode mode) {
+        this.mode = mode;
+    }
 
     public boolean checkMode(List<ElementMode> expectedModes) {
         boolean result = false;
