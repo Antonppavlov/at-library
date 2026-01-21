@@ -21,11 +21,11 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>25</java.version>
         <!--WEB ТЕСТИРОВАНИЕ-->
-        <selenide.version>7.7.2</selenide.version>
+        <selenide.version>7.13.0</selenide.version>
         <!--API ТЕСТИРОВАНИЕ-->
         <rest-assured.version>5.5.0</rest-assured.version>
         <!--CUCUMBER / TESTNG-->
-        <cucumber.version>7.23.0</cucumber.version>
+        <cucumber.version>7.19.0</cucumber.version>
         <testng.version>7.10.2</testng.version>
         <!--ASPECTJ (rt + weaver)-->
         <aspectj.version>1.9.22</aspectj.version>
