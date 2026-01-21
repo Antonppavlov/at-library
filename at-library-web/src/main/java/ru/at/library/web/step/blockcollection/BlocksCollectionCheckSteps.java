@@ -1,4 +1,4 @@
-package ru.at.library.web.step.listcorepage;
+package ru.at.library.web.step.blockcollection;
 
 import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.Configuration;
@@ -31,11 +31,11 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 import static ru.at.library.core.steps.OtherSteps.getPropertyOrStringVariableOrValue;
 import static ru.at.library.core.utils.helpers.ScopedVariables.resolveVars;
-import static ru.at.library.web.step.listcorepage.ListCorePageOtherMethod.*;
+import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.*;
 import static ru.at.library.web.step.selenideelement.SelenideElementCheckSteps.inBounds;
 
 @Log4j2
-public class ListCorePageCheckSteps {
+public class BlocksCollectionCheckSteps {
 
     private final CoreScenario coreScenario = CoreScenario.getInstance();
 

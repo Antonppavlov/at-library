@@ -1,4 +1,4 @@
-package ru.at.library.web.step.listcorepage;
+package ru.at.library.web.step.blockcollection;
 
 import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.SelenideElement;
@@ -16,9 +16,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static ru.at.library.core.steps.OtherSteps.getPropertyOrStringVariableOrValue;
-import static ru.at.library.web.step.listcorepage.ListCorePageOtherMethod.*;
+import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.*;
 
-public class ListCorePageActionSteps {
+public class BlocksCollectionActionSteps {
 
     private final CoreScenario coreScenario = CoreScenario.getInstance();
 

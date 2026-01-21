@@ -1,4 +1,4 @@
-package ru.at.library.web.step.listcorepage;
+package ru.at.library.web.step.blockcollection;
 
 import com.codeborne.selenide.*;
 import io.cucumber.datatable.DataTable;
@@ -24,7 +24,7 @@ import static ru.at.library.core.utils.helpers.ScopedVariables.resolveVars;
  * -----------------------------------------------Дополнительные методы---------------------------------------------
  * -----------------------------------------------------------------------------------------------------------------
  */
-public class ListCorePageOtherMethod {
+public class BlocksCollectionOtherMethod {
 
     @Step("Поиск блока в котором элемента '{elementName}' отображается")
     public static CorePage findCorePageByVisibleElement(List<CorePage> blocksList, String elementName) {

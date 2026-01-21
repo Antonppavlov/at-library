@@ -3,6 +3,8 @@ package ru.at.library.web.page.wiki;
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
 import org.openqa.selenium.support.FindBy;
+import ru.at.library.web.page.wiki.block.WikiNavItem;
+import ru.at.library.web.page.wiki.block.WikiSidePanel;
 import ru.at.library.web.scenario.CorePage;
 import ru.at.library.web.scenario.annotations.Hidden;
 import ru.at.library.web.scenario.annotations.Name;
@@ -17,6 +19,11 @@ public class WikipediaPage extends CorePage {
     @Name("Список ссылок")
     @FindBy(css = "[id=\"mw-panel\"] li")
     public ElementsCollection linkList;
+
+    // Тестовый список блоков для ListCorePage* шагов (каждый li оборачивается в WikiNavItem)
+    @Name("Список блоков навигации")
+    @FindBy(css = "#mw-panel li")
+    public java.util.List<WikiNavItem> navBlocks;
 
     @Name("Сведения о странице")
     @FindBy(css = "#t-info")
@@ -42,4 +49,9 @@ public class WikipediaPage extends CorePage {
     @Name("Заявление о куки")
     @FindBy(css = "#footer-places-cookiestatement>a")
     public SelenideElement aboutCookiesBtn;
+
+    // Боковая панель как отдельный блок, внутри которого также есть список блоков навигации
+    @Name("Боковая панель")
+    @FindBy(css = "#mw-panel")
+    public WikiSidePanel sidePanel;
 }

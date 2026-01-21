@@ -5,9 +5,9 @@ import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
 import io.cucumber.java.ru.И;
 import lombok.extern.log4j.Log4j2;
-import ru.at.library.core.cucumber.api.CoreScenario;
-import ru.at.library.web.core.IStepResult;
 import ru.at.library.web.entities.CommonStepResult;
+import ru.at.library.web.scenario.IStepResult;
+import ru.at.library.web.scenario.WebScenario;
 
 import static com.codeborne.selenide.Condition.*;
 import static ru.at.library.core.steps.OtherSteps.getPropertyOrStringVariableOrValue;
@@ -19,16 +19,11 @@ import static ru.at.library.web.step.elementcollection.ElementsCollectionCheckSt
 @Log4j2
 public class ElementsCollectionActionSteps {
 
-    private final CoreScenario coreScenario = CoreScenario.getInstance();
-
-    /**
-     * ######################################################################################################################
-     */
 
     @И("^в списке элементов \"([^\"]*)\" выполнено нажатие на элемент с текстом \"([^\"]*)\"$")
     public IStepResult clickOnListElementWithExactText(String listName, String expectedValue) {
         return clickOnListElementWithExactText(
-                coreScenario.getCurrentPage().getElementsList(listName),
+                WebScenario.getCurrentPage().getElementsList(listName),
                 expectedValue
         );
     }
@@ -36,7 +31,7 @@ public class ElementsCollectionActionSteps {
     @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на элемент с текстом \"([^\"]*)\"$")
     public IStepResult clickOnListElementWithExactText(String blockName, String listName, String expectedValue) {
         return clickOnListElementWithExactText(
-                coreScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
                 expectedValue
         );
     }
@@ -64,7 +59,7 @@ public class ElementsCollectionActionSteps {
     @И("^в списке элементов \"([^\"]*)\" выполнено двойное нажатие на элемент с текстом \"([^\"]*)\"$")
     public IStepResult doubleClickOnListElementWithExactText(String listName, String expectedValue) {
         return clickOnListElementWithExactText(
-                coreScenario.getCurrentPage().getElementsList(listName),
+                WebScenario.getCurrentPage().getElementsList(listName),
                 expectedValue
         );
     }
@@ -72,7 +67,7 @@ public class ElementsCollectionActionSteps {
     @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено двойное нажатие на элемент с текстом \"([^\"]*)\"$")
     public IStepResult doubleClickOnListElementWithExactText(String blockName, String listName, String expectedValue) {
         return clickOnListElementWithExactText(
-                coreScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
                 expectedValue
         );
     }
@@ -100,14 +95,14 @@ public class ElementsCollectionActionSteps {
     @И("^в списке элементов \"([^\"]*)\" выполнено нажатие на элемент содержащий текст \"([^\"]*)\"$")
     public IStepResult clickOnListElementWithContainsText(String listName, String expectedValue) {
         return clickOnListElementWithContainsText(
-                coreScenario.getCurrentPage().getElementsList(listName),
+                WebScenario.getCurrentPage().getElementsList(listName),
                 expectedValue);
     }
 
     @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на элемент содержащий текст \"([^\"]*)\"$")
     public IStepResult clickOnListElementWithContainsText(String blockName, String listName, String expectedValue) {
         return clickOnListElementWithContainsText(
-                coreScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
                 expectedValue);
     }
 
@@ -134,14 +129,14 @@ public class ElementsCollectionActionSteps {
     @И("^в списке элементов \"([^\"]*)\" выполнено нажатие на \"(\\d+)\" элемент$")
     public IStepResult clickOnListElementWithIndex(String listName, int number) {
         return clickOnListElementWithIndex(
-                coreScenario.getCurrentPage().getElementsList(listName),
+                WebScenario.getCurrentPage().getElementsList(listName),
                 number);
     }
 
     @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на \"(\\d+)\" элемент$")
     public IStepResult clickOnListElementWithIndex(String blockName, String listName, int number) {
         return clickOnListElementWithIndex(
-                coreScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
+                WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
                 number);
     }
 
@@ -161,12 +156,12 @@ public class ElementsCollectionActionSteps {
 
     @И("^в списке элементов \"([^\"]*)\" выполнено нажатие на случайный элемент$")
     public IStepResult clickOnListElementWithRandomIndex(String listName) {
-        return clickOnListElementWithRandomIndex(coreScenario.getCurrentPage().getElementsList(listName));
+        return clickOnListElementWithRandomIndex(WebScenario.getCurrentPage().getElementsList(listName));
     }
 
     @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на случайный элемент$")
     public IStepResult clickOnListElementWithRandomIndex(String blockName, String listName) {
-        return clickOnListElementWithRandomIndex(coreScenario.getCurrentPage().getBlock(blockName).getElementsList(listName));
+        return clickOnListElementWithRandomIndex(WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName));
     }
 
     /**
@@ -188,12 +183,12 @@ public class ElementsCollectionActionSteps {
 
     @И("^в списке элементов \"([^\"]*)\" выполнено нажатие на последний элемент$")
     public IStepResult clickOnListElementWithLast(String listName) {
-        return clickOnListElementWithLast(coreScenario.getCurrentPage().getElementsList(listName));
+        return clickOnListElementWithLast(WebScenario.getCurrentPage().getElementsList(listName));
     }
 
     @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на последний элемент$")
     public IStepResult clickOnListElementWithLast(String blockName, String listName) {
-        return clickOnListElementWithLast(coreScenario.getCurrentPage().getBlock(blockName).getElementsList(listName));
+        return clickOnListElementWithLast(WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName));
     }
 
     /**
