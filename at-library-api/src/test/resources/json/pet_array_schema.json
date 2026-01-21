@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "PetArray",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "name", "status"],
+    "properties": {
+      "id": { "type": "integer" },
+      "name": { "type": "string" },
+      "status": { "type": "string" }
+    }
+  }
+}
