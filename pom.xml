@@ -6,7 +6,7 @@
 
     <groupId>ru</groupId>
     <artifactId>at-library</artifactId>
-    <version>19.02.2025</version>
+    <version>21.02.2025</version>
     <name>at-library</name>
     <packaging>pom</packaging>
 
