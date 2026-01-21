@@ -47,7 +47,7 @@ public class CoreInitialSetup {
      */
     @Before(order = 1)
     @Step("Инициализация CoreEnvironment")
-    public void beforeScenario(Scenario scenario) throws Exception {
+    public void initializingCoreEnvironment(Scenario scenario) throws Exception {
         int testNumber = scenarioNumber++;
         log.info(String.format("%s: старт сценария %d с именем [%s]", getScenarioId(scenario), testNumber, scenario.getName()));
 
@@ -67,7 +67,7 @@ public class CoreInitialSetup {
     }
 
     /**
-     * Возврщает сокращенный ID сценария
+     * Возвращает сокращенный ID сценария
      *
      * @return      ID сценария в формате feature_file.feature:ID
      */

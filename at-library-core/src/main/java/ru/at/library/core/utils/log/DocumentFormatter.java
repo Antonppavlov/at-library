@@ -1,7 +1,12 @@
 package ru.at.library.core.utils.log;
 
-import io.cucumber.messages.internal.com.google.gson.*;
 import lombok.extern.log4j.Log4j2;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Source;

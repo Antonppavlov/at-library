@@ -153,14 +153,14 @@ allure:serve
 ```mvn
 clean 
 test 
--Dcucumber.options="--tags @api --tags @web --plugin io.qameta.allure.cucumber4jvm.AllureCucumber4Jvm --plugin com.epam.reportportal.cucumber.ScenarioReporter"
+-Dcucumber.options="--tags @api --tags @web --plugin io.qameta.allure.cucumber7jvm.AllureCucumber7Jvm --plugin com.epam.reportportal.cucumber.ScenarioReporter"
 allure:serve 
 ```
 - Запуск тестов с тегами (ИЛИ)
 ```mvn
 clean
 test
--Dcucumber.options="--tags @api,@web --plugin io.qameta.allure.cucumber4jvm.AllureCucumber4Jvm --plugin com.epam.reportportal.cucumber.ScenarioReporter"
+-Dcucumber.options="--tags @api,@web --plugin io.qameta.allure.cucumber7jvm.AllureCucumber7Jvm --plugin com.epam.reportportal.cucumber.ScenarioReporter"
 allure:serve 
 ```
 

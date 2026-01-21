@@ -92,7 +92,7 @@ BDD библиотека шагов для тестирования на осн�
         <testFailureIgnore>true</testFailureIgnore>
         <argLine>
             -javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/1.9.1/aspectjweaver-1.9.1.jar"
-            -Dcucumber.options="--plugin io.qameta.allure.cucumber4jvm.AllureCucumber4Jvm"
+            -Dcucumber.options="--plugin io.qameta.allure.cucumber7jvm.AllureCucumber7Jvm"
         </argLine>
     </configuration>
     <dependencies>
