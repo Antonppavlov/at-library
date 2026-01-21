@@ -5,9 +5,9 @@ import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
 import io.cucumber.java.ru.И;
 import lombok.extern.log4j.Log4j2;
+import ru.at.library.core.cucumber.api.CoreScenario;
+import ru.at.library.web.core.IStepResult;
 import ru.at.library.web.entities.CommonStepResult;
-import ru.at.library.web.scenario.IStepResult;
-import ru.at.library.web.scenario.WebScenario;
 
 import static com.codeborne.selenide.Condition.*;
 import static ru.at.library.core.steps.OtherSteps.getPropertyOrStringVariableOrValue;
@@ -19,6 +19,8 @@ import static ru.at.library.web.step.elementcollection.ElementsCollectionCheckSt
 @Log4j2
 public class ElementsCollectionActionSteps {
 
+    private final CoreScenario coreScenario = CoreScenario.getInstance();
+
     /**
      * ######################################################################################################################
      */
@@ -26,7 +28,7 @@ public class ElementsCollectionActionSteps {
     @И("^в списке элементов \"([^\"]*)\" выполнено нажатие на элемент с текстом \"([^\"]*)\"$")
     public IStepResult clickOnListElementWithExactText(String listName, String expectedValue) {
         return clickOnListElementWithExactText(
-                WebScenario.getCurrentPage().getElementsList(listName),
+                coreScenario.getCurrentPage().getElementsList(listName),
                 expectedValue
         );
     }
@@ -34,7 +36,7 @@ public class ElementsCollectionActionSteps {
     @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на элемент с текстом \"([^\"]*)\"$")
     public IStepResult clickOnListElementWithExactText(String blockName, String listName, String expectedValue) {
         return clickOnListElementWithExactText(
-                WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
+                coreScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
                 expectedValue
         );
     }
@@ -43,16 +45,51 @@ public class ElementsCollectionActionSteps {
      * Выбор из списка со страницы элемента с заданным значением
      * (в приоритете: из property, из переменной сценария, значение аргумента)
      */
-    private IStepResult clickOnListElementWithExactText(ElementsCollection elements, String expectedValue) {
+    public IStepResult clickOnListElementWithExactText(ElementsCollection elements, String expectedValue) {
         expectedValue = getPropertyOrStringVariableOrValue(expectedValue);
         SelenideElement element = elements.find(Condition.or(
-                "Поиск элемента с текстом для дальнейшего нажатия",
-                exactText(expectedValue),
-                exactValue(expectedValue)
+                        "Поиск элемента с текстом для дальнейшего нажатия",
+                        exactText(expectedValue),
+                        exactValue(expectedValue)
                 )
         );
-
         element.click();
+        return new CommonStepResult(element);
+    }
+
+    /**
+     * ######################################################################################################################
+     */
+
+    @И("^в списке элементов \"([^\"]*)\" выполнено двойное нажатие на элемент с текстом \"([^\"]*)\"$")
+    public IStepResult doubleClickOnListElementWithExactText(String listName, String expectedValue) {
+        return clickOnListElementWithExactText(
+                coreScenario.getCurrentPage().getElementsList(listName),
+                expectedValue
+        );
+    }
+
+    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено двойное нажатие на элемент с текстом \"([^\"]*)\"$")
+    public IStepResult doubleClickOnListElementWithExactText(String blockName, String listName, String expectedValue) {
+        return clickOnListElementWithExactText(
+                coreScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
+                expectedValue
+        );
+    }
+
+    /**
+     * Выбор из списка со страницы элемента с заданным значением
+     * (в приоритете: из property, из переменной сценария, значение аргумента)
+     */
+    public IStepResult doubleClickOnListElementWithExactText(ElementsCollection elements, String expectedValue) {
+        expectedValue = getPropertyOrStringVariableOrValue(expectedValue);
+        SelenideElement element = elements.find(Condition.or(
+                        "Поиск элемента с текстом для дальнейшего нажатия",
+                        exactText(expectedValue),
+                        exactValue(expectedValue)
+                )
+        );
+        element.doubleClick();
         return new CommonStepResult(element);
     }
 
@@ -63,14 +100,14 @@ public class ElementsCollectionActionSteps {
     @И("^в списке элементов \"([^\"]*)\" выполнено нажатие на элемент содержащий текст \"([^\"]*)\"$")
     public IStepResult clickOnListElementWithContainsText(String listName, String expectedValue) {
         return clickOnListElementWithContainsText(
-                WebScenario.getCurrentPage().getElementsList(listName),
+                coreScenario.getCurrentPage().getElementsList(listName),
                 expectedValue);
     }
 
     @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на элемент содержащий текст \"([^\"]*)\"$")
     public IStepResult clickOnListElementWithContainsText(String blockName, String listName, String expectedValue) {
         return clickOnListElementWithContainsText(
-                WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
+                coreScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
                 expectedValue);
     }
 
@@ -79,7 +116,7 @@ public class ElementsCollectionActionSteps {
      * (в приоритете: из property, из переменной сценария, значение аргумента)
      * Не чувствителен к регистру
      */
-    private IStepResult clickOnListElementWithContainsText(ElementsCollection elements, String expectedValue) {
+    public IStepResult clickOnListElementWithContainsText(ElementsCollection elements, String expectedValue) {
         expectedValue = getPropertyOrStringVariableOrValue(expectedValue);
         SelenideElement element = elements.find(Condition.or(
                 "Поиск элемента содержащего текст для дальнейшего нажатия",
@@ -97,14 +134,14 @@ public class ElementsCollectionActionSteps {
     @И("^в списке элементов \"([^\"]*)\" выполнено нажатие на \"(\\d+)\" элемент$")
     public IStepResult clickOnListElementWithIndex(String listName, int number) {
         return clickOnListElementWithIndex(
-                WebScenario.getCurrentPage().getElementsList(listName),
+                coreScenario.getCurrentPage().getElementsList(listName),
                 number);
     }
 
     @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на \"(\\d+)\" элемент$")
     public IStepResult clickOnListElementWithIndex(String blockName, String listName, int number) {
         return clickOnListElementWithIndex(
-                WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
+                coreScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
                 number);
     }
 
@@ -124,23 +161,51 @@ public class ElementsCollectionActionSteps {
 
     @И("^в списке элементов \"([^\"]*)\" выполнено нажатие на случайный элемент$")
     public IStepResult clickOnListElementWithRandomIndex(String listName) {
-        return clickOnListElementWithRandomIndex(WebScenario.getCurrentPage().getElementsList(listName));
+        return clickOnListElementWithRandomIndex(coreScenario.getCurrentPage().getElementsList(listName));
     }
 
     @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на случайный элемент$")
     public IStepResult clickOnListElementWithRandomIndex(String blockName, String listName) {
-        return clickOnListElementWithRandomIndex(WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName));
+        return clickOnListElementWithRandomIndex(coreScenario.getCurrentPage().getBlock(blockName).getElementsList(listName));
     }
 
     /**
      * Выполнено нажатие на случайный элемент
      */
-    private IStepResult clickOnListElementWithRandomIndex(ElementsCollection elements) {
+    public IStepResult clickOnListElementWithRandomIndex(ElementsCollection elements) {
         elements = elements.filter(visible);
         SelenideElement element = getRandomElementFromCollection(elements.filter(visible));
         element.click();
         log.trace("Выполнено нажатие на случайный элемент: " + element);
         return new CommonStepResult(element);
     }
+
+
+
+    /**
+     * ######################################################################################################################
+     */
+
+    @И("^в списке элементов \"([^\"]*)\" выполнено нажатие на последний элемент$")
+    public IStepResult clickOnListElementWithLast(String listName) {
+        return clickOnListElementWithLast(coreScenario.getCurrentPage().getElementsList(listName));
+    }
+
+    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на последний элемент$")
+    public IStepResult clickOnListElementWithLast(String blockName, String listName) {
+        return clickOnListElementWithLast(coreScenario.getCurrentPage().getBlock(blockName).getElementsList(listName));
+    }
+
+    /**
+     * Выполнено нажатие на последний элемент
+     */
+    public IStepResult clickOnListElementWithLast(ElementsCollection elements) {
+        elements = elements.filter(visible);
+        SelenideElement element = elements.last();
+        element.click();
+        log.trace("Выполнено нажатие на последний элемент: " + element);
+        return new CommonStepResult(element);
+    }
+
 
 }
