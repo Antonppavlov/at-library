@@ -7,7 +7,7 @@
     <parent>
         <groupId>ru</groupId>
         <artifactId>at-library</artifactId>
-        <version>21.02.2025</version>
+        <version>21.02.2026</version>
     </parent>
 
     <groupId>ru</groupId>
