@@ -36,7 +36,7 @@ public class WebInitialSetup {
 
     private static final Logger log = LogManager.getLogger(WebInitialSetup.class);
 
-    @Before(order = 600, value = "@web")
+    @Before(order = 600)
     @Step("Запуск браузера для web-сценария")
     public void startWebDriver(Scenario scenario) throws Exception {
         configureBaseUrl();
@@ -47,7 +47,7 @@ public class WebInitialSetup {
     /**
      * После web-сценария: закрытие WebDriver'а.
      */
-    @After(value = "@web")
+    @After()
     @Step("Закрытие браузера для web-сценария")
     public void stopWebDriver(Scenario scenario) {
         Selenide.closeWebDriver();

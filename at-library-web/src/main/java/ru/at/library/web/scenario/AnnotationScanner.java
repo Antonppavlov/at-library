@@ -18,7 +18,7 @@ public class AnnotationScanner {
      * Используем пакет "ru.at.library.web", чтобы находить как production-страницы,
      * так и тестовые страниц/блоки под этим namespace, если они есть на classpath.
      */
-    private static final Reflections reflection = new Reflections("ru.at.library.web");
+    private static final Reflections reflection = new Reflections("");
 
     public Set<Class<?>> getClassesAnnotatedWith(Class<? extends Annotation> annotation) {
         return reflection.getTypesAnnotatedWith(annotation);
