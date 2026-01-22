@@ -1,6 +1,7 @@
 package ru.at.library.web.scenario;
 
 import com.codeborne.selenide.*;
+import org.openqa.selenium.support.FindBy;
 import ru.at.library.web.scenario.annotations.Name;
 import ru.at.library.web.selenide.ElementCheck;
 import ru.at.library.web.selenide.IElementCheck;
@@ -74,8 +75,18 @@ public abstract class CorePage {
                     // Для полей-блоков (наследников CorePage) Selenide не инициализирует значение автоматически.
                     // Если значение поля равно null, создаём экземпляр блока через Selenide.page(...),
                     // чтобы далее можно было работать с ним как с обычной страницей.
-                    if (obj == null && CorePage.class.isAssignableFrom(fieldCheckedType.getType())) {
-                        obj = com.codeborne.selenide.Selenide.page((Class<? extends CorePage>) fieldCheckedType.getType());
+                    if (obj == null) {
+                        Class<?> fieldType = fieldCheckedType.getType();
+                        if (CorePage.class.isAssignableFrom(fieldType)) {
+                            obj = com.codeborne.selenide.Selenide.page((Class<? extends CorePage>) fieldType);
+                        } else if (List.class.isAssignableFrom(fieldType)
+                                && fieldCheckedType.getGenericType() instanceof ParameterizedType) {
+                            ParameterizedType listType = (ParameterizedType) fieldCheckedType.getGenericType();
+                            Class<?> listClass = (Class<?>) listType.getActualTypeArguments()[0];
+                            if (CorePage.class.isAssignableFrom(listClass)) {
+                                obj = initCorePageList(fieldCheckedType, (Class<? extends CorePage>) listClass);
+                            }
+                        }
                     }
 
                     PageElement.ElementType type = PageElement.ElementType.getType(obj);
@@ -306,6 +317,47 @@ public abstract class CorePage {
         return Reflection.extractFieldValue(field, this);
     }
 
+    /**
+     * Инициализация списка блоков (List<CorePage>) на основе аннотации @FindBy.
+     * Используется для полей вида List<SomeBlock extends CorePage>.
+     */
+    @SuppressWarnings("unchecked")
+    private List<CorePage> initCorePageList(Field field, Class<? extends CorePage> blockClass) {
+        FindBy findBy = field.getAnnotation(FindBy.class);
+        if (findBy == null) {
+            throw new IllegalStateException(String.format(
+                    "Поле %s типа List<%s> должно быть аннотировано @FindBy для инициализации списка блоков",
+                    field.getName(), blockClass.getSimpleName()));
+        }
+
+        ElementsCollection elements;
+        if (!findBy.css().isEmpty()) {
+            elements = Selenide.$$(findBy.css());
+        } else if (!findBy.xpath().isEmpty()) {
+            elements = Selenide.$$x(findBy.xpath());
+        } else {
+            throw new IllegalStateException(String.format(
+                    "Поддерживаются только @FindBy(css=...) и @FindBy(xpath=...) для поля %s типа List<%s>",
+                    field.getName(), blockClass.getSimpleName()));
+        }
+
+        List<CorePage> blocks = new ArrayList<>();
+        for (SelenideElement element : elements) {
+            try {
+                CorePage block = blockClass.getDeclaredConstructor().newInstance();
+                block.setSelf(element);
+                // Инициализируем элементы блока через Selenide, чтобы @Name-поля внутри него были доступны
+                com.codeborne.selenide.Selenide.page(block).initialize();
+                blocks.add(block);
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException(String.format(
+                        "Не удалось создать экземпляр блока %s для поля %s",
+                        blockClass.getName(), field.getName()), e);
+            }
+        }
+        return blocks;
+    }
+
     private SelenideElement castToSelenideElement(Object element) {
         if (element == null) {
             throw new IllegalArgumentException("Object is null и не может быть приведён к SelenideElement");
@@ -334,7 +386,12 @@ public abstract class CorePage {
         if (!(corePage instanceof CorePage)) {
             throw new IllegalArgumentException("Object: " + corePage.getClass() + " не является объектом CorePage");
         }
-        return Selenide.page((CorePage) corePage).initialize();
+        CorePage page = (CorePage) corePage;
+        // Если страница/блок уже инициализирован (namedElements заполнен), повторная инициализация не требуется
+        if (page.namedElements != null && !page.namedElements.isEmpty()) {
+            return page;
+        }
+        return Selenide.page(page).initialize();
     }
 
     /**
