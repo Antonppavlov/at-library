@@ -5,6 +5,10 @@ import com.codeborne.selenide.WebElementsCondition;
 
 import java.util.Arrays;
 
+/**
+ * Набор дополнительных условий и сравнений, используемых в шагах для проверки размеров коллекций
+ * и простых числовых сравнений ("равно", "больше", "не равно" и т.п.).
+ */
 public class CustomCondition {
     public enum Comparison {
         equal("равно"),

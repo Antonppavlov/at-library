@@ -12,6 +12,10 @@ import java.util.List;
 import java.util.Optional;
 
 @UtilityClass
+/**
+ * Вспомогательные методы для преобразования Selenide‑элементов и блоков в «сырые» {@link WebElement}.
+ * <p>Используется в основном для подсветки областей на скриншотах в отчётах.</p>
+ */
 public class CastToWebElements {
 
     /**

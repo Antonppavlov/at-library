@@ -8,7 +8,9 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 /**
- * Реестр страниц, используемых при прогоне web-тестов.
+ * Реестр page‑объектов, используемых при выполнении web‑сценариев.
+ * <p>Хранит соответствие «имя страницы» → {@link CorePage} и текущую активную страницу.
+ * Используется классом {@link WebScenario} и step‑классами.</p>
  */
 public final class Pages {
 

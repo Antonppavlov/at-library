@@ -2,6 +2,7 @@ package ru.at.library.web.scenario;
 
 import com.codeborne.selenide.*;
 import org.openqa.selenium.support.FindBy;
+import org.openqa.selenium.support.FindAll;
 import ru.at.library.web.scenario.annotations.Name;
 import ru.at.library.web.selenide.ElementCheck;
 import ru.at.library.web.selenide.IElementCheck;
@@ -22,7 +23,18 @@ import static ru.at.library.core.utils.helpers.PropertyLoader.loadProperty;
 import static ru.at.library.web.selenide.ElementChecker.*;
 
 /**
- * Класс для реализации паттерна PageObject (web-специфичный, основан на Selenide).
+ * Базовый класс для всех page‑объектов web‑модуля (паттерн Page Object на базе Selenide).
+ * <p>
+ * Отвечает за:
+ * <ul>
+ *   <li>хранение "корневого" {@link SelenideElement} страницы или блока,</li>
+ *   <li>поиск и инициализацию полей, помеченных аннотацией {@link ru.at.library.web.scenario.annotations.Name},</li>
+ *   <li>создание «живых» коллекций блоков через {@link BlocksCollection},</li>
+ *   <li>выполнение типовых проверок видимости/обязательности элементов.</li>
+ * </ul>
+ * Большинство step‑классов использует именно этот API (методы {@link #getElement(String)},
+ * {@link #getElementsList(String)}, {@link #getBlock(String)}, {@link #getBlocksList(String)} и проверки
+ * {@link #isAppeared()}, {@link #checkMandatory()}, {@link #checkHidden()}, {@link #checkPrimary(boolean)}).
  */
 public abstract class CorePage {
 
@@ -30,20 +42,36 @@ public abstract class CorePage {
     public static boolean isHidden = Boolean.parseBoolean(loadProperty("isHidden", "true"));
     public static boolean isMandatory = Boolean.parseBoolean(loadProperty("isMandatory", "true"));
 
-    /**
-     * Имя страницы
+/**
+     * Человеко‑читаемое имя страницы/блока.
+     * <p>Берётся из аннотации {@link ru.at.library.web.scenario.annotations.Name} и попадает в логи и сообщения
+     * об ошибках.</p>
      */
     private String name;
 
-    /**
+/**
      * Корневой элемент страницы/блока.
-     * Ранее предоставлялся Selenide ElementsContainer#getSelf().
-     * По умолчанию используется весь документ (html), если явно не задано.
+     * <p>
+     * Для обычных страниц по умолчанию используется весь документ ({@code <html>}), чтобы относительные локаторы
+     * работали от корня. Для вложенных блоков корень задаётся явно через {@link #setSelf(SelenideElement)} (например,
+     * {@code <tr>} таблицы), и относительные xpath/css‑локаторы полей блока вычисляются относительно этого элемента.
+     * </p>
      */
     private SelenideElement self;
 
-    /**
-     * Список всех элементов страницы
+/**
+     * Признак того, что {@link #self} был установлен программно через {@link #setSelf(SelenideElement)}.
+     * <p>Если флаг {@code true}, значит, перед нами реальный блок и поля с {@link FindBy}/{@link FindAll}
+     * должны инициализироваться относительно {@link #self}. Для корневых страниц флаг остаётся {@code false},
+     * и локаторы ведут себя как в обычном Selenide PageObject.</p>
+     */
+    private boolean hasCustomSelf = false;
+
+/**
+     * Кеш всех элементов/блоков, помеченных {@link ru.at.library.web.scenario.annotations.Name}.
+     * <p>Ключ — значение аннотации {@code @Name}, значение — обёртка {@link ru.at.library.web.selenide.PageElement}
+     * вокруг реального {@link SelenideElement}, {@link com.codeborne.selenide.ElementsCollection} или вложенного
+     * {@link CorePage}.</p>
      */
     private Map<String, PageElement> namedElements;
 
@@ -59,8 +87,16 @@ public abstract class CorePage {
         super();
     }
 
-    /**
-     * Поиск и инициализации элементов страницы с аннотацией @Name и сбор их в Map<String, PageElement> namedElements
+/**
+     * Находит и инициализирует все public‑поля, помеченные {@link ru.at.library.web.scenario.annotations.Name},
+     * и складывает их в {@link #namedElements}.
+     * <ul>
+     *   <li>Поля простых элементов/коллекций инициализируются через {@link Selenide#page(Class)}.</li>
+     *   <li>Поля‑блоков ({@code extends CorePage}) и списков блоков получают «живую» обёртку {@link BlocksCollection},
+     *       чтобы при каждом обращении использовался актуальный DOM.</li>
+     * </ul>
+     *
+     * @return текущий объект страницы/блока (для чейнинга)
      */
     public CorePage initialize() {
         checkNamedAnnotations();
@@ -89,6 +125,26 @@ public abstract class CorePage {
                         }
                     }
 
+                    // Для блоков (self был явно установлен) переконструируем поля SelenideElement/ElementsCollection на базе self и @FindBy,
+                    // чтобы относительные локаторы (например, xpath ".//td[4]") искались относительно корня блока, а не всей страницы.
+                    if (hasCustomSelf) {
+                        FindBy findBy = fieldCheckedType.getAnnotation(FindBy.class);
+                        FindAll findAll = fieldCheckedType.getAnnotation(FindAll.class);
+                        if (findBy != null || findAll != null) {
+                            Class<?> fieldType = fieldCheckedType.getType();
+                            if (SelenideElement.class.isAssignableFrom(fieldType)) {
+                                if (findAll != null) {
+                                    obj = initElementWithinSelf(findAll);
+                                } else {
+                                    obj = initElementWithinSelf(findBy);
+                                }
+                            } else if (ElementsCollection.class.isAssignableFrom(fieldType) && findBy != null) {
+                                // Для коллекций поддерживаем только одиночный @FindBy
+                                obj = initElementsCollectionWithinSelf(findBy);
+                            }
+                        }
+                    }
+
                     PageElement.ElementType type = PageElement.ElementType.getType(obj);
                     PageElement pageElement = new PageElement(obj, name, type, PageElement.ElementMode.getMode(fieldCheckedType));
                     namedElements.put(name, pageElement);
@@ -96,8 +152,12 @@ public abstract class CorePage {
         return this;
     }
 
-    /**
-     * Получение элемента со страницы по имени (аннотированного "Name")
+/**
+     * Возвращает одиночный элемент по его «человеческому» имени (значению {@code @Name}).
+     *
+     * @param elementName имя из аннотации {@link ru.at.library.web.scenario.annotations.Name}
+     * @return {@link SelenideElement}, соответствующий данному имени
+     * @throws IllegalArgumentException если такого элемента нет среди полей страницы
      */
     public SelenideElement getElement(String elementName) {
         return castToSelenideElement(Optional.ofNullable(namedElements.get(elementName))
@@ -105,8 +165,12 @@ public abstract class CorePage {
                 .getElement());
     }
 
-    /**
-     * Получение элемента-списка со страницы по имени
+/**
+     * Возвращает список элементов ({@link ElementsCollection}) по имени, заданному через {@code @Name}.
+     *
+     * @param listName имя списка
+     * @return {@link ElementsCollection}, соответствующая указанному имени
+     * @throws IllegalArgumentException если список не найден или поле имеет другой тип
      */
     public ElementsCollection getElementsList(String listName) {
         return castToElementsCollection(Optional.ofNullable(namedElements.get(listName))
@@ -114,8 +178,12 @@ public abstract class CorePage {
                 .getElement());
     }
 
-    /**
-     * Получение блока со страницы по имени (аннотированного "Name")
+/**
+     * Возвращает вложенный блок (подкласс {@link CorePage}) по имени из {@code @Name}.
+     *
+     * @param blockName имя блока
+     * @return проинициализированный блок
+     * @throws IllegalArgumentException если блок не найден или поле имеет неподходящий тип
      */
     public CorePage getBlock(String blockName) {
         return castToCorePage(Optional.ofNullable(namedElements.get(blockName))
@@ -123,23 +191,50 @@ public abstract class CorePage {
                 .getElement());
     }
 
-    /**
-     * Получение списка блоков со страницы по имени (аннотированного "Name")
+/**
+     * Возвращает список блоков по имени списка (поле типа {@code List<CorePage>} с {@code @Name}).
+     * <p>Внутри данные хранятся в виде {@link BlocksCollection}, но наружу возвращается снимок в виде
+     * обычного списка, построенный по текущему DOM.</p>
      */
     @SuppressWarnings("unchecked")
     public List<CorePage> getBlocksList(String listCorePage) {
-        Object value = namedElements.get(listCorePage).getElement();
+        PageElement pageElement = Optional.ofNullable(namedElements.get(listCorePage))
+                .orElseThrow(() -> new IllegalArgumentException("List<CorePage> " + listCorePage + " не описан на странице " + this.getClass().getName()));
+        Object value = pageElement.getElement();
         if (!(value instanceof List)) {
             throw new IllegalArgumentException("List<CorePage> " + listCorePage + " не описан на странице " + this.getClass().getName());
         }
-        Stream<Object> stream = ((List<Object>) value).stream();
-
-        return stream.map(CorePage::castToCorePage).collect(toList());
+        List<?> list = (List<?>) value;
+        List<CorePage> result = new ArrayList<>();
+        for (Object o : list) {
+            result.add(castToCorePage(o));
+        }
+        return result;
     }
 
-    /**
-     * Проверка того, что элементы, не помеченные аннотацией "Optional", отображаются,
-     * а элементы, помеченные аннотацией "Hidden", скрыты.
+/**
+     * Возвращает «живую» коллекцию блоков {@link BlocksCollection} для указанного списка.
+     * <p>Эта коллекция привязана к DOM и используется там, где нужно ждать изменение количества
+     * или состояния блоков (через Selenide‑условия для коллекций).</p>
+     */
+    @SuppressWarnings("unchecked")
+    public BlocksCollection<? extends CorePage> getBlocksCollection(String listCorePage) {
+        PageElement pageElement = Optional.ofNullable(namedElements.get(listCorePage))
+                .orElseThrow(() -> new IllegalArgumentException("BlocksCollection " + listCorePage + " не описан на странице " + this.getClass().getName()));
+        Object value = pageElement.getElement();
+        if (!(value instanceof BlocksCollection)) {
+            throw new IllegalArgumentException("Object: " + value.getClass() + " не является BlocksCollection для " + listCorePage + " на странице " + this.getClass().getName());
+        }
+        return (BlocksCollection<? extends CorePage>) value;
+    }
+
+/**
+     * Комплексная проверка того, что страница/блок «отобразился» корректно.
+     * <ul>
+     *   <li>Проверяет, что обязательные элементы ({@link ElementMode#MANDATORY}) видимы.</li>
+     *   <li>Проверяет, что скрытые элементы ({@link ElementMode#HIDDEN}) невидимы.</li>
+     *   <li>При необходимости вызывает {@link #checkPrimary(boolean)} для основных элементов.</li>
+     * </ul>
      */
     public void isAppeared() {
         if (isMandatory){
@@ -262,6 +357,70 @@ public abstract class CorePage {
         return pageElementToElementCheck(elements, condition, message);
     }
 
+    /**
+     * Инициализация одиночного элемента внутри блока (self) по аннотации @FindBy.
+     * Поддерживаются css и xpath. Для xpath используются методы self.$x("..."),
+     * что позволяет корректно обрабатывать относительные локаторы вида ".//td[4]".
+     */
+    private SelenideElement initElementWithinSelf(FindBy findBy) {
+        if (!hasCustomSelf || self == null) {
+            throw new IllegalStateException("Невозможно инициализировать элемент относительно self: self не был явно задан через setSelf");
+        }
+        if (!findBy.css().isEmpty()) {
+            return getSelf().$(findBy.css());
+        } else if (!findBy.xpath().isEmpty()) {
+            return getSelf().$x(findBy.xpath());
+        } else {
+            throw new IllegalStateException("Поддерживаются только @FindBy(css=...) и @FindBy(xpath=...) для SelenideElement внутри блока");
+        }
+    }
+
+    /**
+     * Вариант для @FindAll с несколькими xpath-локаторами (OR).
+     * Объединяем xpath в одно выражение через оператор | и ищем относительно self.
+     */
+    private SelenideElement initElementWithinSelf(FindAll findAll) {
+        if (!hasCustomSelf || self == null) {
+            throw new IllegalStateException("Невозможно инициализировать элемент относительно self: self не был явно задан через setSelf");
+        }
+        // Поддерживаем только xpath-локаторы. Если задан css, берём первый css как есть.
+        StringBuilder xpathUnion = new StringBuilder();
+        for (FindBy fb : findAll.value()) {
+            if (!fb.xpath().isEmpty()) {
+                if (!xpathUnion.isEmpty()) {
+                    xpathUnion.append(" | ");
+                }
+                xpathUnion.append('(').append(fb.xpath()).append(')');
+            }
+        }
+        if (xpathUnion.length() > 0) {
+            return getSelf().$$x(xpathUnion.toString()).first();
+        }
+        // Fallback: если xpath не задан, а есть css — используем первый css
+        for (FindBy fb : findAll.value()) {
+            if (!fb.css().isEmpty()) {
+                return getSelf().$(fb.css());
+            }
+        }
+        throw new IllegalStateException("@FindAll внутри блока должен содержать xpath или css локаторы");
+    }
+
+    /**
+     * Инициализация коллекции элементов внутри блока (self) по аннотации @FindBy.
+     */
+    private ElementsCollection initElementsCollectionWithinSelf(FindBy findBy) {
+        if (!hasCustomSelf || self == null) {
+            throw new IllegalStateException("Невозможно инициализировать ElementsCollection относительно self: self не был явно задан через setSelf");
+        }
+        if (!findBy.css().isEmpty()) {
+            return getSelf().$$(findBy.css());
+        } else if (!findBy.xpath().isEmpty()) {
+            return getSelf().$$x(findBy.xpath());
+        } else {
+            throw new IllegalStateException("Поддерживаются только @FindBy(css=...) и @FindBy(xpath=...) для ElementsCollection внутри блока");
+        }
+    }
+
     public List<IElementCheck> pageElementToElementCheck(Collection<PageElement> values, com.codeborne.selenide.WebElementCondition condition, String message) {
         return values.stream()
                 .map(pageElement ->
@@ -318,8 +477,9 @@ public abstract class CorePage {
     }
 
     /**
-     * Инициализация списка блоков (List<CorePage>) на основе аннотации @FindBy.
-     * Используется для полей вида List<SomeBlock extends CorePage>.
+     * Инициализация списка блоков на основе аннотации @FindBy.
+     * Возвращает "живую" коллекцию блоков, которая строится по текущему состоянию DOM
+     * при каждом обращении (BlocksCollection).
      */
     @SuppressWarnings("unchecked")
     private List<CorePage> initCorePageList(Field field, Class<? extends CorePage> blockClass) {
@@ -341,21 +501,9 @@ public abstract class CorePage {
                     field.getName(), blockClass.getSimpleName()));
         }
 
-        List<CorePage> blocks = new ArrayList<>();
-        for (SelenideElement element : elements) {
-            try {
-                CorePage block = blockClass.getDeclaredConstructor().newInstance();
-                block.setSelf(element);
-                // Инициализируем элементы блока через Selenide, чтобы @Name-поля внутри него были доступны
-                com.codeborne.selenide.Selenide.page(block).initialize();
-                blocks.add(block);
-            } catch (ReflectiveOperationException e) {
-                throw new IllegalStateException(String.format(
-                        "Не удалось создать экземпляр блока %s для поля %s",
-                        blockClass.getName(), field.getName()), e);
-            }
-        }
-        return blocks;
+        // Возвращаем обёртку над ElementsCollection, которая при каждом обращении
+        // создаёт список блоков по актуальному DOM.
+        return new BlocksCollection<>(elements, blockClass);
     }
 
     private SelenideElement castToSelenideElement(Object element) {
@@ -408,5 +556,6 @@ public abstract class CorePage {
      */
     public void setSelf(SelenideElement self) {
         this.self = self;
+        this.hasCustomSelf = true;
     }
 }

@@ -1,0 +1,79 @@
+package ru.at.library.web.step.blockcollection;
+
+import com.codeborne.selenide.SelenideElement;
+import io.cucumber.datatable.DataTable;
+import ru.at.library.web.scenario.CorePage;
+import ru.at.library.web.scenario.CustomCondition;
+
+import java.util.List;
+
+import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.*;
+
+/**
+ * Вспомогательный класс для работы со списком блоков в шагах.
+ * Инкапсулирует получение/ожидание списка блоков и типовые операции поиска.
+ */
+class BlockListContext {
+
+    private final List<CorePage> blocks;
+    private final String listName;
+    private final String containerName; // может быть null
+
+    private BlockListContext(List<CorePage> blocks, String listName, String containerName) {
+        this.blocks = blocks;
+        this.listName = listName;
+        this.containerName = containerName;
+    }
+
+    static BlockListContext fromList(String listName) {
+        List<CorePage> blocks =
+                getBlockListWithCheckingTheQuantity(listName, CustomCondition.Comparison.more, 0);
+        return new BlockListContext(blocks, listName, null);
+    }
+
+    static BlockListContext fromBlock(String blockName, String listName) {
+        List<CorePage> blocks =
+                getBlockListWithCheckingTheQuantity(blockName, listName, CustomCondition.Comparison.more, 0);
+        return new BlockListContext(blocks, listName, blockName);
+    }
+
+    List<CorePage> getBlocks() {
+        return blocks;
+    }
+
+    String getListName() {
+        return listName;
+    }
+
+    String getContainerName() {
+        return containerName;
+    }
+
+    CorePage nthBlock(int oneBasedIndex) {
+        return blocks.get(oneBasedIndex - 1);
+    }
+
+    CorePage findByTextEquals(String elementName, String expectedText) {
+        return findCorePageByTextInElement(blocks, elementName, expectedText);
+    }
+
+    CorePage findByTextContains(String elementName, String expectedText) {
+        return findCorePageByTextContainInElement(blocks, elementName, expectedText);
+    }
+
+    CorePage findByRegExp(String elementName, String expectedRegExp) {
+        return findCorePageByRegExpInElement(blocks, elementName, expectedRegExp);
+    }
+
+    CorePage findByVisibleElement(String elementName) {
+        return findCorePageByVisibleElement(blocks, elementName);
+    }
+
+    List<CorePage> filterByConditions(DataTable conditionsTable) {
+        return getBlockListWithComplexCondition(blocks, conditionsTable);
+    }
+
+    SelenideElement element(CorePage block, String elementName) {
+        return block.getElement(elementName);
+    }
+}

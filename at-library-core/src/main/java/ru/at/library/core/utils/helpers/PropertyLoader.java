@@ -208,7 +208,7 @@ public class PropertyLoader {
 //            }
             return (String) var;
         }
-        log.warn("Значение не найдено в хранилище. Будет исользовано значение по умолчанию " + valueToFind);
+        log.warn("Значение не найдено в хранилище. Будет использовано значение по умолчанию " + valueToFind);
         return valueToFind;
     }
 
@@ -261,7 +261,7 @@ public class PropertyLoader {
 //            }
             return (String) var;
         }
-        log.warn("Значение не найдено в хранилище. Будет исользовано значение по умолчанию " + valueToFind);
+        log.warn("Значение не найдено в хранилище. Будет использовано значение по умолчанию " + valueToFind);
         return valueToFind;
     }
 
