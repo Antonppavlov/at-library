@@ -27,43 +27,47 @@ import static ru.at.library.core.utils.helpers.ScopedVariables.resolveVars;
  * -----------------------------------------------------------------------------------------------------------------
  */
 public class BlocksCollectionOtherMethod {
-    @Step("Поиск блока в котором элемента '{elementName}' отображается")
-    public static CorePage findCorePageByVisibleElement(List<CorePage> blocksList, String elementName) {
 
-        AssertionError lastError = null;
-        for (CorePage page : blocksList) {
-            SelenideElement element = page.getElement(elementName);
-            Selenide.executeJavaScript("arguments[0].scrollIntoView({block: \"center\", inline: \"center\"});", element);
-
-            try {
-                element.shouldBe(Condition.visible);
-                return page;
-            } catch (AssertionError e) {
-                lastError = e;
-            }
-        }
-        BrowserSteps.takeScreenshot();
-        throw new AssertionError(
-                "Во всех блоках в элементах " + elementName + " элемент не отображается"
-                        + "\nРазмер блоков: " + blocksList.size()
-                        + "\nСодержимое блоков: " + blocksList,
-                lastError
-        );
+    /**
+     * Скроллит указанный элемент в центр видимой области окна с помощью JS.
+     * Используется всеми методами поиска/проверки в списках блоков, чтобы избежать дублирования строки
+     * с вызовом {@code Selenide.executeJavaScript("arguments[0].scrollIntoView({block: 'center', inline: 'center'});", element)}.
+     */
+    static void scrollToElementCenter(SelenideElement element) {
+        Selenide.executeJavaScript("arguments[0].scrollIntoView({block: \"center\", inline: \"center\"});", element);
     }
 
-    @Step("Поиск блока в котором текст элемента '{elementName}' равен : '{expectedText}'")
-    public static CorePage findCorePageByTextInElement(List<CorePage> blocksList, String elementName, String expectedText) {
+    /**
+     * Строит человекочитаемое описание контекста списка блоков для сообщений об ошибках.
+     * Используется как в шагах проверки количества блоков, так и в сложных поисках.
+     */
+    private static String buildBlockListContextDescription(String listName, String containerName) {
+        StringBuilder description = new StringBuilder();
+        description.append("Текущая страница: '")
+                .append(WebScenario.getCurrentPage().getName())
+                .append("'");
 
-        WebElementCondition condition = Condition.or("проверка на текст",
-                Condition.exactText(expectedText),
-                Condition.exactValue(expectedText),
-                Condition.attribute("title", expectedText)
-        );
+        if (containerName != null) {
+            description.append("\nБлок-контейнер: '")
+                    .append(containerName)
+                    .append("'");
+        }
 
+        description.append("\nСписок блоков: '")
+                .append(listName)
+                .append("'");
+
+        return description.toString();
+    }
+
+    private static CorePage findCorePageByCondition(List<CorePage> blocksList,
+                                                    String elementName,
+                                                    WebElementCondition condition,
+                                                    String notFoundMessagePrefix) {
         AssertionError lastError = null;
         for (CorePage page : blocksList) {
             SelenideElement element = page.getElement(elementName);
-            Selenide.executeJavaScript("arguments[0].scrollIntoView({block: \"center\", inline: \"center\"});", element);
+            scrollToElementCenter(element);
 
             try {
                 element.shouldHave(condition);
@@ -74,11 +78,29 @@ public class BlocksCollectionOtherMethod {
         }
         BrowserSteps.takeScreenshot();
         throw new AssertionError(
-                "Во всех блоках в элементах " + elementName + " не найден текст:" + expectedText
-                        + "\nРазмер блоков: " + blocksList.size()
-                        + "\nСодержимое блоков: " + blocksList,
+                notFoundMessagePrefix +
+                        "\nРазмер блоков: " + blocksList.size() +
+                        "\nСодержимое блоков: " + blockListToString(blocksList),
                 lastError
         );
+    }
+
+    @Step("Поиск блока в котором элемента '{elementName}' отображается")
+    public static CorePage findCorePageByVisibleElement(List<CorePage> blocksList, String elementName) {
+        WebElementCondition condition = Condition.visible;
+        String notFoundMessage = "Во всех блоках в элементах " + elementName + " элемент не отображается";
+        return findCorePageByCondition(blocksList, elementName, condition, notFoundMessage);
+    }
+
+    @Step("Поиск блока в котором текст элемента '{elementName}' равен : '{expectedText}'")
+    public static CorePage findCorePageByTextInElement(List<CorePage> blocksList, String elementName, String expectedText) {
+        WebElementCondition condition = Condition.or("проверка на текст",
+                Condition.exactText(expectedText),
+                Condition.exactValue(expectedText),
+                Condition.attribute("title", expectedText)
+        );
+        String notFoundMessage = "Во всех блоках в элементах " + elementName + " не найден текст:" + expectedText;
+        return findCorePageByCondition(blocksList, elementName, condition, notFoundMessage);
     }
 
 
@@ -89,27 +111,8 @@ public class BlocksCollectionOtherMethod {
                 Condition.value(expectedText),
                 Condition.attribute("title", expectedText)
         );
-
-        AssertionError lastError = null;
-        for (CorePage page : blocksList) {
-            SelenideElement element = page.getElement(elementName);
-
-            Selenide.executeJavaScript("arguments[0].scrollIntoView({block: \"center\", inline: \"center\"});", element);
-
-            try {
-                element.shouldHave(condition);
-                return page;
-            } catch (AssertionError e) {
-                lastError = e;
-            }
-        }
-        BrowserSteps.takeScreenshot();
-        throw new AssertionError(
-                "Во всех блоках в элементах " + elementName + " не найден текст:" + expectedText
-                        + "\nРазмер блоков: " + blocksList.size()
-                        + "\nСодержимое блоков: " + blocksList,
-                lastError
-        );
+        String notFoundMessage = "Во всех блоках в элементах " + elementName + " не найден текст:" + expectedText;
+        return findCorePageByCondition(blocksList, elementName, condition, notFoundMessage);
     }
 
 
@@ -120,27 +123,8 @@ public class BlocksCollectionOtherMethod {
                 Condition.attributeMatching("value", expectedText),
                 Condition.attributeMatching("title", expectedText)
         );
-
-        AssertionError lastError = null;
-        for (CorePage page : blocksList) {
-            SelenideElement element = page.getElement(elementName);
-
-            Selenide.executeJavaScript("arguments[0].scrollIntoView({block: \"center\", inline: \"center\"});", element);
-
-            try {
-                element.shouldHave(condition);
-                return page;
-            } catch (AssertionError e) {
-                lastError = e;
-            }
-        }
-        BrowserSteps.takeScreenshot();
-        throw new AssertionError(
-                "Во всех блоках в элементах " + elementName + " не найден текст:" + expectedText
-                        + "\nРазмер блоков: " + blocksList.size()
-                        + "\nСодержимое блоков: " + blocksList,
-                lastError
-        );
+        String notFoundMessage = "Во всех блоках в элементах " + elementName + " не найден текст:" + expectedText;
+        return findCorePageByCondition(blocksList, elementName, condition, notFoundMessage);
     }
 
 
@@ -206,11 +190,10 @@ public class BlocksCollectionOtherMethod {
             int actualSize = blocksCollection.getRoots().size();
             BrowserSteps.takeScreenshot();
             throw new AssertionError(
-                    "CurrentPage: '" + currentPage.getName() + "'" +
-                            "\nList<CorePage>: '" + listName + "'" +
-                            "\nРеальное количество блоков: '" + actualSize + "'" +
-                            "\nПроверяемое условие: '" + comparison.toString() + "'" +
-                            "\nПроверяемое количество: '" + count + "'",
+                    buildBlockListContextDescription(listName, null) +
+                            "\nУсловие по количеству блоков: " + comparison.toString() +
+                            "\nОжидаемое количество блоков: " + count +
+                            "\nФактическое количество блоков: " + actualSize,
                     e
             );
         }
@@ -235,12 +218,10 @@ public class BlocksCollectionOtherMethod {
             int actualSize = blocksCollection.getRoots().size();
             BrowserSteps.takeScreenshot();
             throw new AssertionError(
-                    "CurrentPage: '" + WebScenario.getCurrentPage().getName() + "'" +
-                            "\nblockName: '" + blockName + "'" +
-                            "\nList<CorePage>: '" + listName + "'" +
-                            "\nРеальное количество блоков: '" + actualSize + "'" +
-                            "\nПроверяемое условие: '" + comparison.toString() + "'" +
-                            "\nПроверяемое количество: '" + count + "'",
+                    buildBlockListContextDescription(listName, blockName) +
+                            "\nУсловие по количеству блоков: " + comparison.toString() +
+                            "\nОжидаемое количество блоков: " + count +
+                            "\nФактическое количество блоков: " + actualSize,
                     e
             );
         }
@@ -292,7 +273,7 @@ public class BlocksCollectionOtherMethod {
         for (CorePage page : blockList) {
             SelenideElement element = page.getElement(elementName);
             if (element.is(Condition.exist)) {
-                Selenide.executeJavaScript("arguments[0].scrollIntoView({block: \"center\", inline: \"center\"});", element);
+                scrollToElementCenter(element);
                 if (element.is(condition)) {
                     resultList.add(page);
                 }
@@ -300,10 +281,10 @@ public class BlocksCollectionOtherMethod {
         }
 
         if (resultList.isEmpty()) {
-            throw new AssertionError("В списке блоков не найден элемент " + elementName
-                    + " с проверкой: " + elementCondition + " " + expectedValue
-                    + "\nРазмер блоков: " + blockList.size()
-                    + "\nСодержимое блоков: " + blockListToString(blockList));
+            throw new AssertionError("В списке блоков не найден ни один блок, в котором элемент '" + elementName +
+                    "' удовлетворяет условию: " + elementCondition + " '" + expectedValue + "'" +
+                    "\nРазмер списка блоков: " + blockList.size() +
+                    "\nСодержимое списка блоков:\n" + blockListToString(blockList));
         }
         return resultList;
     }
@@ -408,9 +389,13 @@ public class BlocksCollectionOtherMethod {
     @SuppressWarnings("deprecation")
     public static String blockListToString(List<CorePage> blockList) {
         StringBuilder sb = new StringBuilder();
-        int counter = 0;
+        int counter = 1;
         for (CorePage block : blockList) {
-            sb.append("Блок ").append(counter).append(": ").append(block.getSelf().toString()).append("\n");
+            sb.append("Блок ")
+                    .append(counter)
+                    .append(": ")
+                    .append(block.getSelf().toString())
+                    .append("\n");
             counter++;
         }
         return sb.toString();

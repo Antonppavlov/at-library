@@ -18,6 +18,13 @@ import java.util.stream.Collectors;
 import static ru.at.library.core.steps.OtherSteps.getPropertyOrStringVariableOrValue;
 import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.*;
 
+/**
+ * Шаги-действия для работы со списками блоков (List<CorePage>), построенные поверх {@link BlockListContext}.
+ *
+ * Все публичные Cucumber-методы остаются без изменений; общая логика выбора блока/элемента вынесена
+ * во внутренние helper-методы с понятными именами (clickBlockWhere..., clickElementInBlockWhere..., и т.д.),
+ * чтобы избежать дублирования и упростить сопровождение.
+ */
 public class BlocksCollectionActionSteps {
 
     private final CoreScenario coreScenario = CoreScenario.getInstance();
@@ -28,10 +35,10 @@ public class BlocksCollectionActionSteps {
      * -----------------------------------------------------------------------------------------------------------------
      */
 
-    private IStepResult clickBlockWhereTextEquals(BlockListContext ctx, String elementNameSearch, String expectedTextSearch) {
+    private IStepResult clickBlockWhereTextEquals(BlockListContext blockListContext, String elementNameSearch, String expectedTextSearch) {
         expectedTextSearch = getPropertyOrStringVariableOrValue(expectedTextSearch);
 
-        CorePage block = ctx.findByTextEquals(elementNameSearch, expectedTextSearch);
+        CorePage block = blockListContext.findByTextEquals(elementNameSearch, expectedTextSearch);
         SelenideElement root = block.getSelf();
         root.shouldHave(Condition.visible);
         root.hover();
@@ -56,10 +63,10 @@ public class BlocksCollectionActionSteps {
      * ######################################################################################################################
      */
 
-    private IStepResult clickElementInBlockWhereTextEquals(BlockListContext ctx, String elementNameSearch, String expectedTextSearch, String elementNameClick) {
+    private IStepResult clickElementInBlockWhereTextEquals(BlockListContext blockListContext, String elementNameSearch, String expectedTextSearch, String elementNameClick) {
         expectedTextSearch = getPropertyOrStringVariableOrValue(expectedTextSearch);
 
-        CorePage block = ctx.findByTextEquals(elementNameSearch, expectedTextSearch);
+        CorePage block = blockListContext.findByTextEquals(elementNameSearch, expectedTextSearch);
         SelenideElement element = block.getElement(elementNameClick);
         element.shouldHave(Condition.visible);
         element.hover();
@@ -85,8 +92,8 @@ public class BlocksCollectionActionSteps {
      */
 
 
-    private IStepResult clickElementInBlockWhereElementVisible(BlockListContext ctx, String elementNameSearch, String elementNameClick) {
-        CorePage block = ctx.findByVisibleElement(elementNameSearch);
+    private IStepResult clickElementInBlockWhereElementVisible(BlockListContext blockListContext, String elementNameSearch, String elementNameClick) {
+        CorePage block = blockListContext.findByVisibleElement(elementNameSearch);
         SelenideElement element = block.getElement(elementNameClick);
         element.shouldHave(Condition.visible);
         element.hover();
@@ -109,10 +116,10 @@ public class BlocksCollectionActionSteps {
      * ######################################################################################################################
      */
 
-    private IStepResult hoverOnElementInBlockWhereTextEquals(BlockListContext ctx, String elementNameSearch, String expectedTextSearch, String elementNameClick) {
-        expectedTextSearch = getPropertyOrStringVariableOrValue(expectedTextSearch);
+    private IStepResult hoverOnElementInBlockWhereTextEquals(BlockListContext blockListContext, String elementNameSearch, String expectedTextSearch, String elementNameClick) {
+        expectedTextSearch = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
 
-        CorePage block = ctx.findByTextEquals(elementNameSearch, expectedTextSearch);
+        CorePage block = blockListContext.findByTextEquals(elementNameSearch, expectedTextSearch);
         SelenideElement element = block.getElement(elementNameClick);
         element.shouldHave(Condition.visible);
         element.hover();
@@ -134,11 +141,11 @@ public class BlocksCollectionActionSteps {
      * ######################################################################################################################
      */
 
-    private IStepResult inputValueInBlockWhereTextEquals(BlockListContext ctx, String elementNameSearch, String expectedTextSearch, String elementName, String inputText, boolean useClearField) throws Exception {
+    private IStepResult inputValueInBlockWhereTextEquals(BlockListContext blockListContext, String elementNameSearch, String expectedTextSearch, String elementName, String inputText, boolean useClearField) throws Exception {
         expectedTextSearch = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
         inputText = OtherSteps.getPropertyOrStringVariableOrValue(inputText);
 
-        CorePage block = ctx.findByTextEquals(elementNameSearch, expectedTextSearch);
+        CorePage block = blockListContext.findByTextEquals(elementNameSearch, expectedTextSearch);
 
         SelenideElement element = block.getElement(elementName);
         element.shouldHave(Condition.visible);
@@ -167,8 +174,8 @@ public class BlocksCollectionActionSteps {
      * ######################################################################################################################
      */
 
-    private IStepResult clickOnElementInNthBlock(BlockListContext ctx, int blockIndex, String elementNameClick) {
-        CorePage block = ctx.nthBlock(blockIndex);
+    private IStepResult clickOnElementInNthBlock(BlockListContext blockListContext, int blockIndex, String elementNameClick) {
+        CorePage block = blockListContext.nthBlock(blockIndex);
         block.getElement(elementNameClick).click();
         return new BlockListStepResult(block, elementNameClick);
     }
@@ -187,8 +194,8 @@ public class BlocksCollectionActionSteps {
      * ######################################################################################################################
      */
 
-    private IStepResult clickOnNthBlock(BlockListContext ctx, int blockIndex) {
-        CorePage block = ctx.nthBlock(blockIndex);
+    private IStepResult clickOnNthBlock(BlockListContext blockListContext, int blockIndex) {
+        CorePage block = blockListContext.nthBlock(blockIndex);
         block.getSelf().shouldBe(Condition.enabled).click();
         return new BlockListStepResult(block);
     }
@@ -207,8 +214,8 @@ public class BlocksCollectionActionSteps {
      * ######################################################################################################################
      */
 
-    private IStepResult clickOnBlockWithComplexCondition(BlockListContext ctx, DataTable conditionsTable) {
-        List<CorePage> resultList = ctx.filterByConditions(conditionsTable);
+    private IStepResult clickOnBlockWithComplexCondition(BlockListContext blockListContext, DataTable conditionsTable) {
+        List<CorePage> resultList = blockListContext.filterByConditions(conditionsTable);
 
         if (resultList.size() != 1) {
             throw new IllegalArgumentException("По заданному списку условий найдено 0 или более 1 блока\n" + blockListToString(resultList));
@@ -236,8 +243,8 @@ public class BlocksCollectionActionSteps {
 
     @И("^в списке блоков \"([^\"]*)\" выполнено нажатие на элемент \"([^\"]*)\" блока который соответствуют условию")
     public IStepResult clickOnElementInBlockListWIthComplexCondition(String blockListName, String elementNameClick, DataTable conditionsTable) {
-        BlockListContext ctx = BlockListContext.fromList(blockListName);
-        List<CorePage> resultList = ctx.filterByConditions(conditionsTable);
+        BlockListContext blockListContext = BlockListContext.fromList(blockListName);
+        List<CorePage> resultList = blockListContext.filterByConditions(conditionsTable);
 
         resultList.get(0).getElement(elementNameClick).shouldBe(Condition.enabled).click();
 

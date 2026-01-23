@@ -72,6 +72,29 @@ public class BlocksCollectionCheckSteps {
     }
 
     /**
+     * Строит унифицированное описание контекста списка блоков для сообщений об ошибках.
+     * Содержит название текущей страницы, (опционально) блока-контейнера и списка блоков.
+     */
+    private String formatBlockListContext(BlockListContext blockListContext) {
+        StringBuilder description = new StringBuilder();
+        description.append("Текущая страница: '")
+                .append(WebScenario.getCurrentPage().getName())
+                .append("'");
+
+        if (blockListContext.getContainerName() != null) {
+            description.append("\nБлок-контейнер: '")
+                    .append(blockListContext.getContainerName())
+                    .append("'");
+        }
+
+        description.append("\nСписок блоков: '")
+                .append(blockListContext.getListName())
+                .append("'");
+
+        return description.toString();
+    }
+
+    /**
      * Удобный вариант forEach без формирования {@link IStepResult}, когда шаг ничего не возвращает наружу.
      */
     private void forEachBlock(BlockListContext blockListContext, Consumer<CorePage> checker) {
@@ -98,15 +121,18 @@ public class BlocksCollectionCheckSteps {
                 .filter(predicate)
                 .collect(Collectors.toList());
 
-        Assert.assertEquals(matches.size(), expectedCount,
-                failureHeader +
-                        "\nОжидаемое количество блоков: " + expectedCount +
-                        "\nАктуальное количество блоков: " + matches.size());
+        String messageOnFailure = formatBlockListContext(blockListContext) +
+                "\n" + failureHeader +
+                "\nОжидаемое количество блоков, удовлетворяющих условию: " + expectedCount +
+                "\nФактическое количество таких блоков: " + matches.size() +
+                "\nОбщее количество блоков в списке: " + blockListContext.getBlocks().size();
+
+        Assert.assertEquals(matches.size(), expectedCount, messageOnFailure);
 
         return new BlockListStepResult(matches, key);
     }
 
-    /**
+/**
      * Helper: проверка условия "в любом блоке" через функцию-поисковик.
      * Используется в шагах вида "в любом из блоков ...", чтобы переиспользовать
      * {@code findCorePageBy*} из {@link BlocksCollectionOtherMethod}.
@@ -116,6 +142,18 @@ public class BlocksCollectionCheckSteps {
                                       Function<List<CorePage>, CorePage> finder) {
         CorePage block = finder.apply(blockListContext.getBlocks());
         return new BlockListStepResult(block, key);
+    }
+
+    /**
+     * Helper: выполнение произвольной проверки для N-го блока в списке.
+     * Вспомогательный метод, который инкапсулирует вызов {@link BlockListContext#nthBlock(int)}
+     * и делегирует построение результата во внешнюю функцию.
+     */
+    private IStepResult onNthBlock(BlockListContext blockListContext,
+                                   int blockIndex,
+                                   Function<CorePage, IStepResult> checker) {
+        CorePage block = blockListContext.nthBlock(blockIndex);
+        return checker.apply(block);
     }
 
 /**
@@ -191,7 +229,8 @@ public class BlocksCollectionCheckSteps {
                                                     boolean useOneBasedIndexInMessage) {
         List<List<String>> conditionsRows = conditionsTable.asLists();
         List<CorePage> blocksList = blockListContext.getBlocks();
-        String resultMessageTemplate = "В блоке %d элемент %s не соответствует условию: %s %s\\n%s\\n";
+        String contextDescription = formatBlockListContext(blockListContext);
+        String resultMessageTemplate = "%s\nБлок с индексом %d: элемент '%s' не соответствует условию: %s '%s'\\nФактический web-элемент: %s\\n";
         StringBuilder resultMessage = new StringBuilder();
 
         for (List<String> conditionRow : conditionsRows) {
@@ -208,6 +247,7 @@ public class BlocksCollectionCheckSteps {
                 int indexForMessage = useOneBasedIndexInMessage ? blockIndex + 1 : blockIndex;
                 resultMessage
                         .append(String.format(resultMessageTemplate,
+                                contextDescription,
                                 indexForMessage,
                                 elementName,
                                 textCondition,
@@ -286,26 +326,26 @@ public class BlocksCollectionCheckSteps {
     @И("^в списке блоков \"([^\"]*)\" (\\d+) блок содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
     public IStepResult checkBlockListForBlockWithCss(String blockListName, int blockIndex, String cssName, String cssValue) {
         BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        CorePage block = blockListContext.nthBlock(blockIndex);
+        String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
+        String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
 
-        cssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
-        cssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
-
-        block.getSelf().shouldHave(Condition.cssValue(cssName, cssValue));
-        return new BlockListStepResult(block);
+        return onNthBlock(blockListContext, blockIndex, block -> {
+            block.getSelf().shouldHave(Condition.cssValue(resolvedCssName, resolvedCssValue));
+            return new BlockListStepResult(block);
+        });
     }
 
     @SuppressWarnings("deprecation")
-    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" (\\д+) блок содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
+    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" (\\d+) блок содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
     public IStepResult checkBlockListForBlockWithCss(String blockName, String blockListName, int blockIndex, String cssName, String cssValue) {
         BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
-        CorePage block = blockListContext.nthBlock(blockIndex);
+        String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
+        String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
 
-        cssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
-        cssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
-
-        block.getSelf().shouldHave(Condition.cssValue(cssName, cssValue));
-        return new BlockListStepResult(block);
+        return onNthBlock(blockListContext, blockIndex, block -> {
+            block.getSelf().shouldHave(Condition.cssValue(resolvedCssName, resolvedCssValue));
+            return new BlockListStepResult(block);
+        });
     }
 
     /**
@@ -323,7 +363,7 @@ public class BlocksCollectionCheckSteps {
             int blockRightBound = blockLeftBoundX + block.getSelf().getSize().width;
 
             assertTrue((blockLeftBoundX >= elementLeftBound) && (blockRightBound <= elementRightBound),
-                    String.format("%d блок расположен не по ширене элемента " + elementOuterName, index));
+                    String.format("%d блок расположен не по ширине элемента '%s'", index, elementOuterName));
         }
     }
 
@@ -950,34 +990,36 @@ public class BlocksCollectionCheckSteps {
     @И("^в списке блоков \"([^\"]*)\" координаты (\\d+) блока соответствуют: x=(\\d+); y=(\\d+)$")
     public IStepResult checkBlockListItemCoordinates(String blockListName, int blockIndex, int x, int y) {
         BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        CorePage block = blockListContext.nthBlock(blockIndex);
-        Point actualCoordinates = block.getSelf().getLocation();
         Point expectedCoordinates = new Point(x, y);
 
-        this.coreScenario.getAssertionHelper().hamcrestAssert(
-                String.format("Координаты %d блока списка блоков %s не соответстуют ожидаемым\nФактические координты: x=%d; y=%d\nОжидаемые координаты: x=%d; y=%d",
-                        blockIndex, blockListName, actualCoordinates.x, actualCoordinates.y, expectedCoordinates.x, expectedCoordinates.y),
-                actualCoordinates,
-                is(equalTo(expectedCoordinates))
-        );
-        return new BlockListStepResult(block);
+        return onNthBlock(blockListContext, blockIndex, block -> {
+            Point actualCoordinates = block.getSelf().getLocation();
+            this.coreScenario.getAssertionHelper().hamcrestAssert(
+                    String.format("Координаты %d блока списка блоков %s не соответствуют ожидаемым\nФактические координаты: x=%d; y=%d\nОжидаемые координаты: x=%d; y=%d",
+                            blockIndex, blockListName, actualCoordinates.x, actualCoordinates.y, expectedCoordinates.x, expectedCoordinates.y),
+                    actualCoordinates,
+                    is(equalTo(expectedCoordinates))
+            );
+            return new BlockListStepResult(block);
+        });
     }
 
     @SuppressWarnings("deprecation")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" координаты (\\d+) блока соответствуют: x=(\\d+); y=(\\d+)$")
     public IStepResult checkBlockListItemCoordinates(String blockName, String blockListName, int blockIndex, int x, int y) {
         BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
-        CorePage block = blockListContext.nthBlock(blockIndex);
-        Point actualCoordinates = block.getSelf().getLocation();
         Point expectedCoordinates = new Point(x, y);
 
-        this.coreScenario.getAssertionHelper().hamcrestAssert(
-                String.format("Координаты %d блока списка блоков %s не соответстуют ожидаемым\nФактические координты: x=%d; y=%d\nОжидаемые координаты: x=%d; y=%d",
-                        blockIndex, blockListName, actualCoordinates.x, actualCoordinates.y, expectedCoordinates.x, expectedCoordinates.y),
-                actualCoordinates,
-                is(equalTo(expectedCoordinates))
-        );
-        return new BlockListStepResult(block);
+        return onNthBlock(blockListContext, blockIndex, block -> {
+            Point actualCoordinates = block.getSelf().getLocation();
+            this.coreScenario.getAssertionHelper().hamcrestAssert(
+                    String.format("Координаты %d блока списка блоков %s не соответствуют ожидаемым\nФактические координаты: x=%d; y=%d\nОжидаемые координаты: x=%d; y=%d",
+                            blockIndex, blockListName, actualCoordinates.x, actualCoordinates.y, expectedCoordinates.x, expectedCoordinates.y),
+                    actualCoordinates,
+                    is(equalTo(expectedCoordinates))
+            );
+            return new BlockListStepResult(block);
+        });
     }
 
     /**
@@ -987,23 +1029,21 @@ public class BlocksCollectionCheckSteps {
     @И("^в списке блоков \"([^\"]*)\" в (\\d+) блоке текст элемента \"([^\"]*)\" сохранен в переменную \"([^\"]*)\"$")
     public IStepResult saveElementTextForNthBlockFromBlockList(String blockListName, int blockIndex, String elementName, String varName) {
         BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        CorePage block = blockListContext.nthBlock(blockIndex);
-        SelenideElement element = block.getElement(elementName);
-
-        this.coreScenario.getEnvironment().setVar(varName, element.shouldBe(Condition.visible).getText());
-
-        return new BlockListStepResult(block, elementName);
+        return onNthBlock(blockListContext, blockIndex, block -> {
+            SelenideElement element = block.getElement(elementName);
+            this.coreScenario.getEnvironment().setVar(varName, element.shouldBe(Condition.visible).getText());
+            return new BlockListStepResult(block, elementName);
+        });
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в (\\d+) блоке текст элемента \"([^\"]*)\" сохранен в переменную \"([^\"]*)\"$")
     public IStepResult saveElementTextForNthBlockFromBlockList(String blockName, String blockListName, int blockIndex, String elementName, String varName) {
         BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
-        CorePage block = blockListContext.nthBlock(blockIndex);
-        SelenideElement element = block.getElement(elementName);
-
-        this.coreScenario.getEnvironment().setVar(varName, element.shouldBe(Condition.visible).getText());
-
-        return new BlockListStepResult(block, elementName);
+        return onNthBlock(blockListContext, blockIndex, block -> {
+            SelenideElement element = block.getElement(elementName);
+            this.coreScenario.getEnvironment().setVar(varName, element.shouldBe(Condition.visible).getText());
+            return new BlockListStepResult(block, elementName);
+        });
     }
 
     /**
@@ -1014,20 +1054,22 @@ public class BlocksCollectionCheckSteps {
     public IStepResult checkElementInBlockListMatchesText(String blockListName, int blockIndex, String elementName, String expectedText) {
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
         BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        CorePage block = blockListContext.nthBlock(blockIndex);
 
-        shouldHaveTextMatches(block, elementName, resolvedExpectedText);
-        return new BlockListStepResult(block, elementName);
+        return onNthBlock(blockListContext, blockIndex, block -> {
+            shouldHaveTextMatches(block, elementName, resolvedExpectedText);
+            return new BlockListStepResult(block, elementName);
+        });
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в (\\d+) блоке в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\"$")
     public IStepResult checkElementInBlockListMatchesText(String blockName, String blockListName, int blockIndex, String elementName, String expectedText) {
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
         BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
-        CorePage block = blockListContext.nthBlock(blockIndex);
 
-        shouldHaveTextMatches(block, elementName, resolvedExpectedText);
-        return new BlockListStepResult(block, elementName);
+        return onNthBlock(blockListContext, blockIndex, block -> {
+            shouldHaveTextMatches(block, elementName, resolvedExpectedText);
+            return new BlockListStepResult(block, elementName);
+        });
     }
 
     /**
@@ -1037,45 +1079,47 @@ public class BlocksCollectionCheckSteps {
     @И("^в списке блоков \"([^\"]*)\" в (\\d+) блоке в элементе \"([^\"]*)\" текст (равен|содержит) \"([^\"]*)\"$")
     public IStepResult checkElementInBlockListForText(String blockListName, int blockIndex, String elementName, String conditionString, String expectedText) {
         BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        CorePage block = blockListContext.nthBlock(blockIndex);
-
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
-        WebElementCondition condition;
-        switch (conditionString) {
-            case "равен":
-                condition = Condition.exactText(resolvedExpectedText);
-                break;
-            case "содержит":
-                condition = Condition.text(resolvedExpectedText);
-                break;
-            default:
-                throw new IllegalArgumentException("Неизвестное условие: " + conditionString);
-        }
 
-        block.getElement(elementName).should(condition);
-        return new BlockListStepResult(block, elementName);
+        return onNthBlock(blockListContext, blockIndex, block -> {
+            WebElementCondition condition;
+            switch (conditionString) {
+                case "равен":
+                    condition = Condition.exactText(resolvedExpectedText);
+                    break;
+                case "содержит":
+                    condition = Condition.text(resolvedExpectedText);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Неизвестное условие: " + conditionString);
+            }
+
+            block.getElement(elementName).should(condition);
+            return new BlockListStepResult(block, elementName);
+        });
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в (\\d+) блоке в элементе \"([^\"]*)\" текст (равен|содержит) \"([^\"]*)\"$")
     public IStepResult checkElementInBlockListForText(String blockName, String blockListName, int blockIndex, String elementName, String conditionString, String expectedText) {
         BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
-        CorePage block = blockListContext.nthBlock(blockIndex);
-
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
-        WebElementCondition condition;
-        switch (conditionString) {
-            case "равен":
-                condition = Condition.exactText(resolvedExpectedText);
-                break;
-            case "содержит":
-                condition = Condition.text(resolvedExpectedText);
-                break;
-            default:
-                throw new IllegalArgumentException("Неизвестное условие: " + conditionString);
-        }
 
-        block.getElement(elementName).should(condition);
-        return new BlockListStepResult(block, elementName);
+        return onNthBlock(blockListContext, blockIndex, block -> {
+            WebElementCondition condition;
+            switch (conditionString) {
+                case "равен":
+                    condition = Condition.exactText(resolvedExpectedText);
+                    break;
+                case "содержит":
+                    condition = Condition.text(resolvedExpectedText);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Неизвестное условие: " + conditionString);
+            }
+
+            block.getElement(elementName).should(condition);
+            return new BlockListStepResult(block, elementName);
+        });
     }
 
     /**
@@ -1085,27 +1129,27 @@ public class BlocksCollectionCheckSteps {
     @И("^в списке блоков \"([^\"]*)\" в (\\d+) блоке элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
     public IStepResult checkElementInBlockListForCss(String blockListName, int blockIndex, String elementName, String cssName, String cssValue) {
         BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        CorePage block = blockListContext.nthBlock(blockIndex);
-
         String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
         String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
 
-        SelenideElement element = block.getElement(elementName);
-        element.shouldHave(Condition.cssValue(resolvedCssName, resolvedCssValue));
-        return new BlockListStepResult(block, elementName);
+        return onNthBlock(blockListContext, blockIndex, block -> {
+            SelenideElement element = block.getElement(elementName);
+            element.shouldHave(Condition.cssValue(resolvedCssName, resolvedCssValue));
+            return new BlockListStepResult(block, elementName);
+        });
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в (\\d+) блоке элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
     public IStepResult checkElementInBlockListForCss(String blockName, String blockListName, int blockIndex, String elementName, String cssName, String cssValue) {
         BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
-        CorePage block = blockListContext.nthBlock(blockIndex);
-
         String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
         String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
 
-        SelenideElement element = block.getElement(elementName);
-        element.shouldHave(Condition.cssValue(resolvedCssName, resolvedCssValue));
-        return new BlockListStepResult(block, elementName);
+        return onNthBlock(blockListContext, blockIndex, block -> {
+            SelenideElement element = block.getElement(elementName);
+            element.shouldHave(Condition.cssValue(resolvedCssName, resolvedCssValue));
+            return new BlockListStepResult(block, elementName);
+        });
     }
 
     /**
@@ -1115,27 +1159,27 @@ public class BlocksCollectionCheckSteps {
     @И("^в списке блоков \"([^\"]*)\" в (\\d+) блоке элемент \"([^\"]*)\" содержит атрибут \"([^\"]*)\" со значением \"([^\"]*)\"$")
     public IStepResult checkElementInBlockListForAttribute(String blockListName, int blockIndex, String elementName, String attributeName, String attributeValue) {
         BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        CorePage block = blockListContext.nthBlock(blockIndex);
-
         String resolvedAttributeName = OtherSteps.getPropertyOrStringVariableOrValue(attributeName);
         String resolvedAttributeValue = OtherSteps.getPropertyOrStringVariableOrValue(attributeValue);
 
-        SelenideElement element = block.getElement(elementName);
-        element.shouldHave(Condition.attributeMatching(resolvedAttributeName, resolvedAttributeValue));
-        return new BlockListStepResult(block, elementName);
+        return onNthBlock(blockListContext, blockIndex, block -> {
+            SelenideElement element = block.getElement(elementName);
+            element.shouldHave(Condition.attributeMatching(resolvedAttributeName, resolvedAttributeValue));
+            return new BlockListStepResult(block, elementName);
+        });
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в (\\d+) блоке элемент \"([^\"]*)\" содержит атрибут \"([^\"]*)\" со значением \"([^\"]*)\"$")
     public IStepResult checkElementInBlockListForAttribute(String blockName, String blockListName, int blockIndex, String elementName, String attributeName, String attributeValue) {
         BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
-        CorePage block = blockListContext.nthBlock(blockIndex);
-
         String resolvedAttributeName = OtherSteps.getPropertyOrStringVariableOrValue(attributeName);
         String resolvedAttributeValue = OtherSteps.getPropertyOrStringVariableOrValue(attributeValue);
 
-        SelenideElement element = block.getElement(elementName);
-        element.shouldHave(Condition.attributeMatching(resolvedAttributeName, resolvedAttributeValue));
-        return new BlockListStepResult(block, elementName);
+        return onNthBlock(blockListContext, blockIndex, block -> {
+            SelenideElement element = block.getElement(elementName);
+            element.shouldHave(Condition.attributeMatching(resolvedAttributeName, resolvedAttributeValue));
+            return new BlockListStepResult(block, elementName);
+        });
     }
 
 
@@ -1148,20 +1192,20 @@ public class BlocksCollectionCheckSteps {
     @И("^в списке блоков \"([^\"]*)\" (\\d+) блок расположен (в|вне) видимой части браузера$")
     public IStepResult checkBlockListItemInBounds(String blockListName, int blockIndex, String boundsCondition) {
         BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        CorePage block = blockListContext.nthBlock(blockIndex);
-
-        inBounds(block.getSelf(), boundsCondition);
-        return new BlockListStepResult(block);
+        return onNthBlock(blockListContext, blockIndex, block -> {
+            inBounds(block.getSelf(), boundsCondition);
+            return new BlockListStepResult(block);
+        });
     }
 
     @SuppressWarnings("deprecation")
-    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" (\\д+) блок расположен (в|вне) видимой части браузера$")
+    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" (\\d+) блок расположен (в|вне) видимой части браузера$")
     public IStepResult checkBlockListItemInBounds(String blockName, String blockListName, int blockIndex, String boundsCondition) {
         BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
-        CorePage block = blockListContext.nthBlock(blockIndex);
-
-        inBounds(block.getSelf(), boundsCondition);
-        return new BlockListStepResult(block);
+        return onNthBlock(blockListContext, blockIndex, block -> {
+            inBounds(block.getSelf(), boundsCondition);
+            return new BlockListStepResult(block);
+        });
     }
 
     /**
