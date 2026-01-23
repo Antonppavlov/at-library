@@ -89,6 +89,8 @@ public class CoreInitialSetup {
 
     private static void ensureWatchdogStarted() {
         if (watchdogStarted.compareAndSet(0, 1)) {
+            log.info("\n++++++++++++\nЗапуск мониторинга сценариев (watchdog)\n++++++++++++");
+
             Thread t = new Thread(() -> {
                 while (!Thread.currentThread().isInterrupted()) {
                     try {
@@ -102,8 +104,8 @@ public class CoreInitialSetup {
                                 long minutes = secondsTotal / 60;
                                 long seconds = secondsTotal % 60;
                                 log.warn(String.format(
-                                        "[WATCHDOG] Сценарий %s \"%s\" выполняется уже %d мин %d с",
-                                        id, info.name, minutes, seconds
+                                        "\n++++++++++++\n[WATCHDOG] Долгий сценарий\nИмя: [%s]\nid: %s\nДлительность: %d мин %d с\n++++++++++++",
+                                        info.name, id, minutes, seconds
                                 ));
                             }
                         }
@@ -142,7 +144,14 @@ public class CoreInitialSetup {
         // запоминаем время старта, имя и порядковый номер запуска для последующего расчёта длительности и мониторинга
         runningScenarios.put(scenarioId, new ScenarioRunInfo(scenario.getName(), System.currentTimeMillis(), testNumber));
 
-        log.info(String.format("%s: Старт сценария %d/%d с именем [%s]", scenarioId, testNumber, total, scenario.getName()));
+        log.info(String.format(
+                "\n++++++++++++\n" +
+                "Запущен сценарий: %d/%d\n" +
+                "Имя: [%s]\n" +
+                "id: %s\n" +
+                "++++++++++++",
+                testNumber, total, scenario.getName(), scenarioId
+        ));
 
         coreScenario.setEnvironment(new CoreEnvironment(scenario));
         coreScenario.setAssertionHelper(new AssertionHelper());
@@ -177,13 +186,13 @@ public class CoreInitialSetup {
 
         if (total > 0 && sequenceNumber > 0) {
             log.info(String.format(
-                    "%s: Завершение сценария %d/%d с именем [%s]. Длительность: %s.\n Сейчас выполняется сценариев: %d.",
-                    scenarioId, sequenceNumber, total, scenario.getName(), durationInfo, runningNow
+                    "\n++++++++++++\nЗавершён сценарий: %d/%d\nИмя: [%s]\nid: %s\nДлительность: %s\nСейчас выполняется сценариев: %d\n++++++++++++",
+                    sequenceNumber, total, scenario.getName(), scenarioId, durationInfo, runningNow
             ));
         } else {
             log.info(String.format(
-                    "%s: Завершение сценария с именем [%s]. Длительность: %s.\n Сейчас выполняется сценариев: %d.",
-                    scenarioId, scenario.getName(), durationInfo, runningNow
+                    "\n++++++++++++\nЗавершён сценарий\nИмя: [%s]\nid: %s\nДлительность: %s\nСейчас выполняется сценариев: %d\n++++++++++++",
+                    scenario.getName(), scenarioId, durationInfo, runningNow
             ));
         }
 
