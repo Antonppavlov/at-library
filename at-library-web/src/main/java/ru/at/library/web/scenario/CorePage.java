@@ -43,6 +43,12 @@ public abstract class CorePage {
     private SelenideElement self;
 
     /**
+     * Флаг того, что self был установлен программно (через setSelf), а не проинициализирован PageFactory.
+     * Используется, чтобы применять относительные локаторы только для "настоящих" блоков, а не для страниц.
+     */
+    private boolean hasCustomSelf = false;
+
+    /**
      * Список всех элементов страницы
      */
     private Map<String, PageElement> namedElements;
@@ -89,9 +95,9 @@ public abstract class CorePage {
                         }
                     }
 
-                    // Для блоков (self != null) переконструируем поля SelenideElement/ElementsCollection на базе self и @FindBy,
+                    // Для блоков (self был явно установлен) переконструируем поля SelenideElement/ElementsCollection на базе self и @FindBy,
                     // чтобы относительные локаторы (например, xpath ".//td[4]") искались относительно корня блока, а не всей страницы.
-                    if (self != null) {
+                    if (hasCustomSelf) {
                         FindBy findBy = fieldCheckedType.getAnnotation(FindBy.class);
                         if (findBy != null) {
                             Class<?> fieldType = fieldCheckedType.getType();
@@ -305,8 +311,8 @@ public abstract class CorePage {
      * что позволяет корректно обрабатывать относительные локаторы вида ".//td[4]".
      */
     private SelenideElement initElementWithinSelf(FindBy findBy) {
-        if (self == null) {
-            throw new IllegalStateException("Невозможно инициализировать элемент относительно self, self == null");
+        if (!hasCustomSelf || self == null) {
+            throw new IllegalStateException("Невозможно инициализировать элемент относительно self: self не был явно задан через setSelf");
         }
         if (!findBy.css().isEmpty()) {
             return getSelf().$(findBy.css());
@@ -321,8 +327,8 @@ public abstract class CorePage {
      * Инициализация коллекции элементов внутри блока (self) по аннотации @FindBy.
      */
     private ElementsCollection initElementsCollectionWithinSelf(FindBy findBy) {
-        if (self == null) {
-            throw new IllegalStateException("Невозможно инициализировать ElementsCollection относительно self, self == null");
+        if (!hasCustomSelf || self == null) {
+            throw new IllegalStateException("Невозможно инициализировать ElementsCollection относительно self: self не был явно задан через setSelf");
         }
         if (!findBy.css().isEmpty()) {
             return getSelf().$$(findBy.css());
@@ -468,5 +474,6 @@ public abstract class CorePage {
      */
     public void setSelf(SelenideElement self) {
         this.self = self;
+        this.hasCustomSelf = true;
     }
 }
