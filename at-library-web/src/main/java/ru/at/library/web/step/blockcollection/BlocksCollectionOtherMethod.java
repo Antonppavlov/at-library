@@ -1,6 +1,9 @@
 package ru.at.library.web.step.blockcollection;
 
-import com.codeborne.selenide.*;
+import com.codeborne.selenide.Condition;
+import com.codeborne.selenide.Selenide;
+import com.codeborne.selenide.SelenideElement;
+import com.codeborne.selenide.WebElementCondition;
 import io.cucumber.datatable.DataTable;
 import io.qameta.allure.Step;
 import org.openqa.selenium.Keys;
@@ -15,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static com.codeborne.selenide.Selenide.sleep;
 import static ru.at.library.core.steps.OtherSteps.getPropertyOrStringVariableOrValue;
 import static ru.at.library.core.utils.helpers.ScopedVariables.resolveVars;
 
@@ -25,106 +27,120 @@ import static ru.at.library.core.utils.helpers.ScopedVariables.resolveVars;
  * -----------------------------------------------------------------------------------------------------------------
  */
 public class BlocksCollectionOtherMethod {
-
     @Step("Поиск блока в котором элемента '{elementName}' отображается")
     public static CorePage findCorePageByVisibleElement(List<CorePage> blocksList, String elementName) {
 
+        AssertionError lastError = null;
         for (CorePage page : blocksList) {
             SelenideElement element = page.getElement(elementName);
             Selenide.executeJavaScript("arguments[0].scrollIntoView({block: \"center\", inline: \"center\"});", element);
 
-            boolean expectedTextFind = element.is(Condition.visible);
-
-            if (expectedTextFind) {
+            try {
+                element.shouldBe(Condition.visible);
                 return page;
+            } catch (AssertionError e) {
+                lastError = e;
             }
         }
         BrowserSteps.takeScreenshot();
-        //TODO добавить имя блок и имя элемента
         throw new AssertionError(
                 "Во всех блоках в элементах " + elementName + " элемент не отображается"
                         + "\nРазмер блоков: " + blocksList.size()
-                        + "\nСодержимое блоков: " + blocksList);
+                        + "\nСодержимое блоков: " + blocksList,
+                lastError
+        );
     }
 
     @Step("Поиск блока в котором текст элемента '{elementName}' равен : '{expectedText}'")
     public static CorePage findCorePageByTextInElement(List<CorePage> blocksList, String elementName, String expectedText) {
 
+        WebElementCondition condition = Condition.or("проверка на текст",
+                Condition.exactText(expectedText),
+                Condition.exactValue(expectedText),
+                Condition.attribute("title", expectedText)
+        );
+
+        AssertionError lastError = null;
         for (CorePage page : blocksList) {
             SelenideElement element = page.getElement(elementName);
             Selenide.executeJavaScript("arguments[0].scrollIntoView({block: \"center\", inline: \"center\"});", element);
 
-            boolean expectedTextFind = element.is(
-                    Condition.or("проверка на текст",
-                            Condition.exactText(expectedText),
-                            Condition.exactValue(expectedText),
-                            Condition.attribute("title", expectedText)
-                    ));
-
-            if (expectedTextFind) {
+            try {
+                element.shouldHave(condition);
                 return page;
+            } catch (AssertionError e) {
+                lastError = e;
             }
         }
         BrowserSteps.takeScreenshot();
-        //TODO добавить имя блок и имя элемента
         throw new AssertionError(
                 "Во всех блоках в элементах " + elementName + " не найден текст:" + expectedText
                         + "\nРазмер блоков: " + blocksList.size()
-                        + "\nСодержимое блоков: " + blocksList);
+                        + "\nСодержимое блоков: " + blocksList,
+                lastError
+        );
     }
 
 
     @Step("Поиск блока в котором текст элемента '{elementName}' содержит : '{expectedText}'")
     public static CorePage findCorePageByTextContainInElement(List<CorePage> blocksList, String elementName, String expectedText) {
+        WebElementCondition condition = Condition.or("проверка на текст",
+                Condition.text(expectedText),
+                Condition.value(expectedText),
+                Condition.attribute("title", expectedText)
+        );
+
+        AssertionError lastError = null;
         for (CorePage page : blocksList) {
             SelenideElement element = page.getElement(elementName);
 
             Selenide.executeJavaScript("arguments[0].scrollIntoView({block: \"center\", inline: \"center\"});", element);
 
-            boolean expectedTextFind = element.is(
-                    Condition.or("проверка на текст",
-                            Condition.text(expectedText),
-                            Condition.value(expectedText),
-                            Condition.attribute("title", expectedText)
-                    ));
-
-            if (expectedTextFind) {
+            try {
+                element.shouldHave(condition);
                 return page;
+            } catch (AssertionError e) {
+                lastError = e;
             }
         }
         BrowserSteps.takeScreenshot();
-        //TODO добавить имя блок и имя элемента
         throw new AssertionError(
                 "Во всех блоках в элементах " + elementName + " не найден текст:" + expectedText
                         + "\nРазмер блоков: " + blocksList.size()
-                        + "\nСодержимое блоков: " + blocksList);
+                        + "\nСодержимое блоков: " + blocksList,
+                lastError
+        );
     }
 
 
     @Step("Поиск блока в котором текст элемента '{elementName}' соответствует регулярному выражению: '{expectedText}'")
     public static CorePage findCorePageByRegExpInElement(List<CorePage> blocksList, String elementName, String expectedText) {
+        WebElementCondition condition = Condition.or("проверка на текст",
+                Condition.matchText(expectedText),
+                Condition.attributeMatching("value", expectedText),
+                Condition.attributeMatching("title", expectedText)
+        );
+
+        AssertionError lastError = null;
         for (CorePage page : blocksList) {
             SelenideElement element = page.getElement(elementName);
 
             Selenide.executeJavaScript("arguments[0].scrollIntoView({block: \"center\", inline: \"center\"});", element);
 
-            boolean expectedTextFind = element.is(
-                    Condition.or("проверка на текст",
-                            Condition.matchText(expectedText),
-                            Condition.attributeMatching("value", expectedText),
-                            Condition.attributeMatching("title", expectedText)
-                    ));
-
-            if (expectedTextFind) {
+            try {
+                element.shouldHave(condition);
                 return page;
+            } catch (AssertionError e) {
+                lastError = e;
             }
         }
         BrowserSteps.takeScreenshot();
-        //TODO добавить имя блок и имя элемента
         throw new AssertionError(
                 "Во всех блоках в элементах " + elementName + " не найден текст:" + expectedText
                         + "\nРазмер блоков: " + blocksList.size()
-                        + "\nСодержимое блоков: " + blocksList);
+                        + "\nСодержимое блоков: " + blocksList,
+                lastError
+        );
     }
 
 
@@ -180,61 +196,60 @@ public class BlocksCollectionOtherMethod {
 
     @Step("Проверка что количество блоков '{listName}' {comparison} '{count}'")
     public static List<CorePage> getBlockListWithCheckingTheQuantity(String listName, CustomCondition.Comparison comparison, int count) {
-        List<CorePage> blocksList;
+        CorePage currentPage = WebScenario.getCurrentPage();
+        ru.at.library.web.scenario.BlocksCollection<? extends CorePage> blocksCollection = currentPage.getBlocksCollection(listName);
 
-        int blocksListSize = -1;
-        sleep(3000);
-        for (int i = 0; i < Configuration.timeout; i = (int) (i + Configuration.pollingInterval)) {
-            sleep(100);
-            blocksList = WebScenario.getCurrentPage().getBlocksList(listName);
-            blocksListSize = blocksList.size();
-            if (CustomCondition.comparisonInt(comparison, blocksListSize, count)) {
-                return blocksList;
-            } 
+        // Ждём нужный размер через стандартные CollectionCondition
+        try {
+            blocksCollection.getRoots().shouldHave(CustomCondition.getElementsCollectionSizeCondition(comparison, count));
+        } catch (AssertionError e) {
+            int actualSize = blocksCollection.getRoots().size();
+            BrowserSteps.takeScreenshot();
+            throw new AssertionError(
+                    "CurrentPage: '" + currentPage.getName() + "'" +
+                            "\nList<CorePage>: '" + listName + "'" +
+                            "\nРеальное количество блоков: '" + actualSize + "'" +
+                            "\nПроверяемое условие: '" + comparison.toString() + "'" +
+                            "\nПроверяемое количество: '" + count + "'",
+                    e
+            );
         }
 
-        BrowserSteps.takeScreenshot();
-        throw new AssertionError(
-                "CurrentPage: '" + WebScenario.getCurrentPage().getName() + "'" +
-                        "\nList<CorePage>: '" + listName + "'" +
-                        "\nРеальное количество блоков: '" + blocksListSize + "'" +
-                        "\nПроверяемое условие: '" + comparison.toString() + "'" +
-                        "\nПроверяемое количество: '" + count + "'"
-        );
-//        String message = String.format("CurrentPage: '%s'\nList<CorePage>: '%s'\nФактическое количество блоков: '%s'\nПроверяемое условие: '%s'\nОжидаемое количество: '%s'\n",
-//                WebScenario.getCurrentPage().getName(), listName, blocksListSize, comparison.toString(), count);
-//
-//        CoreScenario.getInstance().getAssertionHelper()
-//                .hamcrestAssert(message, CustomCondition.comparisonInt(comparison, blocksListSize, count), is(equalTo(true)));
-//        return blocksList;
+        // Возвращаем снимок актуального списка блоков
+        List<CorePage> result = new ArrayList<>();
+        for (CorePage block : blocksCollection) {
+            result.add(block);
+        }
+        return result;
     }
 
 
     @Step("В блоке '{blockName}' проверка что количество блоков '{listName}' {comparison} '{count}'")
     public static List<CorePage> getBlockListWithCheckingTheQuantity(String blockName, String listName, CustomCondition.Comparison comparison, int count) {
-        List<CorePage> blocksList;
+        CorePage containerBlock = WebScenario.getCurrentPage().getBlock(blockName);
+        ru.at.library.web.scenario.BlocksCollection<? extends CorePage> blocksCollection = containerBlock.getBlocksCollection(listName);
 
-        int blocksListSize = -1;
-        sleep(3000);
-        for (int i = 0; i < Configuration.timeout; i = (int) (i + Configuration.pollingInterval)) {
-            sleep(100);
-            blocksList = WebScenario.getCurrentPage().getBlock(blockName).getBlocksList(listName);
-            blocksListSize = blocksList.size();
-
-            if (CustomCondition.comparisonInt(comparison, blocksListSize, count)) {
-                return blocksList;
-            }
+        try {
+            blocksCollection.getRoots().shouldHave(CustomCondition.getElementsCollectionSizeCondition(comparison, count));
+        } catch (AssertionError e) {
+            int actualSize = blocksCollection.getRoots().size();
+            BrowserSteps.takeScreenshot();
+            throw new AssertionError(
+                    "CurrentPage: '" + WebScenario.getCurrentPage().getName() + "'" +
+                            "\nblockName: '" + blockName + "'" +
+                            "\nList<CorePage>: '" + listName + "'" +
+                            "\nРеальное количество блоков: '" + actualSize + "'" +
+                            "\nПроверяемое условие: '" + comparison.toString() + "'" +
+                            "\nПроверяемое количество: '" + count + "'",
+                    e
+            );
         }
 
-        BrowserSteps.takeScreenshot();
-        throw new AssertionError(
-                "CurrentPage: '" + WebScenario.getCurrentPage().getName() + "'" +
-                        "\nblockName: '" + blockName + "'" +
-                        "\nList<CorePage>: '" + listName + "'" +
-                        "\nРеальное количество блоков: '" + blocksListSize + "'" +
-                        "\nПроверяемое условие: '" + comparison.toString() + "'" +
-                        "\nПроверяемое количество: '" + count + "'"
-        );
+        List<CorePage> result = new ArrayList<>();
+        for (CorePage block : blocksCollection) {
+            result.add(block);
+        }
+        return result;
     }
 
     @Step("Поиск блока соответствующего условиям")
@@ -277,7 +292,7 @@ public class BlocksCollectionOtherMethod {
         for (CorePage page : blockList) {
             SelenideElement element = page.getElement(elementName);
             if (element.is(Condition.exist)) {
-                Selenide.executeJavaScript("arguments[0].scrollIntoView({block: \"center\", inLine: \"center\"});", element);
+                Selenide.executeJavaScript("arguments[0].scrollIntoView({block: \"center\", inline: \"center\"});", element);
                 if (element.is(condition)) {
                     resultList.add(page);
                 }

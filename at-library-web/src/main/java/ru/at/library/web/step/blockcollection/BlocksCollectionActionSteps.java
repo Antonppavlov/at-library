@@ -28,77 +28,56 @@ public class BlocksCollectionActionSteps {
      * -----------------------------------------------------------------------------------------------------------------
      */
 
+    private IStepResult clickBlockWhereTextEquals(BlockListContext ctx, String elementNameSearch, String expectedTextSearch) {
+        expectedTextSearch = getPropertyOrStringVariableOrValue(expectedTextSearch);
+
+        CorePage block = ctx.findByTextEquals(elementNameSearch, expectedTextSearch);
+        SelenideElement root = block.getSelf();
+        root.shouldHave(Condition.visible);
+        root.hover();
+        root.click();
+
+        return new BlockListStepResult(block, elementNameSearch);
+    }
+
     @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено наведение и нажатие на блок$")
     @То("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено нажатие на блок$")
     public IStepResult clickBlockInBlockListWhereTextEquals(String blockListName, String elementNameSearch, String expectedTextSearch) {
-        expectedTextSearch = getPropertyOrStringVariableOrValue(expectedTextSearch);
-
-        List<CorePage> blocksList =
-                getBlockListWithCheckingTheQuantity(blockListName, CustomCondition.Comparison.more, 0);
-
-        CorePage corePageByTextInElement = findCorePageByTextInElement(blocksList, elementNameSearch, expectedTextSearch);
-
-        SelenideElement element = corePageByTextInElement.getSelf();
-        element.shouldHave(Condition.visible);
-        element.hover();
-        element.click();
-
-        return new BlockListStepResult(corePageByTextInElement, elementNameSearch);
+        return clickBlockWhereTextEquals(BlockListContext.fromList(blockListName), elementNameSearch, expectedTextSearch);
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено наведение и нажатие на блок$")
     @То("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено нажатие на блок$")
     public IStepResult clickBlockInBlockListWhereTextEquals(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch) {
-        expectedTextSearch = getPropertyOrStringVariableOrValue(expectedTextSearch);
-
-        List<CorePage> blocksList =
-                getBlockListWithCheckingTheQuantity(blockName, blockListName, CustomCondition.Comparison.more, 0);
-
-        CorePage corePageByTextInElement = findCorePageByTextInElement(blocksList, elementNameSearch, expectedTextSearch);
-        SelenideElement element = corePageByTextInElement.getSelf();
-        element.shouldHave(Condition.visible);
-        element.hover();
-        element.click();
-
-        return new BlockListStepResult(corePageByTextInElement, elementNameSearch);
+        return clickBlockWhereTextEquals(BlockListContext.fromBlock(blockName, blockListName), elementNameSearch, expectedTextSearch);
     }
 
     /**
      * ######################################################################################################################
      */
 
-    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено наведение и нажатие на элемент \"([^\"]*)\"$")
-    @То("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено нажатие на элемент \"([^\"]*)\"$")
-    public IStepResult clickButtonInBlockListWhereTextEquals(String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameClick) {
+    private IStepResult clickElementInBlockWhereTextEquals(BlockListContext ctx, String elementNameSearch, String expectedTextSearch, String elementNameClick) {
         expectedTextSearch = getPropertyOrStringVariableOrValue(expectedTextSearch);
 
-        List<CorePage> blocksList =
-                getBlockListWithCheckingTheQuantity(blockListName, CustomCondition.Comparison.more, 0);
-
-        CorePage corePageByTextInElement = findCorePageByTextInElement(blocksList, elementNameSearch, expectedTextSearch);
-        SelenideElement element = corePageByTextInElement.getElement(elementNameClick);
+        CorePage block = ctx.findByTextEquals(elementNameSearch, expectedTextSearch);
+        SelenideElement element = block.getElement(elementNameClick);
         element.shouldHave(Condition.visible);
         element.hover();
         element.click();
 
-        return new BlockListStepResult(corePageByTextInElement, elementNameClick, elementNameSearch);
+        return new BlockListStepResult(block, elementNameClick, elementNameSearch);
+    }
+
+    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено наведение и нажатие на элемент \"([^\"]*)\"$")
+    @То("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено нажатие на элемент \"([^\"]*)\"$")
+    public IStepResult clickButtonInBlockListWhereTextEquals(String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameClick) {
+        return clickElementInBlockWhereTextEquals(BlockListContext.fromList(blockListName), elementNameSearch, expectedTextSearch, elementNameClick);
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено наведение и нажатие на элемент \"([^\"]*)\"$")
     @То("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено нажатие на элемент \"([^\"]*)\"$")
     public IStepResult clickButtonInBlockListWhereTextEquals(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameClick) {
-        expectedTextSearch = getPropertyOrStringVariableOrValue(expectedTextSearch);
-
-        List<CorePage> blocksList =
-                getBlockListWithCheckingTheQuantity(blockName, blockListName, CustomCondition.Comparison.more, 0);
-
-        CorePage corePageByTextInElement = findCorePageByTextInElement(blocksList, elementNameSearch, expectedTextSearch);
-        SelenideElement element = corePageByTextInElement.getElement(elementNameClick);
-        element.shouldHave(Condition.visible);
-        element.hover();
-        element.click();
-
-        return new BlockListStepResult(corePageByTextInElement, elementNameClick, elementNameSearch);
+        return clickElementInBlockWhereTextEquals(BlockListContext.fromBlock(blockName, blockListName), elementNameSearch, expectedTextSearch, elementNameClick);
     }
 
     /**
@@ -106,168 +85,130 @@ public class BlocksCollectionActionSteps {
      */
 
 
-    @То("^в списке блоков \"([^\"]*)\" где элемент \"([^\"]*)\" отображается выполнено нажатие на элемент \"([^\"]*)\"$")
-    public IStepResult clickButtonInBlockListWhereElementVisible(String blockListName, String elementNameSearch, String elementNameClick) {
-        List<CorePage> blocksList =
-                getBlockListWithCheckingTheQuantity(blockListName, CustomCondition.Comparison.more, 0);
-
-        CorePage corePageByTextInElement = findCorePageByVisibleElement(blocksList, elementNameSearch);
-        SelenideElement element = corePageByTextInElement.getElement(elementNameClick);
+    private IStepResult clickElementInBlockWhereElementVisible(BlockListContext ctx, String elementNameSearch, String elementNameClick) {
+        CorePage block = ctx.findByVisibleElement(elementNameSearch);
+        SelenideElement element = block.getElement(elementNameClick);
         element.shouldHave(Condition.visible);
         element.hover();
         element.click();
 
-        return new BlockListStepResult(corePageByTextInElement, elementNameClick, elementNameSearch);
+        return new BlockListStepResult(block, elementNameClick, elementNameSearch);
+    }
+
+    @То("^в списке блоков \"([^\"]*)\" где элемент \"([^\"]*)\" отображается выполнено нажатие на элемент \"([^\"]*)\"$")
+    public IStepResult clickButtonInBlockListWhereElementVisible(String blockListName, String elementNameSearch, String elementNameClick) {
+        return clickElementInBlockWhereElementVisible(BlockListContext.fromList(blockListName), elementNameSearch, elementNameClick);
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где элемент \"([^\"]*)\" отображается выполнено нажатие на элемент \"([^\"]*)\"$")
     public IStepResult clickButtonInBlockListWhereElementVisible(String blockName, String blockListName, String elementNameSearch, String elementNameClick) {
-        List<CorePage> blocksList =
-                getBlockListWithCheckingTheQuantity(blockName, blockListName, CustomCondition.Comparison.more, 0);
-
-        CorePage corePageByTextInElement = findCorePageByVisibleElement(blocksList, elementNameSearch);
-        SelenideElement element = corePageByTextInElement.getElement(elementNameClick);
-        element.shouldHave(Condition.visible);
-        element.hover();
-        element.click();
-
-        return new BlockListStepResult(corePageByTextInElement, elementNameClick, elementNameSearch);
+        return clickElementInBlockWhereElementVisible(BlockListContext.fromBlock(blockName, blockListName), elementNameSearch, elementNameClick);
     }
 
     /**
      * ######################################################################################################################
      */
 
-    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено наведение на элемент \"([^\"]*)\"$")
-    public IStepResult hoverOnElementInBlockListWhereTextEquals(String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameClick) {
+    private IStepResult hoverOnElementInBlockWhereTextEquals(BlockListContext ctx, String elementNameSearch, String expectedTextSearch, String elementNameClick) {
         expectedTextSearch = getPropertyOrStringVariableOrValue(expectedTextSearch);
 
-        List<CorePage> blocksList =
-                getBlockListWithCheckingTheQuantity(blockListName, CustomCondition.Comparison.more, 0);
-
-        CorePage corePageByTextInElement = findCorePageByTextInElement(blocksList, elementNameSearch, expectedTextSearch);
-        SelenideElement element = corePageByTextInElement.getElement(elementNameClick);
+        CorePage block = ctx.findByTextEquals(elementNameSearch, expectedTextSearch);
+        SelenideElement element = block.getElement(elementNameClick);
         element.shouldHave(Condition.visible);
         element.hover();
 
-        return new BlockListStepResult(corePageByTextInElement, elementNameClick, elementNameSearch);
+        return new BlockListStepResult(block, elementNameClick, elementNameSearch);
+    }
+
+    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено наведение на элемент \"([^\"]*)\"$")
+    public IStepResult hoverOnElementInBlockListWhereTextEquals(String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameClick) {
+        return hoverOnElementInBlockWhereTextEquals(BlockListContext.fromList(blockListName), elementNameSearch, expectedTextSearch, elementNameClick);
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено наведение на элемент \"([^\"]*)\"$")
     public IStepResult hoverOnElementInBlockListWhereTextEquals(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameClick) {
-        expectedTextSearch = getPropertyOrStringVariableOrValue(expectedTextSearch);
-
-        List<CorePage> blocksList =
-                getBlockListWithCheckingTheQuantity(blockName, blockListName, CustomCondition.Comparison.more, 0);
-
-        CorePage corePageByTextInElement = findCorePageByTextInElement(blocksList, elementNameSearch, expectedTextSearch);
-        SelenideElement element = corePageByTextInElement.getElement(elementNameClick);
-        element.shouldHave(Condition.visible);
-        element.hover();
-
-        return new BlockListStepResult(corePageByTextInElement, elementNameClick, elementNameSearch);
+        return hoverOnElementInBlockWhereTextEquals(BlockListContext.fromBlock(blockName, blockListName), elementNameSearch, expectedTextSearch, elementNameClick);
     }
 
     /**
      * ######################################################################################################################
      */
 
-    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" в поле \"([^\"]*)\" введено значение \"([^\"]*)\"$")
-    public IStepResult inputValueInBlockListWhereTextEquals(String blockListName, String elementNameSearch, String expectedTextSearch, String elementName, String inputText) throws Exception {
+    private IStepResult inputValueInBlockWhereTextEquals(BlockListContext ctx, String elementNameSearch, String expectedTextSearch, String elementName, String inputText, boolean useClearField) throws Exception {
         expectedTextSearch = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
         inputText = OtherSteps.getPropertyOrStringVariableOrValue(inputText);
 
-        List<CorePage> blocksList =
-                getBlockListWithCheckingTheQuantity(blockListName, CustomCondition.Comparison.more, 0);
-        CorePage corePageByTextInElement = findCorePageByTextInElement(blocksList, elementNameSearch, expectedTextSearch);
+        CorePage block = ctx.findByTextEquals(elementNameSearch, expectedTextSearch);
 
-        SelenideElement element = corePageByTextInElement.getElement(elementName);
+        SelenideElement element = block.getElement(elementName);
         element.shouldHave(Condition.visible);
         element.click();
-        clearField(element);
+        if (useClearField) {
+            clearField(element);
+        } else {
+            element.clear();
+        }
         element.sendKeys(inputText);
 
-        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, elementName);
+        return new BlockListStepResult(block, elementNameSearch, elementName);
+    }
+
+    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" в поле \"([^\"]*)\" введено значение \"([^\"]*)\"$")
+    public IStepResult inputValueInBlockListWhereTextEquals(String blockListName, String elementNameSearch, String expectedTextSearch, String elementName, String inputText) throws Exception {
+        return inputValueInBlockWhereTextEquals(BlockListContext.fromList(blockListName), elementNameSearch, expectedTextSearch, elementName, inputText, true);
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" в поле \"([^\"]*)\" введено значение \"([^\"]*)\"$")
     public IStepResult inputValueInBlockListWhereTextEquals(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String elementName, String inputText) throws Exception {
-        expectedTextSearch = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
-        inputText = OtherSteps.getPropertyOrStringVariableOrValue(inputText);
-
-        List<CorePage> blocksList =
-                getBlockListWithCheckingTheQuantity(blockName, blockListName, CustomCondition.Comparison.more, 0);
-        CorePage corePageByTextInElement = findCorePageByTextInElement(blocksList, elementNameSearch, expectedTextSearch);
-
-        SelenideElement element = corePageByTextInElement.getElement(elementName);
-        element.shouldHave(Condition.visible);
-        element.click();
-        element.clear();
-        element.sendKeys(inputText);
-
-        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, elementName);
+        return inputValueInBlockWhereTextEquals(BlockListContext.fromBlock(blockName, blockListName), elementNameSearch, expectedTextSearch, elementName, inputText, false);
     }
 
     /**
      * ######################################################################################################################
      */
 
-    @И("^в списке блоков \"([^\"]*)\" в (\\d+) блоке выполнено нажатие на элемент \"([^\"]*)\"$")
-    public IStepResult clickOnElementBlockInBlockList(String blockListName, int blockIndex, String elementNameClick) {
-        List<CorePage> blocksList =
-                getBlockListWithCheckingTheQuantity(blockListName, CustomCondition.Comparison.more, 0);
-
-        CorePage block = blocksList.get(blockIndex - 1);
+    private IStepResult clickOnElementInNthBlock(BlockListContext ctx, int blockIndex, String elementNameClick) {
+        CorePage block = ctx.nthBlock(blockIndex);
         block.getElement(elementNameClick).click();
         return new BlockListStepResult(block, elementNameClick);
+    }
+
+    @И("^в списке блоков \"([^\"]*)\" в (\\d+) блоке выполнено нажатие на элемент \"([^\"]*)\"$")
+    public IStepResult clickOnElementBlockInBlockList(String blockListName, int blockIndex, String elementNameClick) {
+        return clickOnElementInNthBlock(BlockListContext.fromList(blockListName), blockIndex, elementNameClick);
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в (\\d+) блоке выполнено нажатие на элемент \"([^\"]*)\"$")
     public IStepResult clickOnElementBlockInBlockList(String blockName, String blockListName, int blockIndex, String elementNameClick) {
-        List<CorePage> blocksList =
-                getBlockListWithCheckingTheQuantity(blockName, blockListName, CustomCondition.Comparison.more, 0);
-
-        CorePage block = blocksList.get(blockIndex - 1);
-        block.getElement(elementNameClick).click();
-        return new BlockListStepResult(block, elementNameClick);
+        return clickOnElementInNthBlock(BlockListContext.fromBlock(blockName, blockListName), blockIndex, elementNameClick);
     }
 
     /**
      * ######################################################################################################################
      */
 
-    @И("^в списке блоков \"([^\"]*)\" выполнено нажатие на (\\d+) блок$")
-    public IStepResult clickOnBlockInBlockList(String blockListName, int blockIndex) {
-        List<CorePage> blocksList =
-                getBlockListWithCheckingTheQuantity(blockListName, CustomCondition.Comparison.more, 0);
-
-        CorePage block = blocksList.get(blockIndex - 1);
-
+    private IStepResult clickOnNthBlock(BlockListContext ctx, int blockIndex) {
+        CorePage block = ctx.nthBlock(blockIndex);
         block.getSelf().shouldBe(Condition.enabled).click();
         return new BlockListStepResult(block);
+    }
+
+    @И("^в списке блоков \"([^\"]*)\" выполнено нажатие на (\\d+) блок$")
+    public IStepResult clickOnBlockInBlockList(String blockListName, int blockIndex) {
+        return clickOnNthBlock(BlockListContext.fromList(blockListName), blockIndex);
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" выполнено нажатие на (\\d+) блок$")
     public IStepResult clickOnBlockInBlockList(String blockName, String blockListName, int blockIndex) {
-        List<CorePage> blocksList =
-                getBlockListWithCheckingTheQuantity(blockName, blockListName, CustomCondition.Comparison.more, 0);
-
-        CorePage block = blocksList.get(blockIndex - 1);
-
-        block.getSelf().shouldBe(Condition.enabled).click();
-        return new BlockListStepResult(block);
+        return clickOnNthBlock(BlockListContext.fromBlock(blockName, blockListName), blockIndex);
     }
 
     /**
      * ######################################################################################################################
      */
 
-    @И("^в списке блоков \"([^\"]*)\" выполнено нажатие на блок элементы которого соответствуют списку$")
-    public IStepResult clickOnBlockInBlockListWIthComplexCondition(String blockListName, DataTable conditionsTable) {
-        List<CorePage> blocksList =
-                getBlockListWithCheckingTheQuantity(blockListName, CustomCondition.Comparison.more, 0);
-
-        List<CorePage> resultList = getBlockListWithComplexCondition(blocksList, conditionsTable);
+    private IStepResult clickOnBlockWithComplexCondition(BlockListContext ctx, DataTable conditionsTable) {
+        List<CorePage> resultList = ctx.filterByConditions(conditionsTable);
 
         if (resultList.size() != 1) {
             throw new IllegalArgumentException("По заданному списку условий найдено 0 или более 1 блока\n" + blockListToString(resultList));
@@ -279,21 +220,14 @@ public class BlocksCollectionActionSteps {
                 conditionsTable.asLists().stream().map(conditionRow -> conditionRow.get(0)).collect(Collectors.toList()));
     }
 
+    @И("^в списке блоков \"([^\"]*)\" выполнено нажатие на блок элементы которого соответствуют списку$")
+    public IStepResult clickOnBlockInBlockListWIthComplexCondition(String blockListName, DataTable conditionsTable) {
+        return clickOnBlockWithComplexCondition(BlockListContext.fromList(blockListName), conditionsTable);
+    }
+
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" выполнено нажатие на блок элементы которого соответствуют списку$")
     public IStepResult clickOnBlockInBlockListWIthComplexCondition(String blockName, String blockListName, DataTable conditionsTable) {
-        List<CorePage> blocksList =
-                getBlockListWithCheckingTheQuantity(blockName, blockListName, CustomCondition.Comparison.more, 0);
-
-        List<CorePage> resultList = getBlockListWithComplexCondition(blocksList, conditionsTable);
-
-        if (resultList.size() != 1) {
-            throw new IllegalArgumentException("По заданному списку условий найдено 0 или более 1 блока\n" + blockListToString(resultList));
-        }
-
-        resultList.get(0).getSelf().shouldBe(Condition.enabled).click();
-
-        return new BlockListStepResult(resultList,
-                conditionsTable.asLists().stream().map(conditionRow -> conditionRow.get(0)).collect(Collectors.toList()));
+        return clickOnBlockWithComplexCondition(BlockListContext.fromBlock(blockName, blockListName), conditionsTable);
     }
 
     /**
@@ -302,11 +236,8 @@ public class BlocksCollectionActionSteps {
 
     @И("^в списке блоков \"([^\"]*)\" выполнено нажатие на элемент \"([^\"]*)\" блока который соответствуют условию")
     public IStepResult clickOnElementInBlockListWIthComplexCondition(String blockListName, String elementNameClick, DataTable conditionsTable) {
-        List<CorePage> blocksList =
-                getBlockListWithCheckingTheQuantity(blockListName, CustomCondition.Comparison.more, 0);
-
-        List<CorePage> resultList = getBlockListWithComplexCondition(blocksList, conditionsTable);
-
+        BlockListContext ctx = BlockListContext.fromList(blockListName);
+        List<CorePage> resultList = ctx.filterByConditions(conditionsTable);
 
         resultList.get(0).getElement(elementNameClick).shouldBe(Condition.enabled).click();
 

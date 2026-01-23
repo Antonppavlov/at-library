@@ -124,17 +124,40 @@ public abstract class CorePage {
     }
 
     /**
-     * Получение списка блоков со страницы по имени (аннотированного "Name")
+     * Получение списка блоков со страницы по имени (аннотированного "Name").
+     *
+     * В качестве хранилища используется BlocksCollection, но наружу возвращается
+     * обычный List<CorePage> как снимок текущего состояния DOM.
      */
     @SuppressWarnings("unchecked")
     public List<CorePage> getBlocksList(String listCorePage) {
-        Object value = namedElements.get(listCorePage).getElement();
+        PageElement pageElement = Optional.ofNullable(namedElements.get(listCorePage))
+                .orElseThrow(() -> new IllegalArgumentException("List<CorePage> " + listCorePage + " не описан на странице " + this.getClass().getName()));
+        Object value = pageElement.getElement();
         if (!(value instanceof List)) {
             throw new IllegalArgumentException("List<CorePage> " + listCorePage + " не описан на странице " + this.getClass().getName());
         }
-        Stream<Object> stream = ((List<Object>) value).stream();
+        List<?> list = (List<?>) value;
+        List<CorePage> result = new ArrayList<>();
+        for (Object o : list) {
+            result.add(castToCorePage(o));
+        }
+        return result;
+    }
 
-        return stream.map(CorePage::castToCorePage).collect(toList());
+    /**
+     * Возвращает "живую" BlocksCollection для списка блоков по имени.
+     * Может использоваться там, где нужны ожидания по размеру коллекции.
+     */
+    @SuppressWarnings("unchecked")
+    public BlocksCollection<? extends CorePage> getBlocksCollection(String listCorePage) {
+        PageElement pageElement = Optional.ofNullable(namedElements.get(listCorePage))
+                .orElseThrow(() -> new IllegalArgumentException("BlocksCollection " + listCorePage + " не описан на странице " + this.getClass().getName()));
+        Object value = pageElement.getElement();
+        if (!(value instanceof BlocksCollection)) {
+            throw new IllegalArgumentException("Object: " + value.getClass() + " не является BlocksCollection для " + listCorePage + " на странице " + this.getClass().getName());
+        }
+        return (BlocksCollection<? extends CorePage>) value;
     }
 
     /**
@@ -318,8 +341,9 @@ public abstract class CorePage {
     }
 
     /**
-     * Инициализация списка блоков (List<CorePage>) на основе аннотации @FindBy.
-     * Используется для полей вида List<SomeBlock extends CorePage>.
+     * Инициализация списка блоков на основе аннотации @FindBy.
+     * Возвращает "живую" коллекцию блоков, которая строится по текущему состоянию DOM
+     * при каждом обращении (BlocksCollection).
      */
     @SuppressWarnings("unchecked")
     private List<CorePage> initCorePageList(Field field, Class<? extends CorePage> blockClass) {
@@ -341,21 +365,9 @@ public abstract class CorePage {
                     field.getName(), blockClass.getSimpleName()));
         }
 
-        List<CorePage> blocks = new ArrayList<>();
-        for (SelenideElement element : elements) {
-            try {
-                CorePage block = blockClass.getDeclaredConstructor().newInstance();
-                block.setSelf(element);
-                // Инициализируем элементы блока через Selenide, чтобы @Name-поля внутри него были доступны
-                com.codeborne.selenide.Selenide.page(block).initialize();
-                blocks.add(block);
-            } catch (ReflectiveOperationException e) {
-                throw new IllegalStateException(String.format(
-                        "Не удалось создать экземпляр блока %s для поля %s",
-                        blockClass.getName(), field.getName()), e);
-            }
-        }
-        return blocks;
+        // Возвращаем обёртку над ElementsCollection, которая при каждом обращении
+        // создаёт список блоков по актуальному DOM.
+        return new BlocksCollection<>(elements, blockClass);
     }
 
     private SelenideElement castToSelenideElement(Object element) {
