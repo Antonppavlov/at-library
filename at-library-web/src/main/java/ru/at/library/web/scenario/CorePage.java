@@ -2,6 +2,7 @@ package ru.at.library.web.scenario;
 
 import com.codeborne.selenide.*;
 import org.openqa.selenium.support.FindBy;
+import org.openqa.selenium.support.FindAll;
 import ru.at.library.web.scenario.annotations.Name;
 import ru.at.library.web.selenide.ElementCheck;
 import ru.at.library.web.selenide.IElementCheck;
@@ -99,11 +100,17 @@ public abstract class CorePage {
                     // чтобы относительные локаторы (например, xpath ".//td[4]") искались относительно корня блока, а не всей страницы.
                     if (hasCustomSelf) {
                         FindBy findBy = fieldCheckedType.getAnnotation(FindBy.class);
-                        if (findBy != null) {
+                        FindAll findAll = fieldCheckedType.getAnnotation(FindAll.class);
+                        if (findBy != null || findAll != null) {
                             Class<?> fieldType = fieldCheckedType.getType();
                             if (SelenideElement.class.isAssignableFrom(fieldType)) {
-                                obj = initElementWithinSelf(findBy);
-                            } else if (ElementsCollection.class.isAssignableFrom(fieldType)) {
+                                if (findAll != null) {
+                                    obj = initElementWithinSelf(findAll);
+                                } else {
+                                    obj = initElementWithinSelf(findBy);
+                                }
+                            } else if (ElementsCollection.class.isAssignableFrom(fieldType) && findBy != null) {
+                                // Для коллекций поддерживаем только одиночный @FindBy
                                 obj = initElementsCollectionWithinSelf(findBy);
                             }
                         }
@@ -321,6 +328,36 @@ public abstract class CorePage {
         } else {
             throw new IllegalStateException("Поддерживаются только @FindBy(css=...) и @FindBy(xpath=...) для SelenideElement внутри блока");
         }
+    }
+
+    /**
+     * Вариант для @FindAll с несколькими xpath-локаторами (OR).
+     * Объединяем xpath в одно выражение через оператор | и ищем относительно self.
+     */
+    private SelenideElement initElementWithinSelf(FindAll findAll) {
+        if (!hasCustomSelf || self == null) {
+            throw new IllegalStateException("Невозможно инициализировать элемент относительно self: self не был явно задан через setSelf");
+        }
+        // Поддерживаем только xpath-локаторы. Если задан css, берём первый css как есть.
+        StringBuilder xpathUnion = new StringBuilder();
+        for (FindBy fb : findAll.value()) {
+            if (!fb.xpath().isEmpty()) {
+                if (!xpathUnion.isEmpty()) {
+                    xpathUnion.append(" | ");
+                }
+                xpathUnion.append('(').append(fb.xpath()).append(')');
+            }
+        }
+        if (xpathUnion.length() > 0) {
+            return getSelf().$$x(xpathUnion.toString()).first();
+        }
+        // Fallback: если xpath не задан, а есть css — используем первый css
+        for (FindBy fb : findAll.value()) {
+            if (!fb.css().isEmpty()) {
+                return getSelf().$(fb.css());
+            }
+        }
+        throw new IllegalStateException("@FindAll внутри блока должен содержать xpath или css локаторы");
     }
 
     /**
