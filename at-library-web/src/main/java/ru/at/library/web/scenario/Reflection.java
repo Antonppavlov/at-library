@@ -14,8 +14,9 @@ package ru.at.library.web.scenario;
 import java.lang.reflect.Field;
 
 /**
- * Реализация механизма рефлексии для доступа к аннотациям классов
- * Необходимо для сбора списка страниц, на которых будет производиться тестирование и для сбора элементов с этих страниц
+ * Простая утилита для чтения значения поля через reflection.
+ * <p>Используется в {@link CorePage} для извлечения значений полей, помеченных {@link ru.at.library.web.scenario.annotations.Name},
+ * когда они уже могли быть проинициализированы Selenide.</p>
  */
 public final class Reflection {
 

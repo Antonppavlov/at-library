@@ -49,7 +49,7 @@ public class CoreInitialSetup {
     @Step("Инициализация CoreEnvironment")
     public void initializingCoreEnvironment(Scenario scenario) throws Exception {
         int testNumber = scenarioNumber++;
-        log.info(String.format("%s: старт сценария %d с именем [%s]", getScenarioId(scenario), testNumber, scenario.getName()));
+        log.info(String.format("%s: Старт сценария %d с именем [%s]", getScenarioId(scenario), testNumber, scenario.getName()));
 
         coreScenario.setEnvironment(new CoreEnvironment(scenario));
         coreScenario.setAssertionHelper(new AssertionHelper());
@@ -63,7 +63,7 @@ public class CoreInitialSetup {
     @After(order = 1)
     @Step("Завершение сценария")
     public void afterScenario(Scenario scenario) {
-        log.info(String.format("%s: завершение сценария с именем [%s]", getScenarioId(scenario), scenario.getName()));
+        log.info(String.format("%s: Завершение сценария с именем [%s]", getScenarioId(scenario), scenario.getName()));
     }
 
     /**

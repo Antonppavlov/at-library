@@ -23,7 +23,18 @@ import static ru.at.library.core.utils.helpers.PropertyLoader.loadProperty;
 import static ru.at.library.web.selenide.ElementChecker.*;
 
 /**
- * Класс для реализации паттерна PageObject (web-специфичный, основан на Selenide).
+ * Базовый класс для всех page‑объектов web‑модуля (паттерн Page Object на базе Selenide).
+ * <p>
+ * Отвечает за:
+ * <ul>
+ *   <li>хранение "корневого" {@link SelenideElement} страницы или блока,</li>
+ *   <li>поиск и инициализацию полей, помеченных аннотацией {@link ru.at.library.web.scenario.annotations.Name},</li>
+ *   <li>создание «живых» коллекций блоков через {@link BlocksCollection},</li>
+ *   <li>выполнение типовых проверок видимости/обязательности элементов.</li>
+ * </ul>
+ * Большинство step‑классов использует именно этот API (методы {@link #getElement(String)},
+ * {@link #getElementsList(String)}, {@link #getBlock(String)}, {@link #getBlocksList(String)} и проверки
+ * {@link #isAppeared()}, {@link #checkMandatory()}, {@link #checkHidden()}, {@link #checkPrimary(boolean)}).
  */
 public abstract class CorePage {
 
@@ -31,26 +42,36 @@ public abstract class CorePage {
     public static boolean isHidden = Boolean.parseBoolean(loadProperty("isHidden", "true"));
     public static boolean isMandatory = Boolean.parseBoolean(loadProperty("isMandatory", "true"));
 
-    /**
-     * Имя страницы
+/**
+     * Человеко‑читаемое имя страницы/блока.
+     * <p>Берётся из аннотации {@link ru.at.library.web.scenario.annotations.Name} и попадает в логи и сообщения
+     * об ошибках.</p>
      */
     private String name;
 
-    /**
+/**
      * Корневой элемент страницы/блока.
-     * Ранее предоставлялся Selenide ElementsContainer#getSelf().
-     * По умолчанию используется весь документ (html), если явно не задано.
+     * <p>
+     * Для обычных страниц по умолчанию используется весь документ ({@code <html>}), чтобы относительные локаторы
+     * работали от корня. Для вложенных блоков корень задаётся явно через {@link #setSelf(SelenideElement)} (например,
+     * {@code <tr>} таблицы), и относительные xpath/css‑локаторы полей блока вычисляются относительно этого элемента.
+     * </p>
      */
     private SelenideElement self;
 
-    /**
-     * Флаг того, что self был установлен программно (через setSelf), а не проинициализирован PageFactory.
-     * Используется, чтобы применять относительные локаторы только для "настоящих" блоков, а не для страниц.
+/**
+     * Признак того, что {@link #self} был установлен программно через {@link #setSelf(SelenideElement)}.
+     * <p>Если флаг {@code true}, значит, перед нами реальный блок и поля с {@link FindBy}/{@link FindAll}
+     * должны инициализироваться относительно {@link #self}. Для корневых страниц флаг остаётся {@code false},
+     * и локаторы ведут себя как в обычном Selenide PageObject.</p>
      */
     private boolean hasCustomSelf = false;
 
-    /**
-     * Список всех элементов страницы
+/**
+     * Кеш всех элементов/блоков, помеченных {@link ru.at.library.web.scenario.annotations.Name}.
+     * <p>Ключ — значение аннотации {@code @Name}, значение — обёртка {@link ru.at.library.web.selenide.PageElement}
+     * вокруг реального {@link SelenideElement}, {@link com.codeborne.selenide.ElementsCollection} или вложенного
+     * {@link CorePage}.</p>
      */
     private Map<String, PageElement> namedElements;
 
@@ -66,8 +87,16 @@ public abstract class CorePage {
         super();
     }
 
-    /**
-     * Поиск и инициализации элементов страницы с аннотацией @Name и сбор их в Map<String, PageElement> namedElements
+/**
+     * Находит и инициализирует все public‑поля, помеченные {@link ru.at.library.web.scenario.annotations.Name},
+     * и складывает их в {@link #namedElements}.
+     * <ul>
+     *   <li>Поля простых элементов/коллекций инициализируются через {@link Selenide#page(Class)}.</li>
+     *   <li>Поля‑блоков ({@code extends CorePage}) и списков блоков получают «живую» обёртку {@link BlocksCollection},
+     *       чтобы при каждом обращении использовался актуальный DOM.</li>
+     * </ul>
+     *
+     * @return текущий объект страницы/блока (для чейнинга)
      */
     public CorePage initialize() {
         checkNamedAnnotations();
@@ -123,8 +152,12 @@ public abstract class CorePage {
         return this;
     }
 
-    /**
-     * Получение элемента со страницы по имени (аннотированного "Name")
+/**
+     * Возвращает одиночный элемент по его «человеческому» имени (значению {@code @Name}).
+     *
+     * @param elementName имя из аннотации {@link ru.at.library.web.scenario.annotations.Name}
+     * @return {@link SelenideElement}, соответствующий данному имени
+     * @throws IllegalArgumentException если такого элемента нет среди полей страницы
      */
     public SelenideElement getElement(String elementName) {
         return castToSelenideElement(Optional.ofNullable(namedElements.get(elementName))
@@ -132,8 +165,12 @@ public abstract class CorePage {
                 .getElement());
     }
 
-    /**
-     * Получение элемента-списка со страницы по имени
+/**
+     * Возвращает список элементов ({@link ElementsCollection}) по имени, заданному через {@code @Name}.
+     *
+     * @param listName имя списка
+     * @return {@link ElementsCollection}, соответствующая указанному имени
+     * @throws IllegalArgumentException если список не найден или поле имеет другой тип
      */
     public ElementsCollection getElementsList(String listName) {
         return castToElementsCollection(Optional.ofNullable(namedElements.get(listName))
@@ -141,8 +178,12 @@ public abstract class CorePage {
                 .getElement());
     }
 
-    /**
-     * Получение блока со страницы по имени (аннотированного "Name")
+/**
+     * Возвращает вложенный блок (подкласс {@link CorePage}) по имени из {@code @Name}.
+     *
+     * @param blockName имя блока
+     * @return проинициализированный блок
+     * @throws IllegalArgumentException если блок не найден или поле имеет неподходящий тип
      */
     public CorePage getBlock(String blockName) {
         return castToCorePage(Optional.ofNullable(namedElements.get(blockName))
@@ -150,11 +191,10 @@ public abstract class CorePage {
                 .getElement());
     }
 
-    /**
-     * Получение списка блоков со страницы по имени (аннотированного "Name").
-     *
-     * В качестве хранилища используется BlocksCollection, но наружу возвращается
-     * обычный List<CorePage> как снимок текущего состояния DOM.
+/**
+     * Возвращает список блоков по имени списка (поле типа {@code List<CorePage>} с {@code @Name}).
+     * <p>Внутри данные хранятся в виде {@link BlocksCollection}, но наружу возвращается снимок в виде
+     * обычного списка, построенный по текущему DOM.</p>
      */
     @SuppressWarnings("unchecked")
     public List<CorePage> getBlocksList(String listCorePage) {
@@ -172,9 +212,10 @@ public abstract class CorePage {
         return result;
     }
 
-    /**
-     * Возвращает "живую" BlocksCollection для списка блоков по имени.
-     * Может использоваться там, где нужны ожидания по размеру коллекции.
+/**
+     * Возвращает «живую» коллекцию блоков {@link BlocksCollection} для указанного списка.
+     * <p>Эта коллекция привязана к DOM и используется там, где нужно ждать изменение количества
+     * или состояния блоков (через Selenide‑условия для коллекций).</p>
      */
     @SuppressWarnings("unchecked")
     public BlocksCollection<? extends CorePage> getBlocksCollection(String listCorePage) {
@@ -187,9 +228,13 @@ public abstract class CorePage {
         return (BlocksCollection<? extends CorePage>) value;
     }
 
-    /**
-     * Проверка того, что элементы, не помеченные аннотацией "Optional", отображаются,
-     * а элементы, помеченные аннотацией "Hidden", скрыты.
+/**
+     * Комплексная проверка того, что страница/блок «отобразился» корректно.
+     * <ul>
+     *   <li>Проверяет, что обязательные элементы ({@link ElementMode#MANDATORY}) видимы.</li>
+     *   <li>Проверяет, что скрытые элементы ({@link ElementMode#HIDDEN}) невидимы.</li>
+     *   <li>При необходимости вызывает {@link #checkPrimary(boolean)} для основных элементов.</li>
+     * </ul>
      */
     public void isAppeared() {
         if (isMandatory){
