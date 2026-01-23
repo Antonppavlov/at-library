@@ -49,16 +49,21 @@ public class CoreInitialSetup {
      */
     public static volatile int totalScenarios = 0;
 
-    /**
-     * Информация о запущенных сценариях: время старта и человеко-читаемое имя.
+/**
+     * Информация о запущенных сценариях: время старта, человеко-читаемое имя и порядковый номер запуска.
      */
     private static final class ScenarioRunInfo {
         final String name;
         final long startTimeMs;
+        /**
+         * Порядковый номер сценария в рамках запуска (1..N), присваивается в {@link #initializingCoreEnvironment}.
+         */
+        final int sequenceNumber;
 
-        private ScenarioRunInfo(String name, long startTimeMs) {
+        private ScenarioRunInfo(String name, long startTimeMs, int sequenceNumber) {
             this.name = name;
             this.startTimeMs = startTimeMs;
+            this.sequenceNumber = sequenceNumber;
         }
     }
 
@@ -134,8 +139,8 @@ public class CoreInitialSetup {
         int total = totalScenarios;
         String scenarioId = getScenarioId(scenario);
 
-        // запоминаем время старта и имя для последующего расчёта длительности и мониторинга зависаний
-        runningScenarios.put(scenarioId, new ScenarioRunInfo(scenario.getName(), System.currentTimeMillis()));
+        // запоминаем время старта, имя и порядковый номер запуска для последующего расчёта длительности и мониторинга
+        runningScenarios.put(scenarioId, new ScenarioRunInfo(scenario.getName(), System.currentTimeMillis(), testNumber));
 
         log.info(String.format("%s: Старт сценария %d/%d с именем [%s]", scenarioId, testNumber, total, scenario.getName()));
 
@@ -151,12 +156,11 @@ public class CoreInitialSetup {
     @After(order = 1)
     @Step("Завершение сценария")
     public void afterScenario(Scenario scenario) {
-        int finishedNumber = scenarioNumber.get() - 1;
         int total = totalScenarios;
-        int remaining = total > 0 ? Math.max(total - finishedNumber, 0) : 0;
         String scenarioId = getScenarioId(scenario);
 
         ScenarioRunInfo info = runningScenarios.remove(scenarioId);
+        int sequenceNumber = info != null ? info.sequenceNumber : -1;
         long durationMs = info != null ? (System.currentTimeMillis() - info.startTimeMs) : -1L;
 
         String durationInfo;
@@ -169,10 +173,19 @@ public class CoreInitialSetup {
             durationInfo = "н/д";
         }
 
-        log.info(String.format(
-                "%s: Завершение сценария %d/%d с именем [%s].\nДлительность сценария: %s\nОсталось сценариев: %d.",
-                scenarioId, finishedNumber, total, scenario.getName(),  durationInfo, remaining
-        ));
+        int runningNow = runningScenarios.size();
+
+        if (total > 0 && sequenceNumber > 0) {
+            log.info(String.format(
+                    "%s: Завершение сценария %d/%d с именем [%s]. Длительность: %s.\n Сейчас выполняется сценариев: %d.",
+                    scenarioId, sequenceNumber, total, scenario.getName(), durationInfo, runningNow
+            ));
+        } else {
+            log.info(String.format(
+                    "%s: Завершение сценария с именем [%s]. Длительность: %s.\n Сейчас выполняется сценариев: %d.",
+                    scenarioId, scenario.getName(), durationInfo, runningNow
+            ));
+        }
 
     }
 
