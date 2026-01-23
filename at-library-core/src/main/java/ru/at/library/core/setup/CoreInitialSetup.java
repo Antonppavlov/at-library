@@ -22,6 +22,8 @@ import ru.at.library.core.cucumber.api.CoreEnvironment;
 import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.core.utils.helpers.AssertionHelper;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -47,6 +49,72 @@ public class CoreInitialSetup {
      */
     public static volatile int totalScenarios = 0;
 
+    /**
+     * Информация о запущенных сценариях: время старта и человеко-читаемое имя.
+     */
+    private static final class ScenarioRunInfo {
+        final String name;
+        final long startTimeMs;
+
+        private ScenarioRunInfo(String name, long startTimeMs) {
+            this.name = name;
+            this.startTimeMs = startTimeMs;
+        }
+    }
+
+    /**
+     * Все текущие выполняющиеся сценарии: id -> информация о запуске.
+     */
+    private static final ConcurrentHashMap<String, ScenarioRunInfo> runningScenarios = new ConcurrentHashMap<>();
+
+    /**
+     * Флаг, что watchdog-поток уже запущен.
+     */
+    private static final AtomicInteger watchdogStarted = new AtomicInteger(0);
+
+    /**
+     * Порог для вывода предупреждения о "подвисшем" сценарии (10 минут).
+     */
+    private static final long WATCHDOG_THRESHOLD_MS = 10 * 60 * 1000L;
+
+    /**
+     * Интервал проверки сценариев watchdog'ом (1 минута).
+     */
+    private static final long WATCHDOG_INTERVAL_MS = 60 * 1000L;
+
+    private static void ensureWatchdogStarted() {
+        if (watchdogStarted.compareAndSet(0, 1)) {
+            Thread t = new Thread(() -> {
+                while (!Thread.currentThread().isInterrupted()) {
+                    try {
+                        long now = System.currentTimeMillis();
+                        for (Map.Entry<String, ScenarioRunInfo> entry : runningScenarios.entrySet()) {
+                            String id = entry.getKey();
+                            ScenarioRunInfo info = entry.getValue();
+                            long durationMs = now - info.startTimeMs;
+                            if (durationMs >= WATCHDOG_THRESHOLD_MS) {
+                                long secondsTotal = durationMs / 1000;
+                                long minutes = secondsTotal / 60;
+                                long seconds = secondsTotal % 60;
+                                log.warn(String.format(
+                                        "[WATCHDOG] Сценарий %s \"%s\" выполняется уже %d мин %d с",
+                                        id, info.name, minutes, seconds
+                                ));
+                            }
+                        }
+                        Thread.sleep(WATCHDOG_INTERVAL_MS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    } catch (Throwable t1) {
+                        log.error("Ошибка в watchdog сценариев", t1);
+                    }
+                }
+            }, "scenario-watchdog");
+            t.setDaemon(true);
+            t.start();
+        }
+    }
+
     @Delegate
     CoreScenario coreScenario = CoreScenario.getInstance();
 
@@ -60,10 +128,16 @@ public class CoreInitialSetup {
     @Before(order = 1)
     @Step("Инициализация CoreEnvironment")
     public void initializingCoreEnvironment(Scenario scenario) throws Exception {
+        ensureWatchdogStarted();
+
         int testNumber = scenarioNumber.getAndIncrement();
         int total = totalScenarios;
+        String scenarioId = getScenarioId(scenario);
 
-        log.info(String.format("%s: Старт сценария %d/%d с именем [%s]", getScenarioId(scenario), testNumber, total, scenario.getName()));
+        // запоминаем время старта и имя для последующего расчёта длительности и мониторинга зависаний
+        runningScenarios.put(scenarioId, new ScenarioRunInfo(scenario.getName(), System.currentTimeMillis()));
+
+        log.info(String.format("%s: Старт сценария %d/%d с именем [%s]", scenarioId, testNumber, total, scenario.getName()));
 
         coreScenario.setEnvironment(new CoreEnvironment(scenario));
         coreScenario.setAssertionHelper(new AssertionHelper());
@@ -80,10 +154,24 @@ public class CoreInitialSetup {
         int finishedNumber = scenarioNumber.get() - 1;
         int total = totalScenarios;
         int remaining = total > 0 ? Math.max(total - finishedNumber, 0) : 0;
+        String scenarioId = getScenarioId(scenario);
+
+        ScenarioRunInfo info = runningScenarios.remove(scenarioId);
+        long durationMs = info != null ? (System.currentTimeMillis() - info.startTimeMs) : -1L;
+
+        String durationInfo;
+        if (durationMs >= 0) {
+            long secondsTotal = durationMs / 1000;
+            long minutes = secondsTotal / 60;
+            long seconds = secondsTotal % 60;
+            durationInfo = String.format("%d мин %d с", minutes, seconds);
+        } else {
+            durationInfo = "н/д";
+        }
 
         log.info(String.format(
-                "%s: Завершение сценария %d/%d с именем [%s]. Осталось сценариев: %d",
-                getScenarioId(scenario), finishedNumber, total, scenario.getName(), remaining
+                "%s: Завершение сценария %d/%d с именем [%s].\nДлительность сценария: %s\nОсталось сценариев: %d.",
+                scenarioId, finishedNumber, total, scenario.getName(),  durationInfo, remaining
         ));
 
     }
