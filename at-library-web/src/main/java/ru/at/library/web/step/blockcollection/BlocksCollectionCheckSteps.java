@@ -41,121 +41,6 @@ public class BlocksCollectionCheckSteps {
 
     private final CoreScenario coreScenario = CoreScenario.getInstance();
 
-    // Вспомогательные методы для сокращения дублирования
-
-    /**
-     * Создаёт контекст для списка блоков, объявленного на текущей странице (без родительского блока).
-     * Используется во всех шагах вида "в списке блоков &lt;имя&gt; ...".
-     */
-    private BlockListContext createBlockListContextFromList(String blockListName) {
-        return BlockListContext.fromList(blockListName);
-    }
-
-    /**
-     * Создаёт контекст для списка блоков, который находится внутри родительского блока.
-     * Используется во всех шагах вида "в блоке &lt;имя блока&gt; в списке блоков &lt;имя списка&gt; ...".
-     */
-    private BlockListContext createBlockListContextFromBlock(String blockName, String blockListName) {
-        return BlockListContext.fromBlock(blockName, blockListName);
-    }
-
-    /**
-     * Применяет переданную проверку ко всем блокам в {@link BlockListContext} и возвращает результат
-     * с ключом (обычно это имя проверяемого элемента).
-     */
-    private IStepResult forEachBlock(BlockListContext blockListContext, String key, Consumer<CorePage> checker) {
-        List<CorePage> blocks = blockListContext.getBlocks();
-        for (CorePage block : blocks) {
-            checker.accept(block);
-        }
-        return new BlockListStepResult(blocks, key);
-    }
-
-    /**
-     * Строит унифицированное описание контекста списка блоков для сообщений об ошибках.
-     * Содержит название текущей страницы, (опционально) блока-контейнера и списка блоков.
-     */
-    private String formatBlockListContext(BlockListContext blockListContext) {
-        StringBuilder description = new StringBuilder();
-        description.append("Текущая страница: '")
-                .append(WebScenario.getCurrentPage().getName())
-                .append("'");
-
-        if (blockListContext.getContainerName() != null) {
-            description.append("\nБлок-контейнер: '")
-                    .append(blockListContext.getContainerName())
-                    .append("'");
-        }
-
-        description.append("\nСписок блоков: '")
-                .append(blockListContext.getListName())
-                .append("'");
-
-        return description.toString();
-    }
-
-    /**
-     * Удобный вариант forEach без формирования {@link IStepResult}, когда шаг ничего не возвращает наружу.
-     */
-    private void forEachBlock(BlockListContext blockListContext, Consumer<CorePage> checker) {
-        for (CorePage block : blockListContext.getBlocks()) {
-            checker.accept(block);
-        }
-    }
-
-    /**
-     * Helper: проверка, что РОВНО expectedCount блоков удовлетворяют предикату.
-     * Возвращает {@link BlockListStepResult} с этими блоками.
-     * <p>
-     * Важно: сам предикат не должен кидать проверочные исключения наружу —
-     * если нужна "долгая" проверка с ожиданием, внутри предиката следует
-     * вызвать {@code should*} и перехватить {@link AssertionError},
-     * возвращая {@code false} в случае неуспеха.
-     */
-    private IStepResult assertBlocksCountMatching(BlockListContext blockListContext,
-                                                  int expectedCount,
-                                                  String key,
-                                                  Predicate<CorePage> predicate,
-                                                  String failureHeader) {
-        List<CorePage> matches = blockListContext.getBlocks().stream()
-                .filter(predicate)
-                .collect(Collectors.toList());
-
-        String messageOnFailure = formatBlockListContext(blockListContext) +
-                "\n" + failureHeader +
-                "\nОжидаемое количество блоков, удовлетворяющих условию: " + expectedCount +
-                "\nФактическое количество таких блоков: " + matches.size() +
-                "\nОбщее количество блоков в списке: " + blockListContext.getBlocks().size();
-
-        Assert.assertEquals(matches.size(), expectedCount, messageOnFailure);
-
-        return new BlockListStepResult(matches, key);
-    }
-
-/**
-     * Helper: проверка условия "в любом блоке" через функцию-поисковик.
-     * Используется в шагах вида "в любом из блоков ...", чтобы переиспользовать
-     * {@code findCorePageBy*} из {@link BlocksCollectionOtherMethod}.
-     */
-    private IStepResult checkAnyBlock(BlockListContext blockListContext,
-                                      String key,
-                                      Function<List<CorePage>, CorePage> finder) {
-        CorePage block = finder.apply(blockListContext.getBlocks());
-        return new BlockListStepResult(block, key);
-    }
-
-    /**
-     * Helper: выполнение произвольной проверки для N-го блока в списке.
-     * Вспомогательный метод, который инкапсулирует вызов {@link BlockListContext#nthBlock(int)}
-     * и делегирует построение результата во внешнюю функцию.
-     */
-    private IStepResult onNthBlock(BlockListContext blockListContext,
-                                   int blockIndex,
-                                   Function<CorePage, IStepResult> checker) {
-        CorePage block = blockListContext.nthBlock(blockIndex);
-        return checker.apply(block);
-    }
-
 /**
  * Шаги-проверки для работы с коллекциями блоков (List<CorePage>),
  * построенные поверх "живых" списков блоков (BlocksCollection) и {@link BlockListContext}.
@@ -224,40 +109,6 @@ public class BlocksCollectionCheckSteps {
      * Для каждой строки таблицы ожидается формат:
      * | индекс блока | имя элемента | текстовое условие | ожидаемое значение/регулярка |
      */
-    private String buildBlockListMatchesListMessage(BlockListContext blockListContext,
-                                                    DataTable conditionsTable,
-                                                    boolean useOneBasedIndexInMessage) {
-        List<List<String>> conditionsRows = conditionsTable.asLists();
-        List<CorePage> blocksList = blockListContext.getBlocks();
-        String contextDescription = formatBlockListContext(blockListContext);
-        String resultMessageTemplate = "%s\nБлок с индексом %d: элемент '%s' не соответствует условию: %s '%s'\\nФактический web-элемент: %s\\n";
-        StringBuilder resultMessage = new StringBuilder();
-
-        for (List<String> conditionRow : conditionsRows) {
-            int blockIndex = Integer.parseInt(conditionRow.get(0)) - 1;
-            String elementName = conditionRow.get(1);
-            String textCondition = conditionRow.get(2);
-            String expectedText = resolveVars(getPropertyOrStringVariableOrValue(conditionRow.get(3)));
-
-            SelenideElement element = blocksList.get(blockIndex).getElement(elementName);
-            try {
-                // Ждём выполнения текстового условия так же, как для одиночного SelenideElement
-                element.shouldHave(getSelenideCondition(textCondition, expectedText));
-            } catch (AssertionError e) {
-                int indexForMessage = useOneBasedIndexInMessage ? blockIndex + 1 : blockIndex;
-                resultMessage
-                        .append(String.format(resultMessageTemplate,
-                                contextDescription,
-                                indexForMessage,
-                                elementName,
-                                textCondition,
-                                expectedText,
-                                blocksList.get(blockIndex).getSelf().toString()))
-                        .append("\\n");
-            }
-        }
-        return resultMessage.toString();
-    }
 
     @SuppressWarnings("deprecation")
     @И("^список блоков \"([^\"]*)\" соответствует списку$")
@@ -281,28 +132,6 @@ public class BlocksCollectionCheckSteps {
      * ######################################################################################################################
      */
 
-    private IStepResult checkBlockListRowsFormat(BlockListContext blockListContext, int elementsInRow) {
-        List<CorePage> blocksList = blockListContext.getBlocks();
-
-        int index = 0;
-        int previousRowY = 0;
-        while (index < blocksList.size()) {
-            int currentRowY = blocksList.get(index).getSelf().getLocation().y;
-            int previousElementX = blocksList.get(index).getSelf().getLocation().x;
-            assertTrue(currentRowY > previousRowY, String.format("%d блок расположен в новой строке", index + 1));
-            for (int i = 1; i < elementsInRow; ++i) {
-                ++index;
-                if (index == blocksList.size()) break;
-                int currentElementX = blocksList.get(index).getSelf().getLocation().x;
-                int currentElementY = blocksList.get(index).getSelf().getLocation().y;
-                assertTrue(currentElementX > previousElementX, String.format("%d блок расположен правее %d блока", index + 1, index));
-                assertEquals(currentRowY, currentElementY, String.format("%d блок расположен в одной строке с %d блоком", index + 1, index));
-            }
-            ++index;
-            previousRowY = currentRowY;
-        }
-        return new BlockListStepResult(blocksList);
-    }
 
     @SuppressWarnings("deprecation")
     @И("^список блоков \"([^\"]*)\" блоки расположены по (\\d+) в ряд$")
@@ -352,20 +181,6 @@ public class BlocksCollectionCheckSteps {
      * ######################################################################################################################
      */
 
-    private void checkBlockListElementsInWidthOfElement(List<CorePage> blocksList, SelenideElement outerElement, String elementOuterName) {
-        int index = 0;
-        int elementLeftBound = outerElement.getLocation().x;
-        int elementRightBound = elementLeftBound + outerElement.getSize().width;
-
-        for (CorePage block : blocksList) {
-            index++;
-            int blockLeftBoundX = block.getSelf().getLocation().x;
-            int blockRightBound = blockLeftBoundX + block.getSelf().getSize().width;
-
-            assertTrue((blockLeftBoundX >= elementLeftBound) && (blockRightBound <= elementRightBound),
-                    String.format("%d блок расположен не по ширине элемента '%s'", index, elementOuterName));
-        }
-    }
 
     @SuppressWarnings("deprecation")
     @И("^список блоков \"([^\"]*)\" расположен по ширине элемента \"([^\"]*)\"$")
@@ -524,24 +339,6 @@ public class BlocksCollectionCheckSteps {
      * Проверка, что каждый блок списка удовлетворяет всем условиям из таблицы.
      * Для каждого блока и строки таблицы выполняется полноценное ожидание через {@code shouldHave}.
      */
-    private IStepResult everyBlockInBlockListMatchesComplexCondition(BlockListContext blockListContext,
-                                                                     DataTable conditionsTable) {
-        List<CorePage> blocksList = blockListContext.getBlocks();
-        List<List<String>> conditionsRows = conditionsTable.asLists();
-
-        forEachBlock(blockListContext, block -> {
-            for (List<String> conditionsRow : conditionsRows) {
-                String elementName = conditionsRow.get(0);
-                String textCondition = conditionsRow.get(1);
-                String expectedText = resolveVars(getPropertyOrStringVariableOrValue(conditionsRow.get(2)));
-
-                block.getElement(elementName).shouldHave(getSelenideCondition(textCondition, expectedText));
-            }
-        });
-
-        return new BlockListStepResult(blocksList,
-                conditionsRows.stream().map(conditionsRow -> conditionsRow.get(0)).collect(Collectors.toList()));
-    }
 
     @И("^в списке блоков \"([^\"]*)\" каждый из блоков соответствует условиям$")
     public IStepResult everyBlockInBlockListMatchesComplexCondition(String blockListName, DataTable conditionsTable) {
@@ -573,13 +370,6 @@ public class BlocksCollectionCheckSteps {
      *                         ...
      *                         |<Название элемента N>|(текст равен|текст содержит|текст в формате|отображается на странице|не отображается на странице|не существует на странице|изображение загрузилось)|<Имя переменной/Имя свойства/Ожидаемый текст/Регулярное выражение>|
      */
-    private IStepResult checkBlockListForComplexCondition(BlockListContext blockListContext,
-                                                          DataTable conditionsTable) {
-        List<CorePage> resultList = blockListContext.filterByConditions(conditionsTable);
-
-        return new BlockListStepResult(resultList,
-                conditionsTable.asLists().stream().map(conditionRow -> conditionRow.get(0)).collect(Collectors.toList()));
-    }
 
     @И("^в списке блоков \"([^\"]*)\" любой из блоков соответствует условиям$")
     public IStepResult checkBlockListForComplexCondition(String blockListName, DataTable conditionsTable) {
@@ -757,120 +547,6 @@ public class BlocksCollectionCheckSteps {
      * -----------------------------------------------В КОНКРЕТНОМ------------------------------------------------
      */
 
-    // Helpers for "конкретный блок, где текст ..." and "в любом блоке где текст ..." patterns
-    private IStepResult elementDisplayedInBlockWhereTextEquals(BlockListContext blockListContext,
-                                                               String elementNameSearch,
-                                                               String expectedTextSearch,
-                                                               String expectedElementVisible) {
-        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
-        CorePage corePageByTextInElement =
-                findCorePageByTextInElement(blockListContext.getBlocks(), elementNameSearch, resolvedExpectedText);
-
-        corePageByTextInElement.getElement(elementNameSearch).shouldBe(Condition.visible);
-        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, expectedElementVisible);
-    }
-
-    private IStepResult elementNotDisplayedInBlockWhereTextEquals(BlockListContext blockListContext,
-                                                                  String elementNameSearch,
-                                                                  String expectedTextSearch,
-                                                                  String expectedElementVisible) {
-        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
-        CorePage corePageByTextInElement =
-                findCorePageByTextInElement(blockListContext.getBlocks(), elementNameSearch, resolvedExpectedText);
-
-        corePageByTextInElement.getElement(elementNameSearch).shouldNot(Condition.visible);
-        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, expectedElementVisible);
-    }
-
-    private IStepResult checkTextInAnyBlockMatches(BlockListContext blockListContext,
-                                                   String elementNameSearch,
-                                                   String expectedTextSearch,
-                                                   String expectedElementVisible) {
-        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedTextSearch);
-        CorePage corePageByTextInElement =
-                findCorePageByRegExpInElement(blockListContext.getBlocks(), elementNameSearch, resolvedExpectedText);
-
-        corePageByTextInElement.getElement(elementNameSearch).shouldBe(Condition.visible);
-        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, expectedElementVisible);
-    }
-
-    private IStepResult checkTextInAnyBlock(BlockListContext blockListContext,
-                                            String elementNameSearch,
-                                            String expectedTextSearch,
-                                            String elementNameFind,
-                                            String expectedTextFind) {
-        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedTextSearch);
-        String resolvedExpectedTextFind = getPropertyOrStringVariableOrValue(expectedTextFind);
-
-        CorePage corePageByTextInElement =
-                findCorePageByTextInElement(blockListContext.getBlocks(), elementNameSearch, resolvedExpectedText);
-
-        shouldHaveTextMatches(corePageByTextInElement, elementNameFind, resolvedExpectedTextFind);
-        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, elementNameFind);
-    }
-
-    private IStepResult checkTextInAnyBlockMatches1(BlockListContext blockListContext,
-                                                    String elementNameSearch,
-                                                    String expectedTextSearch,
-                                                    String elementNameFind,
-                                                    String expectedTextFind) {
-        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedTextSearch);
-        String resolvedExpectedTextFind = getPropertyOrStringVariableOrValue(expectedTextFind);
-
-        CorePage corePageByTextInElement =
-                findCorePageByRegExpInElement(blockListContext.getBlocks(), elementNameSearch, resolvedExpectedText);
-
-        SelenideElement element = corePageByTextInElement.getElement(elementNameFind);
-        element.shouldHave(Condition.matchText(resolvedExpectedTextFind), Duration.ZERO);
-
-        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, elementNameFind);
-    }
-
-    private IStepResult checkCssInAnyBlock(BlockListContext blockListContext,
-                                           String elementNameSearch,
-                                           String expectedTextSearch,
-                                           String elementNameFind,
-                                           String cssName,
-                                           String cssValue) {
-        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
-        CorePage block =
-                findCorePageByTextInElement(blockListContext.getBlocks(), elementNameSearch, resolvedExpectedText);
-
-        String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
-        String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
-
-        SelenideElement element = block.getElement(elementNameFind);
-        element.shouldHave(Condition.cssValue(resolvedCssName, resolvedCssValue));
-        return new BlockListStepResult(block, elementNameSearch, elementNameFind);
-    }
-
-    private IStepResult checkBlockWithTextInElementInBounds(BlockListContext blockListContext,
-                                                            String elementNameSearch,
-                                                            String expectedTextSearch,
-                                                            String boundsCondition) {
-        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
-
-        CorePage corePageByTextInElement =
-                findCorePageByTextInElement(blockListContext.getBlocks(), elementNameSearch, resolvedExpectedText);
-
-        inBounds(corePageByTextInElement.getSelf(), boundsCondition);
-        return new BlockListStepResult(corePageByTextInElement, elementNameSearch);
-    }
-
-    private IStepResult saveElementTextToVarInBlockListWhereTextEquals(BlockListContext blockListContext,
-                                                                       String elementToCheckText,
-                                                                       String expectedText,
-                                                                       String elementToSaveText,
-                                                                       String varName) {
-        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
-
-        CorePage corePageByTextInElement =
-                findCorePageByTextInElement(blockListContext.getBlocks(), elementToCheckText, resolvedExpectedText);
-
-        SelenideElement element = corePageByTextInElement.getElement(elementToSaveText);
-        CoreScenario.getInstance().getEnvironment().setVar(varName, element.getText());
-        return new BlockListStepResult(corePageByTextInElement, elementToCheckText, elementToSaveText);
-    }
 
     @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" отображается$")
     public IStepResult elementDisplayedInBlockWhereTextEquals(String blockListName, String elementNameSearch, String expectedTextSearch, String expectedElementVisible) {
@@ -1227,5 +903,355 @@ public class BlocksCollectionCheckSteps {
     /**
      * ######################################################################################################################
      */
+
+    // Вспомогательные методы для сокращения дублирования
+
+    /**
+     * Создаёт контекст для списка блоков, объявленного на текущей странице (без родительского блока).
+     * Используется во всех шагах вида "в списке блоков <имя> ...".
+     */
+    private BlockListContext createBlockListContextFromList(String blockListName) {
+        return BlockListContext.fromList(blockListName);
+    }
+
+    /**
+     * Создаёт контекст для списка блоков, который находится внутри родительского блока.
+     * Используется во всех шагах вида "в блоке <имя блока> в списке блоков <имя списка> ...".
+     */
+    private BlockListContext createBlockListContextFromBlock(String blockName, String blockListName) {
+        return BlockListContext.fromBlock(blockName, blockListName);
+    }
+
+    /**
+     * Применяет переданную проверку ко всем блокам в {@link BlockListContext} и возвращает результат
+     * с ключом (обычно это имя проверяемого элемента).
+     */
+    private IStepResult forEachBlock(BlockListContext blockListContext, String key, Consumer<CorePage> checker) {
+        List<CorePage> blocks = blockListContext.getBlocks();
+        for (CorePage block : blocks) {
+            checker.accept(block);
+        }
+        return new BlockListStepResult(blocks, key);
+    }
+
+    /**
+     * Удобный вариант forEach без формирования {@link IStepResult}, когда шаг ничего не возвращает наружу.
+     */
+    private void forEachBlock(BlockListContext blockListContext, Consumer<CorePage> checker) {
+        for (CorePage block : blockListContext.getBlocks()) {
+            checker.accept(block);
+        }
+    }
+
+    /**
+     * Строит унифицированное описание контекста списка блоков для сообщений об ошибках.
+     * Содержит название текущей страницы, (опционально) блока-контейнера и списка блоков.
+     */
+    private String formatBlockListContext(BlockListContext blockListContext) {
+        StringBuilder description = new StringBuilder();
+        description.append("Текущая страница: '")
+                .append(WebScenario.getCurrentPage().getName())
+                .append("'");
+
+        if (blockListContext.getContainerName() != null) {
+            description.append("\nБлок-контейнер: '")
+                    .append(blockListContext.getContainerName())
+                    .append("'");
+        }
+
+        description.append("\nСписок блоков: '")
+                .append(blockListContext.getListName())
+                .append("'");
+
+        return description.toString();
+    }
+
+    /**
+     * Helper: проверка, что РОВНО expectedCount блоков удовлетворяют предикату.
+     * Возвращает {@link BlockListStepResult} с этими блоками.
+     * <p>
+     * Важно: сам предикат не должен кидать проверочные исключения наружу —
+     * если нужна "долгая" проверка с ожиданием, внутри предиката следует
+     * вызвать {@code should*} и перехватить {@link AssertionError},
+     * возвращая {@code false} в случае неуспеха.
+     */
+    private IStepResult assertBlocksCountMatching(BlockListContext blockListContext,
+                                                  int expectedCount,
+                                                  String key,
+                                                  Predicate<CorePage> predicate,
+                                                  String failureHeader) {
+        List<CorePage> matches = blockListContext.getBlocks().stream()
+                .filter(predicate)
+                .collect(Collectors.toList());
+
+        String messageOnFailure = formatBlockListContext(blockListContext) +
+                "\n" + failureHeader +
+                "\nОжидаемое количество блоков, удовлетворяющих условию: " + expectedCount +
+                "\nФактическое количество таких блоков: " + matches.size() +
+                "\nОбщее количество блоков в списке: " + blockListContext.getBlocks().size();
+
+        Assert.assertEquals(matches.size(), expectedCount, messageOnFailure);
+
+        return new BlockListStepResult(matches, key);
+    }
+
+    /**
+     * Helper: проверка условия "в любом блоке" через функцию-поисковик.
+     * Используется в шагах вида "в любом из блоков ...", чтобы переиспользовать
+     * {@code findCorePageBy*} из {@link BlocksCollectionOtherMethod}.
+     */
+    private IStepResult checkAnyBlock(BlockListContext blockListContext,
+                                      String key,
+                                      Function<List<CorePage>, CorePage> finder) {
+        CorePage block = finder.apply(blockListContext.getBlocks());
+        return new BlockListStepResult(block, key);
+    }
+
+    /**
+     * Helper: выполнение произвольной проверки для N-го блока в списке.
+     * Вспомогательный метод, который инкапсулирует вызов {@link BlockListContext#nthBlock(int)}
+     * и делегирует построение результата во внешнюю функцию.
+     */
+    private IStepResult onNthBlock(BlockListContext blockListContext,
+                                   int blockIndex,
+                                   Function<CorePage, IStepResult> checker) {
+        CorePage block = blockListContext.nthBlock(blockIndex);
+        return checker.apply(block);
+    }
+
+    /**
+     * Строит детальное сообщение о несоответствии элементов ожиданиям, заданным в {@link DataTable}.
+     * <p>
+     * Для каждой строки таблицы ожидается формат:
+     * | индекс блока | имя элемента | текстовое условие | ожидаемое значение/регулярка |
+     */
+    private String buildBlockListMatchesListMessage(BlockListContext blockListContext,
+                                                    DataTable conditionsTable,
+                                                    boolean useOneBasedIndexInMessage) {
+        List<List<String>> conditionsRows = conditionsTable.asLists();
+        List<CorePage> blocksList = blockListContext.getBlocks();
+        String contextDescription = formatBlockListContext(blockListContext);
+        String resultMessageTemplate = "%s\nБлок с индексом %d: элемент '%s' не соответствует условию: %s '%s'\\nФактический web-элемент: %s\\n";
+        StringBuilder resultMessage = new StringBuilder();
+
+        for (List<String> conditionRow : conditionsRows) {
+            int blockIndex = Integer.parseInt(conditionRow.get(0)) - 1;
+            String elementName = conditionRow.get(1);
+            String textCondition = conditionRow.get(2);
+            String expectedText = resolveVars(getPropertyOrStringVariableOrValue(conditionRow.get(3)));
+
+            SelenideElement element = blocksList.get(blockIndex).getElement(elementName);
+            try {
+                // Ждём выполнения текстового условия так же, как для одиночного SelenideElement
+                element.shouldHave(getSelenideCondition(textCondition, expectedText));
+            } catch (AssertionError e) {
+                int indexForMessage = useOneBasedIndexInMessage ? blockIndex + 1 : blockIndex;
+                resultMessage
+                        .append(String.format(resultMessageTemplate,
+                                contextDescription,
+                                indexForMessage,
+                                elementName,
+                                textCondition,
+                                expectedText,
+                                blocksList.get(blockIndex).getSelf().toString()))
+                        .append("\\n");
+            }
+        }
+        return resultMessage.toString();
+    }
+
+    private IStepResult checkBlockListRowsFormat(BlockListContext blockListContext, int elementsInRow) {
+        List<CorePage> blocksList = blockListContext.getBlocks();
+
+        int index = 0;
+        int previousRowY = 0;
+        while (index < blocksList.size()) {
+            int currentRowY = blocksList.get(index).getSelf().getLocation().y;
+            int previousElementX = blocksList.get(index).getSelf().getLocation().x;
+            assertTrue(currentRowY > previousRowY, String.format("%d блок расположен в новой строке", index + 1));
+            for (int i = 1; i < elementsInRow; ++i) {
+                ++index;
+                if (index == blocksList.size()) break;
+                int currentElementX = blocksList.get(index).getSelf().getLocation().x;
+                int currentElementY = blocksList.get(index).getSelf().getLocation().y;
+                assertTrue(currentElementX > previousElementX, String.format("%d блок расположен правее %d блока", index + 1, index));
+                assertEquals(currentRowY, currentElementY, String.format("%d блок расположен в одной строке с %d блоком", index + 1, index));
+            }
+            ++index;
+            previousRowY = currentRowY;
+        }
+        return new BlockListStepResult(blocksList);
+    }
+
+    private void checkBlockListElementsInWidthOfElement(List<CorePage> blocksList, SelenideElement outerElement, String elementOuterName) {
+        int index = 0;
+        int elementLeftBound = outerElement.getLocation().x;
+        int elementRightBound = elementLeftBound + outerElement.getSize().width;
+
+        for (CorePage block : blocksList) {
+            index++;
+            int blockLeftBoundX = block.getSelf().getLocation().x;
+            int blockRightBound = blockLeftBoundX + block.getSelf().getSize().width;
+
+            assertTrue((blockLeftBoundX >= elementLeftBound) && (blockRightBound <= elementRightBound),
+                    String.format("%d блок расположен не по ширине элемента '%s'", index, elementOuterName));
+        }
+    }
+
+    /**
+     * Проверка, что каждый блок списка удовлетворяет всем условиям из таблицы.
+     * Для каждого блока и строки таблицы выполняется полноценное ожидание через {@code shouldHave}.
+     */
+    private IStepResult everyBlockInBlockListMatchesComplexCondition(BlockListContext blockListContext,
+                                                                     DataTable conditionsTable) {
+        List<CorePage> blocksList = blockListContext.getBlocks();
+        List<List<String>> conditionsRows = conditionsTable.asLists();
+
+        forEachBlock(blockListContext, block -> {
+            for (List<String> conditionsRow : conditionsRows) {
+                String elementName = conditionsRow.get(0);
+                String textCondition = conditionsRow.get(1);
+                String expectedText = resolveVars(getPropertyOrStringVariableOrValue(conditionsRow.get(2)));
+
+                block.getElement(elementName).shouldHave(getSelenideCondition(textCondition, expectedText));
+            }
+        });
+
+        return new BlockListStepResult(blocksList,
+                conditionsRows.stream().map(conditionsRow -> conditionsRow.get(0)).collect(Collectors.toList()));
+    }
+
+    /**
+     * Метод проверяет что в списке блоков есть блок, текст элемента(ов) которого соответствует условию conditionsTable
+     *
+     * @param blockListContext Название списка блоков
+     * @param conditionsTable  Список проверяемых условий в блоке
+     *                         пример:
+     *                         |<Название элемента 1>|(текст равен|текст содержит|текст в формате|отображается на странице|не отображается на странице|не существует на странице|изображение загрузилось)|<Имя переменной/Имя свойства/Ожидаемый текст/Регулярное выражение>|
+     *                         ...
+     *                         |<Название элемента N>|(текст равен|текст содержит|текст в формате|отображается на странице|не отображается на странице|не существует на странице|изображение загрузилось)|<Имя переменной/Имя свойства/Ожидаемый текст/Регулярное выражение>|
+     */
+    private IStepResult checkBlockListForComplexCondition(BlockListContext blockListContext,
+                                                          DataTable conditionsTable) {
+        List<CorePage> resultList = blockListContext.filterByConditions(conditionsTable);
+
+        return new BlockListStepResult(resultList,
+                conditionsTable.asLists().stream().map(conditionRow -> conditionRow.get(0)).collect(Collectors.toList()));
+    }
+
+    // Helpers for "конкретный блок, где текст ..." and "в любом блоке где текст ..." patterns
+    private IStepResult elementDisplayedInBlockWhereTextEquals(BlockListContext blockListContext,
+                                                               String elementNameSearch,
+                                                               String expectedTextSearch,
+                                                               String expectedElementVisible) {
+        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
+        CorePage corePageByTextInElement =
+                findCorePageByTextInElement(blockListContext.getBlocks(), elementNameSearch, resolvedExpectedText);
+
+        corePageByTextInElement.getElement(elementNameSearch).shouldBe(Condition.visible);
+        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, expectedElementVisible);
+    }
+
+    private IStepResult elementNotDisplayedInBlockWhereTextEquals(BlockListContext blockListContext,
+                                                                  String elementNameSearch,
+                                                                  String expectedTextSearch,
+                                                                  String expectedElementVisible) {
+        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
+        CorePage corePageByTextInElement =
+                findCorePageByTextInElement(blockListContext.getBlocks(), elementNameSearch, resolvedExpectedText);
+
+        corePageByTextInElement.getElement(elementNameSearch).shouldNot(Condition.visible);
+        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, expectedElementVisible);
+    }
+
+    private IStepResult checkTextInAnyBlockMatches(BlockListContext blockListContext,
+                                                   String elementNameSearch,
+                                                   String expectedTextSearch,
+                                                   String expectedElementVisible) {
+        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedTextSearch);
+        CorePage corePageByTextInElement =
+                findCorePageByRegExpInElement(blockListContext.getBlocks(), elementNameSearch, resolvedExpectedText);
+
+        corePageByTextInElement.getElement(elementNameSearch).shouldBe(Condition.visible);
+        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, expectedElementVisible);
+    }
+
+    private IStepResult checkTextInAnyBlock(BlockListContext blockListContext,
+                                            String elementNameSearch,
+                                            String expectedTextSearch,
+                                            String elementNameFind,
+                                            String expectedTextFind) {
+        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedTextSearch);
+        String resolvedExpectedTextFind = getPropertyOrStringVariableOrValue(expectedTextFind);
+
+        CorePage corePageByTextInElement =
+                findCorePageByTextInElement(blockListContext.getBlocks(), elementNameSearch, resolvedExpectedText);
+
+        shouldHaveTextMatches(corePageByTextInElement, elementNameFind, resolvedExpectedTextFind);
+        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, elementNameFind);
+    }
+
+    private IStepResult checkTextInAnyBlockMatches1(BlockListContext blockListContext,
+                                                    String elementNameSearch,
+                                                    String expectedTextSearch,
+                                                    String elementNameFind,
+                                                    String expectedTextFind) {
+        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedTextSearch);
+        String resolvedExpectedTextFind = getPropertyOrStringVariableOrValue(expectedTextFind);
+
+        CorePage corePageByTextInElement =
+                findCorePageByRegExpInElement(blockListContext.getBlocks(), elementNameSearch, resolvedExpectedText);
+
+        SelenideElement element = corePageByTextInElement.getElement(elementNameFind);
+        element.shouldHave(Condition.matchText(resolvedExpectedTextFind), Duration.ZERO);
+
+        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, elementNameFind);
+    }
+
+    private IStepResult checkCssInAnyBlock(BlockListContext blockListContext,
+                                           String elementNameSearch,
+                                           String expectedTextSearch,
+                                           String elementNameFind,
+                                           String cssName,
+                                           String cssValue) {
+        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
+        CorePage block =
+                findCorePageByTextInElement(blockListContext.getBlocks(), elementNameSearch, resolvedExpectedText);
+
+        String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
+        String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
+
+        SelenideElement element = block.getElement(elementNameFind);
+        element.shouldHave(Condition.cssValue(resolvedCssName, resolvedCssValue));
+        return new BlockListStepResult(block, elementNameSearch, elementNameFind);
+    }
+
+    private IStepResult checkBlockWithTextInElementInBounds(BlockListContext blockListContext,
+                                                            String elementNameSearch,
+                                                            String expectedTextSearch,
+                                                            String boundsCondition) {
+        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
+
+        CorePage corePageByTextInElement =
+                findCorePageByTextInElement(blockListContext.getBlocks(), elementNameSearch, resolvedExpectedText);
+
+        inBounds(corePageByTextInElement.getSelf(), boundsCondition);
+        return new BlockListStepResult(corePageByTextInElement, elementNameSearch);
+    }
+
+    private IStepResult saveElementTextToVarInBlockListWhereTextEquals(BlockListContext blockListContext,
+                                                                       String elementToCheckText,
+                                                                       String expectedText,
+                                                                       String elementToSaveText,
+                                                                       String varName) {
+        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
+
+        CorePage corePageByTextInElement =
+                findCorePageByTextInElement(blockListContext.getBlocks(), elementToCheckText, resolvedExpectedText);
+
+        SelenideElement element = corePageByTextInElement.getElement(elementToSaveText);
+        CoreScenario.getInstance().getEnvironment().setVar(varName, element.getText());
+        return new BlockListStepResult(corePageByTextInElement, elementToCheckText, elementToSaveText);
+    }
 
 }

@@ -89,6 +89,20 @@ public abstract class CorePage {
                         }
                     }
 
+                    // Для блоков (self != null) переконструируем поля SelenideElement/ElementsCollection на базе self и @FindBy,
+                    // чтобы относительные локаторы (например, xpath ".//td[4]") искались относительно корня блока, а не всей страницы.
+                    if (self != null) {
+                        FindBy findBy = fieldCheckedType.getAnnotation(FindBy.class);
+                        if (findBy != null) {
+                            Class<?> fieldType = fieldCheckedType.getType();
+                            if (SelenideElement.class.isAssignableFrom(fieldType)) {
+                                obj = initElementWithinSelf(findBy);
+                            } else if (ElementsCollection.class.isAssignableFrom(fieldType)) {
+                                obj = initElementsCollectionWithinSelf(findBy);
+                            }
+                        }
+                    }
+
                     PageElement.ElementType type = PageElement.ElementType.getType(obj);
                     PageElement pageElement = new PageElement(obj, name, type, PageElement.ElementMode.getMode(fieldCheckedType));
                     namedElements.put(name, pageElement);
@@ -283,6 +297,40 @@ public abstract class CorePage {
                                                                                              String message) {
         List<PageElement> elements = getElementsWithModes(parentElementsModes, childElementsModes);
         return pageElementToElementCheck(elements, condition, message);
+    }
+
+    /**
+     * Инициализация одиночного элемента внутри блока (self) по аннотации @FindBy.
+     * Поддерживаются css и xpath. Для xpath используются методы self.$x("..."),
+     * что позволяет корректно обрабатывать относительные локаторы вида ".//td[4]".
+     */
+    private SelenideElement initElementWithinSelf(FindBy findBy) {
+        if (self == null) {
+            throw new IllegalStateException("Невозможно инициализировать элемент относительно self, self == null");
+        }
+        if (!findBy.css().isEmpty()) {
+            return getSelf().$(findBy.css());
+        } else if (!findBy.xpath().isEmpty()) {
+            return getSelf().$x(findBy.xpath());
+        } else {
+            throw new IllegalStateException("Поддерживаются только @FindBy(css=...) и @FindBy(xpath=...) для SelenideElement внутри блока");
+        }
+    }
+
+    /**
+     * Инициализация коллекции элементов внутри блока (self) по аннотации @FindBy.
+     */
+    private ElementsCollection initElementsCollectionWithinSelf(FindBy findBy) {
+        if (self == null) {
+            throw new IllegalStateException("Невозможно инициализировать ElementsCollection относительно self, self == null");
+        }
+        if (!findBy.css().isEmpty()) {
+            return getSelf().$$(findBy.css());
+        } else if (!findBy.xpath().isEmpty()) {
+            return getSelf().$$x(findBy.xpath());
+        } else {
+            throw new IllegalStateException("Поддерживаются только @FindBy(css=...) и @FindBy(xpath=...) для ElementsCollection внутри блока");
+        }
     }
 
     public List<IElementCheck> pageElementToElementCheck(Collection<PageElement> values, com.codeborne.selenide.WebElementCondition condition, String message) {

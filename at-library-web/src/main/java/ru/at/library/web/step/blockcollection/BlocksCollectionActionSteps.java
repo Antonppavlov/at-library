@@ -218,7 +218,7 @@ public class BlocksCollectionActionSteps {
         List<CorePage> resultList = blockListContext.filterByConditions(conditionsTable);
 
         if (resultList.size() != 1) {
-            throw new IllegalArgumentException("По заданному списку условий найдено 0 или более 1 блока\n" + blockListToString(resultList));
+            throw new IllegalArgumentException("По заданному списку условий найдено 0 или более одного блока\n" + blockListToString(resultList));
         }
 
         resultList.get(0).getSelf().shouldBe(Condition.enabled).click();

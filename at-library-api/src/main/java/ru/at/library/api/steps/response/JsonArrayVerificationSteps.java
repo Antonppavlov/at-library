@@ -40,7 +40,7 @@ public class JsonArrayVerificationSteps {
      * @param jsonPath     jsonPath поиска массива
      * @param value        ожидаемое значение
      */
-    @И("^в ответе \"([^\"]*)\" по ключу: \"([^\"]*)\" весь массив соотвествует \"([^\"]*)\"$")
+    @И("^в ответе \"([^\"]*)\" по ключу: \"([^\"]*)\" весь массив соответствует \"([^\"]*)\"$")
     public void checkArrayEqualAllItem(String responseName, String jsonPath, String value) {
         value = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(value);
         Response response = (Response) CoreScenario.getInstance().getVar(responseName);
@@ -65,7 +65,7 @@ public class JsonArrayVerificationSteps {
      * @param jsonPath     jsonPath поиска массива
      * @param value        ожидаемая часть значения
      */
-    @И("^в ответе \"([^\"]*)\" по ключу: \"([^\"]*)\" весь массив частично соотвествует \"([^\"]*)\"$")
+    @И("^в ответе \"([^\"]*)\" по ключу: \"([^\"]*)\" весь массив частично соответствует \"([^\"]*)\"$")
     public void checkArrayContainsAllItem(String responseName, String jsonPath, String value) {
         value = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(value);
         Response response = (Response) CoreScenario.getInstance().getVar(responseName);

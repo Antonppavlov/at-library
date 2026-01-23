@@ -15,11 +15,11 @@
 
   # checkArrayEqualAllItem
   Сценарий: Все значения массива по jsonPath равны ожидаемому значению
-    * в ответе "pets_available_jav" по ключу: "status" весь массив соотвествует "available"
+    * в ответе "pets_available_jav" по ключу: "status" весь массив соответствует "available"
 
   # checkArrayContainsAllItem
   Сценарий: Все значения массива по jsonPath содержат ожидаемое значение
-    * в ответе "pets_available_jav" по ключу: "status" весь массив частично соотвествует "avail"
+    * в ответе "pets_available_jav" по ключу: "status" весь массив частично соответствует "avail"
 
   # checkArraySize
   Сценарий: Размер массива по jsonPath равен ожидаемому
@@ -40,4 +40,4 @@
     * установлено значение переменной "date_start_jav" равным "2024-01-01T00:00:00+00:00"
     * установлено значение переменной "date_end_jav" равным "2026-12-31T23:59:59+00:00"
     * установлено значение переменной "date_format_jav" равным "yyyy-MM-dd'T'HH:mm:ssXXX"
-    * в ответе "pets_available_jav" по ключу: "status" весь массив соответствуют периоду между "date_start_jav" и "date_end_jav" в формате "date_format_jav"
+    * в ответе "pets_available_jav" по ключу: "status" весь массив соответствует периоду между "date_start_jav" и "date_end_jav" в формате "date_format_jav"
