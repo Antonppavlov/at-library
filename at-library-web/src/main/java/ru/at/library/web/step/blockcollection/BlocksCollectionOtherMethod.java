@@ -1,9 +1,6 @@
 package ru.at.library.web.step.blockcollection;
 
-import com.codeborne.selenide.Condition;
-import com.codeborne.selenide.Selenide;
-import com.codeborne.selenide.SelenideElement;
-import com.codeborne.selenide.WebElementCondition;
+import com.codeborne.selenide.*;
 import io.cucumber.datatable.DataTable;
 import io.qameta.allure.Step;
 import org.openqa.selenium.Keys;
@@ -64,25 +61,37 @@ public class BlocksCollectionOtherMethod {
                                                     String elementName,
                                                     WebElementCondition condition,
                                                     String notFoundMessagePrefix) {
-        AssertionError lastError = null;
-        for (CorePage page : blocksList) {
-            SelenideElement element = page.getElement(elementName);
-            scrollToElementCenter(element);
+        // Ищем блок, в котором элемент удовлетворяет условию, в течение всего периода
+        // Configuration.timeout, перебирая все элементы коллекции. Используем быструю
+        // проверку {@code element.is(condition)} без генерации промежуточных ошибок и
+        // сами организуем цикл с повторными попытками, чтобы не ждать таймаут по каждому
+        // элементу отдельно.
+        long timeoutMs = com.codeborne.selenide.Configuration.timeout;
+        long pollingMs = com.codeborne.selenide.Configuration.pollingInterval;
+        long endTime = System.currentTimeMillis() + timeoutMs;
 
-            try {
-                element.shouldHave(condition);
-                return page;
-            } catch (AssertionError e) {
-                lastError = e;
+        while (true) {
+            for (CorePage page : blocksList) {
+                SelenideElement element = page.getElement(elementName);
+                scrollToElementCenter(element);
+                if (element.is(condition)) {
+                    return page;
+                }
             }
+
+            if (System.currentTimeMillis() >= endTime) {
+                // Ни один блок так и не удовлетворил условию за отведённый таймаут — падаем один раз
+                BrowserSteps.takeScreenshot();
+                throw new AssertionError(
+                        notFoundMessagePrefix +
+                                "\nРазмер блоков: " + blocksList.size() +
+                                "\nСодержимое блоков: " + blockListToString(blocksList)
+                );
+            }
+
+            // Пауза между повторами перебора, чтобы не крутить цикл слишком агрессивно
+            Selenide.sleep(pollingMs);
         }
-        BrowserSteps.takeScreenshot();
-        throw new AssertionError(
-                notFoundMessagePrefix +
-                        "\nРазмер блоков: " + blocksList.size() +
-                        "\nСодержимое блоков: " + blockListToString(blocksList),
-                lastError
-        );
     }
 
     @Step("Поиск блока в котором элемента '{elementName}' отображается")
