@@ -31,6 +31,8 @@
         <aspectj.version>1.9.22</aspectj.version>
         <!--ALLURE-->
         <allure.version>2.29.1</allure.version>
+        <!-- Версия Allure commandline, которую maven-плагин будет скачивать для allure:serve/allure:report -->
+        <allure.commandline.version>2.29.0</allure.commandline.version>
         <allure-maven.version>2.15.2</allure-maven.version>
         <!--LOMBOK-->
         <lombok.version>1.18.40</lombok.version>
@@ -249,7 +251,8 @@
                     <artifactId>allure-maven</artifactId>
                     <version>${allure-maven.version}</version>
                     <configuration>
-                        <reportVersion>${allure.version}</reportVersion>
+                        <!-- Используем отдельную версию командной строки, т.к. 2.29.1 отсутствует в Maven Central -->
+                        <reportVersion>${allure.commandline.version}</reportVersion>
                         <resultsDirectory>allure-results</resultsDirectory>
                     </configuration>
                 </plugin>
@@ -264,6 +267,14 @@
                     <encoding>UTF-8</encoding>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <!-- Включаем обработку аннотаций Lombok для всех модулей -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
             <plugin>

@@ -171,7 +171,6 @@ public class CoreInitialSetup {
      * Закрытие браузера/драйвера выполняется в модуле web.
      */
     @After(order = 1)
-    @Step("Завершение сценария")
     public void afterScenario(Scenario scenario) {
         int total = totalScenarios;
         String scenarioId = getScenarioId(scenario);
