@@ -14,13 +14,14 @@ package ru.at.library.core.setup;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
+import io.qameta.allure.Allure;
 import io.qameta.allure.Step;
 import lombok.experimental.Delegate;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 import ru.at.library.core.cucumber.api.CoreEnvironment;
 import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.core.utils.helpers.AssertionHelper;
+import ru.at.library.core.utils.log.ScenarioLogAppender;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,9 +34,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Веб-драйвер и RestAssured настраиваются в специализированных модулях
  * (at-library-web, at-library-api) через отдельные хуки.
  */
+@Log4j2
 public class CoreInitialSetup {
 
-    private static final Logger log = LogManager.getLogger(CoreInitialSetup.class);
+    static {
+        // Инициализируем дополнительный логгер для сбора логов сценария
+        ScenarioLogAppender.installIfNeeded();
+    }
 
     /**
      * Счётчик запущенных сценариев в рамках одного запуска.
@@ -137,6 +142,9 @@ public class CoreInitialSetup {
     public void initializingCoreEnvironment(Scenario scenario) throws Exception {
         ensureWatchdogStarted();
 
+        // Запускаем накопление логов для текущего сценария
+        ScenarioLogAppender.startScenarioLogging();
+
         int testNumber = scenarioNumber.getAndIncrement();
         int total = totalScenarios;
         String scenarioId = getScenarioId(scenario);
@@ -194,6 +202,12 @@ public class CoreInitialSetup {
                     "\n++++++++++++\nЗавершён сценарий\nИмя: [%s]\nid: %s\nДлительность: %s\nСейчас выполняется сценариев: %d\n++++++++++++",
                     scenario.getName(), scenarioId, durationInfo, runningNow
             ));
+        }
+
+        // Прикладываем к Allure накопленный лог текущего сценария
+        String scenarioLog = ScenarioLogAppender.getAndClearScenarioLog();
+        if (scenarioLog != null && !scenarioLog.isEmpty()) {
+            Allure.addAttachment("Лог сценария: " + scenario.getName(), "text/plain", scenarioLog);
         }
 
     }

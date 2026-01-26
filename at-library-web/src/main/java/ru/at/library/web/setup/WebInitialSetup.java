@@ -3,16 +3,14 @@ package ru.at.library.web.setup;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
 import io.qameta.allure.Step;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 import ru.at.library.web.scenario.WebScenario;
 
 /**
  * Web-специфичная начальная настройка.
  */
+@Log4j2
 public class WebInitialSetup {
-
-    private static final Logger log = LogManager.getLogger(WebInitialSetup.class);
 
     @Before(order = 2)
     @Step("Сканирование всех классов с аннотацией {@link Name} и регистрация их в реестре страниц")

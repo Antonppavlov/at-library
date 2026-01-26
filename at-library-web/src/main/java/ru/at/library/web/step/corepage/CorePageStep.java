@@ -4,8 +4,7 @@ import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.Selenide;
 import com.codeborne.selenide.WebDriverRunner;
 import io.cucumber.java.ru.И;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 import org.openqa.selenium.JavascriptExecutor;
 import ru.at.library.web.scenario.CorePage;
 import ru.at.library.web.scenario.WebScenario;
@@ -18,9 +17,8 @@ import static ru.at.library.core.utils.helpers.ScopedVariables.resolveVars;
 /**
  * Шаги с  CorePage
  */
+@Log4j2
 public class CorePageStep {
-
-    private static final Logger log = LogManager.getLogger(CorePageStep.class);
 
     /**
      * Для работы с элементами страниц используется WebScenario (страницы),

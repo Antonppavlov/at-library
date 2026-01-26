@@ -13,8 +13,7 @@ package ru.at.library.core.utils.helpers;
 
 import com.google.common.collect.Maps;
 import groovy.lang.GroovyShell;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 import ru.at.library.core.cucumber.api.CoreScenario;
 
 import java.math.BigDecimal;
@@ -28,9 +27,8 @@ import static ru.at.library.core.utils.helpers.PropertyLoader.loadProperty;
 /**
  * Реализация хранилища переменных, заданных пользователем, внутри тестовых сценариев
  */
+@Log4j2
 public class ScopedVariables {
-
-    private static final Logger log = LogManager.getLogger(ScopedVariables.class);
 
     public static final String CURVE_BRACES_PATTERN = "\\{([^{}]+)\\}";
     private Map<String, Object> variables = Maps.newHashMap();

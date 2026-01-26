@@ -17,8 +17,7 @@ import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.Selenide;
 import com.codeborne.selenide.WebDriverRunner;
 import io.cucumber.java.ru.И;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 import org.openqa.selenium.*;
 import org.openqa.selenium.interactions.Actions;
 import ru.at.library.core.cucumber.api.CoreScenario;
@@ -43,9 +42,8 @@ import static ru.at.library.core.utils.helpers.ScopedVariables.resolveVars;
 /**
  * Шаги браузера
  */
+@Log4j2
 public class BrowserSteps {
-
-    private static final Logger log = LogManager.getLogger(BrowserSteps.class);
 
     private final CoreScenario coreScenario = CoreScenario.getInstance();
 
@@ -58,7 +56,7 @@ public class BrowserSteps {
     public void openUrl(String address) {
         String url = resolveVars(getPropertyOrStringVariableOrValue(address));
         open(url);
-        log.trace("Url = " + url);
+        log.trace("Переход по ссылке. address='{}', resolved='{}'", address, url);
     }
 
     /**
@@ -95,6 +93,7 @@ public class BrowserSteps {
             sleep(sleepTime);
         }
 
+        log.info("Проверка URL на равенство провалена. Ожидали='{}', текущий='{}'", expectedURL, currentUrl);
         takeScreenshot();
         CoreScenario.getInstance().getAssertionHelper().hamcrestAssert(
                 "Текущий URL не совпадает с ожидаемым",
@@ -121,6 +120,7 @@ public class BrowserSteps {
             sleep(sleepTime);
         }
 
+        log.info("Проверка URL на вхождение провалена. Ожидали вхождение='{}', текущий='{}'", expectedURL, currentUrl);
         takeScreenshot();
         CoreScenario.getInstance().getAssertionHelper().hamcrestAssert(
                 "Текущий URL не содержит ожидаемую строку",
@@ -160,7 +160,7 @@ public class BrowserSteps {
     public void switchToTheNextTab() {
         String nextWindowHandle = nextWindowHandle();
         getWebDriver().switchTo().window(nextWindowHandle);
-        log.trace("Текущая вкладка " + nextWindowHandle);
+        log.trace("Переключение на следующую вкладку. handle={}", nextWindowHandle);
     }
 
     /**
@@ -225,7 +225,7 @@ public class BrowserSteps {
         try {
             switchTo().window(title);
         } catch (Exception exception) {
-            exception.printStackTrace();
+            log.warn("Не удалось напрямую переключиться на вкладку с заголовком '{}', пробуем через проверку заголовка", title, exception);
             checkPageTitleEquals(title);
         }
     }
@@ -241,7 +241,7 @@ public class BrowserSteps {
         try {
             switchTo().frame(frameName);
         } catch (Exception exception) {
-            exception.printStackTrace();
+            log.warn("Не удалось переключиться на фрейм с именем/id '{}'", frameName, exception);
         }
     }
 
@@ -252,9 +252,8 @@ public class BrowserSteps {
     public void switchToDefaultFrame() {
         try {
             switchTo().defaultContent();
-
         } catch (Exception exception) {
-            exception.printStackTrace();
+            log.warn("Не удалось переключиться на основной фрейм страницы", exception);
         }
     }
 
@@ -345,7 +344,7 @@ public class BrowserSteps {
             height = browserWindow.getSize().height;
         }
         browserWindow.setSize(new Dimension(width, height));
-        log.trace("Установлены размеры окна браузера: ширина " + width + " высота" + height);
+        log.trace("Установлены размеры окна браузера: width={}, height={}", width, height);
     }
 
     /**
@@ -568,8 +567,7 @@ public class BrowserSteps {
                     Optional.ofNullable(Shutterbug.shootPage(WebDriverRunner.getWebDriver(), Capture.FULL).getBytes()) :
                     Optional.empty();
         } catch (WebDriverException | IOException e) {
-            log.warn("Could not get screen shot: " + e.getMessage());
-            e.printStackTrace();
+            log.warn("Could not get screen shot", e);
             return Optional.empty();
         }
     }
