@@ -1041,17 +1041,53 @@ public class BlocksCollectionCheckSteps {
 
     /**
      * Helper: выполнение произвольной проверки для N-го блока в списке.
-     * Вспомогательный метод, который инкапсулирует вызов {@link BlockListContext#nthBlock(int)}
-     * и делегирует построение результата во внешнюю функцию.
+     *
+     * ВАЖНО: для динамических таблиц, где порядок/состав строк может
+     * меняться (например, при сортировке), "N-й блок" понимается как
+     * N-я строка АКТУАЛЬНОГО списка на момент проверки. Поэтому здесь
+     * реализован внешний цикл ожидания, который в течение стандартного
+     * таймаута Selenide переинициализирует контекст списка блоков и
+     * передаёт в checker всегда свежий N-й блок.
      */
-    private IStepResult onNthBlock(BlockListContext blockListContext,
+    private IStepResult onNthBlock(BlockListContext initialContext,
                                    int blockIndex,
                                    Function<CorePage, IStepResult> checker) {
         if (blockIndex < 1) {
             throw new IllegalArgumentException("Индекс блока должен начинаться с 1, получено: " + blockIndex);
         }
-        CorePage block = blockListContext.nthBlock(blockIndex);
-        return checker.apply(block);
+
+        long timeoutMs = com.codeborne.selenide.Configuration.timeout;
+        long pollingMs = com.codeborne.selenide.Configuration.pollingInterval;
+        long endTime = System.currentTimeMillis() + timeoutMs;
+        AssertionError lastError = null;
+
+        // Нам нужен способ заново получать контекст списка блоков того же типа
+        // (из блока или со страницы). Пытаемся определить его по containerName.
+        String listName = initialContext.getListName();
+        String containerName = initialContext.getContainerName();
+
+        while (true) {
+            BlockListContext freshContext =
+                    (containerName == null)
+                            ? BlockListContext.fromList(listName)
+                            : BlockListContext.fromBlock(containerName, listName);
+            try {
+                CorePage block = freshContext.nthBlock(blockIndex);
+                return checker.apply(block);
+            } catch (AssertionError e) {
+                lastError = e;
+            }
+
+            if (System.currentTimeMillis() >= endTime) {
+                if (lastError != null) {
+                    throw lastError;
+                }
+                throw new AssertionError("Не удалось выполнить проверку для " + blockIndex +
+                        " блока списка блоков '" + listName + "' в течение таймаута " + timeoutMs + " мс");
+            }
+
+            com.codeborne.selenide.Selenide.sleep(pollingMs);
+        }
     }
 
     /**
