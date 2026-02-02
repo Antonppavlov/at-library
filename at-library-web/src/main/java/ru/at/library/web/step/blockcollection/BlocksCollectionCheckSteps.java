@@ -1013,6 +1013,9 @@ public class BlocksCollectionCheckSteps {
     private IStepResult onNthBlock(BlockListContext blockListContext,
                                    int blockIndex,
                                    Function<CorePage, IStepResult> checker) {
+        if (blockIndex < 1) {
+            throw new IllegalArgumentException("Индекс блока должен начинаться с 1, получено: " + blockIndex);
+        }
         CorePage block = blockListContext.nthBlock(blockIndex);
         return checker.apply(block);
     }
