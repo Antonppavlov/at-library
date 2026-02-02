@@ -756,6 +756,11 @@ public class BlocksCollectionCheckSteps {
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
 
         return onNthBlock(blockListContext, blockIndex, block -> {
+            SelenideElement element = block.getElement(elementName);
+            String actualText = element.getText();
+            log.info("[BlockListTextCheck] list='{}', blockIndex={}, element='{}', condition='{}', actual='{}', expected='{}'",
+                    blockListName, blockIndex, elementName, conditionString, actualText, resolvedExpectedText);
+
             WebElementCondition condition;
             switch (conditionString) {
                 case "равен":
@@ -768,7 +773,7 @@ public class BlocksCollectionCheckSteps {
                     throw new IllegalArgumentException("Неизвестное условие: " + conditionString);
             }
 
-            block.getElement(elementName).should(condition);
+            element.should(condition);
             return new BlockListStepResult(block, elementName);
         });
     }
@@ -779,6 +784,11 @@ public class BlocksCollectionCheckSteps {
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
 
         return onNthBlock(blockListContext, blockIndex, block -> {
+            SelenideElement element = block.getElement(elementName);
+            String actualText = element.getText();
+            log.info("[BlockListTextCheck] container='{}', list='{}', blockIndex={}, element='{}', condition='{}', actual='{}', expected='{}'",
+                    blockName, blockListName, blockIndex, elementName, conditionString, actualText, resolvedExpectedText);
+
             WebElementCondition condition;
             switch (conditionString) {
                 case "равен":
@@ -791,7 +801,7 @@ public class BlocksCollectionCheckSteps {
                     throw new IllegalArgumentException("Неизвестное условие: " + conditionString);
             }
 
-            block.getElement(elementName).should(condition);
+            element.should(condition);
             return new BlockListStepResult(block, elementName);
         });
     }
