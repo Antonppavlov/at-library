@@ -35,7 +35,6 @@ import static org.hamcrest.text.IsEqualIgnoringCase.equalToIgnoringCase;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.fail;
 import static ru.at.library.core.steps.OtherSteps.getPropertyOrStringVariableOrValue;
-import static ru.at.library.core.utils.helpers.PropertyLoader.getPropertyOrValue;
 import static ru.at.library.core.utils.helpers.PropertyLoader.loadValueFromFileOrVariableOrDefault;
 import static ru.at.library.core.utils.helpers.ScopedVariables.resolveVars;
 
@@ -82,7 +81,7 @@ public class BrowserSteps {
      */
     @И("^текущий URL равен \"([^\"]*)\"$")
     public void checkEqualsCurrentURL(String expectedURL) {
-        expectedURL = formALinkExpectedURL(expectedURL);
+        expectedURL = loadValueFromFileOrVariableOrDefault(expectedURL);
         String currentUrl = "";
         int sleepTime = 100;
         for (int time = 0; time < Configuration.timeout; time += sleepTime) {
@@ -109,7 +108,7 @@ public class BrowserSteps {
      */
     @И("^текущий URL содержит \"([^\"]*)\"$")
     public void checkContainsStringURL(String expectedURL) {
-        expectedURL = formALinkExpectedURL(expectedURL);
+        expectedURL = loadValueFromFileOrVariableOrDefault(expectedURL);
         String currentUrl = "";
         int sleepTime = 100;
         for (int time = 0; time < Configuration.timeout; time += sleepTime) {
@@ -136,7 +135,7 @@ public class BrowserSteps {
      */
     @И("^текущий URL не равен \"([^\"]*)\"$")
     public void checkCurrentURLIsNotEquals(String expectedURL) {
-        expectedURL = formALinkExpectedURL(expectedURL);
+        expectedURL = loadValueFromFileOrVariableOrDefault(expectedURL);
         String currentUrl = "";
         int sleepTime = 100;
 
@@ -535,28 +534,28 @@ public class BrowserSteps {
         return windowHandles.iterator().next();
     }
 
-    /**
-     * Метод проверяет если ли в передавемом url текст http 
-     * Если данного текста нет то метод выполняет конкатенатицию строк Configuration.baseUrl и передаваемого expectedURL
-     *
-     * @param expectedURL URL с которым происходит провпрка и конкатенатиция
-     */
-    private String formALinkExpectedURL(String expectedURL) {
-        expectedURL = getPropertyOrValue(expectedURL);
-        String propertyUrl = getPropertyOrValue(expectedURL);
-        if (!propertyUrl.contains("http")) {
-            propertyUrl = Configuration.baseUrl + propertyUrl;
-        }
-        String variableUrl = loadValueFromFileOrVariableOrDefault(expectedURL);
-
-        if (variableUrl.contains("http")) {
-            expectedURL = variableUrl;
-        } else {
-            expectedURL = propertyUrl;
-        }
-
-        return expectedURL;
-    }
+//    /**
+//     * Метод проверяет если ли в передавемом url текст http
+//     * Если данного текста нет то метод выполняет конкатенатицию строк Configuration.baseUrl и передаваемого expectedURL
+//     *
+//     * @param expectedURL URL с которым происходит провпрка и конкатенатиция
+//     */
+//    private String formALinkExpectedURL(String expectedURL) {
+////        expectedURL = getPropertyOrValue(expectedURL);
+////        String propertyUrl = getPropertyOrValue(expectedURL);
+////        if (!propertyUrl.contains("http")) {
+////            propertyUrl = Configuration.baseUrl + propertyUrl;
+////        }
+//        String variableUrl = loadValueFromFileOrVariableOrDefault(expectedURL);
+////
+////        if (variableUrl.contains("http")) {
+////            expectedURL = variableUrl;
+////        } else {
+////            expectedURL = propertyUrl;
+////        }
+//
+//        return expectedURL;
+//    }
 
     /**
      * Получение скриншота побайтно
