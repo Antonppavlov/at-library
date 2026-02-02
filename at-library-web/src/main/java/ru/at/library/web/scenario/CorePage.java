@@ -535,10 +535,7 @@ public abstract class CorePage {
             throw new IllegalArgumentException("Object: " + corePage.getClass() + " не является объектом CorePage");
         }
         CorePage page = (CorePage) corePage;
-        // Если страница/блок уже инициализирован (namedElements заполнен), повторная инициализация не требуется
-        if (page.namedElements != null && !page.namedElements.isEmpty()) {
-            return page;
-        }
+        // Всегда переинициализируем страницу/блок через Selenide.page(...), чтобы не держать "застывшие" ссылки на элементы
         return Selenide.page(page).initialize();
     }
 
