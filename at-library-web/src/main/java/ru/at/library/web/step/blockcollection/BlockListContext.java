@@ -53,12 +53,19 @@ class BlockListContext {
         return containerName;
     }
 
-    CorePage nthBlock(int oneBasedIndex) {
-        int zeroBasedIndex = oneBasedIndex - 1;
-        if (oneBasedIndex < 1 || zeroBasedIndex >= blocks.size()) {
+    /**
+     * Возвращает блок по его порядковому номеру в списке.
+     *
+     * @param blockNumber номер блока, начиная с 1 (как его видит пользователь в шагах)
+     * @return {@link CorePage} с указанным номером
+     * @throws IllegalArgumentException если номер выходит за пределы списка
+     */
+    CorePage getBlockByNumber(int blockNumber) {
+        int zeroBasedIndex = blockNumber - 1;
+        if (blockNumber < 1 || zeroBasedIndex >= blocks.size()) {
             throw new IllegalArgumentException(String.format(
                     "Индекс блока должен быть в диапазоне [1..%d], получено: %d",
-                    blocks.size(), oneBasedIndex));
+                    blocks.size(), blockNumber));
         }
         return blocks.get(zeroBasedIndex);
     }

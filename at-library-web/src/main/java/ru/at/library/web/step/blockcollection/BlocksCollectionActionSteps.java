@@ -174,40 +174,40 @@ public class BlocksCollectionActionSteps {
      * ######################################################################################################################
      */
 
-    private IStepResult clickOnElementInNthBlock(BlockListContext blockListContext, int blockIndex, String elementNameClick) {
-        CorePage block = blockListContext.nthBlock(blockIndex);
+    private IStepResult clickOnElementInBlockByNumber(BlockListContext blockListContext, int blockNumber, String elementNameClick) {
+        CorePage block = blockListContext.getBlockByNumber(blockNumber);
         block.getElement(elementNameClick).click();
         return new BlockListStepResult(block, elementNameClick);
     }
 
     @И("^в списке блоков \"([^\"]*)\" в (\\d+) блоке выполнено нажатие на элемент \"([^\"]*)\"$")
-    public IStepResult clickOnElementBlockInBlockList(String blockListName, int blockIndex, String elementNameClick) {
-        return clickOnElementInNthBlock(BlockListContext.fromList(blockListName), blockIndex, elementNameClick);
+    public IStepResult clickOnElementBlockInBlockList(String blockListName, int blockNumber, String elementNameClick) {
+        return clickOnElementInBlockByNumber(BlockListContext.fromList(blockListName), blockNumber, elementNameClick);
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в (\\d+) блоке выполнено нажатие на элемент \"([^\"]*)\"$")
-    public IStepResult clickOnElementBlockInBlockList(String blockName, String blockListName, int blockIndex, String elementNameClick) {
-        return clickOnElementInNthBlock(BlockListContext.fromBlock(blockName, blockListName), blockIndex, elementNameClick);
+    public IStepResult clickOnElementBlockInBlockList(String blockName, String blockListName, int blockNumber, String elementNameClick) {
+        return clickOnElementInBlockByNumber(BlockListContext.fromBlock(blockName, blockListName), blockNumber, elementNameClick);
     }
 
     /**
      * ######################################################################################################################
      */
 
-    private IStepResult clickOnNthBlock(BlockListContext blockListContext, int blockIndex) {
-        CorePage block = blockListContext.nthBlock(blockIndex);
+    private IStepResult clickOnBlockByNumber(BlockListContext blockListContext, int blockNumber) {
+        CorePage block = blockListContext.getBlockByNumber(blockNumber);
         block.getSelf().shouldBe(Condition.enabled).click();
         return new BlockListStepResult(block);
     }
 
     @И("^в списке блоков \"([^\"]*)\" выполнено нажатие на (\\d+) блок$")
-    public IStepResult clickOnBlockInBlockList(String blockListName, int blockIndex) {
-        return clickOnNthBlock(BlockListContext.fromList(blockListName), blockIndex);
+    public IStepResult clickOnBlockInBlockList(String blockListName, int blockNumber) {
+        return clickOnBlockByNumber(BlockListContext.fromList(blockListName), blockNumber);
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" выполнено нажатие на (\\d+) блок$")
-    public IStepResult clickOnBlockInBlockList(String blockName, String blockListName, int blockIndex) {
-        return clickOnNthBlock(BlockListContext.fromBlock(blockName, blockListName), blockIndex);
+    public IStepResult clickOnBlockInBlockList(String blockName, String blockListName, int blockNumber) {
+        return clickOnBlockByNumber(BlockListContext.fromBlock(blockName, blockListName), blockNumber);
     }
 
     /**
