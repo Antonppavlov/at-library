@@ -755,6 +755,30 @@ public class BlocksCollectionCheckSteps {
         BlockListContext blockListContext = createBlockListContextFromList(blockListName);
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
 
+        // Полное логирование текущего состояния списка блоков перед точечной проверкой
+        try {
+            List<CorePage> blocksSnapshot = blockListContext.getBlocks();
+            StringBuilder sb = new StringBuilder();
+            sb.append("[BlockListDump] list='").append(blockListName).append("' size=")
+              .append(blocksSnapshot.size()).append("\n");
+            int idx = 1;
+            for (CorePage b : blocksSnapshot) {
+                try {
+                    String nameText = b.getElement(elementName).getText();
+                    sb.append("  [").append(idx).append("] '").append(nameText).append("'\n");
+                } catch (Exception e) {
+                    sb.append("  [").append(idx).append("] <error reading element '" )
+                      .append(elementName).append("': ").append(e.getClass().getSimpleName())
+                      .append(": ").append(e.getMessage()).append(">\n");
+                }
+                idx++;
+            }
+            log.info(sb.toString());
+        } catch (Exception e) {
+            log.warn("[BlockListDump] failed to dump list '{}' due to {}: {}", blockListName,
+                    e.getClass().getSimpleName(), e.getMessage());
+        }
+
         return onNthBlock(blockListContext, blockIndex, block -> {
             SelenideElement element = block.getElement(elementName);
             String actualText = element.getText();
