@@ -158,8 +158,8 @@ public class SelenideElementActionSteps {
      * Перед использованием поле нужно очистить
      */
     public String setFieldValue(SelenideElement element, String value) {
-        cleanInput(element);
         value = getPropertyOrStringVariableOrValue(value);
+        element.shouldHave(Condition.visible);
         element.setValue(value);
         return value;
     }
@@ -186,11 +186,10 @@ public class SelenideElementActionSteps {
 
     /**
      * Набирается значение посимвольно (в приоритете: из property, из переменной сценария, значение аргумента) в заданное поле.
-     * Перед использованием поле очищается
      */
     public void sendKeysCharacterByCharacter(SelenideElement element, String value) {
         value = getPropertyOrStringVariableOrValue(value);
-        cleanInput(element);
+        element.shouldHave(Condition.visible);
         for (char character : value.toCharArray()) {
             element.sendKeys(String.valueOf(character));
             sleep(100);
