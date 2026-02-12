@@ -23,6 +23,10 @@ import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.core.utils.helpers.AssertionHelper;
 import ru.at.library.core.utils.log.ScenarioLogAppender;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -203,12 +207,44 @@ public class CoreInitialSetup {
             ));
         }
 
-        // Прикладываем к Allure накопленный лог текущего сценария
+        // Получаем накопленный лог сценария
         String scenarioLog = ScenarioLogAppender.getAndClearScenarioLog();
+
+        // Пишем лог сценария в отдельный файл
+        if (scenarioLog != null) {
+            writeScenarioLogToFile(scenario, sequenceNumber, scenarioLog);
+        }
+
+        // Прикладываем к Allure только непустой лог
         if (scenarioLog != null && !scenarioLog.isEmpty()) {
             Allure.addAttachment("Лог сценария: " + scenario.getName(), "text/plain", scenarioLog);
         }
 
+    }
+
+    /**
+     * Запись лога конкретного сценария в отдельный файл.
+     * Формат имени: logs/scenarios/<scenarioName>.log, где scenarioName – человеко-читаемое имя сценария
+     * (с сохранением кириллицы, очищенное только от символов, недопустимых в именах файлов).
+     */
+    private void writeScenarioLogToFile(Scenario scenario, int sequenceNumber, String scenarioLog) {
+        try {
+            String rawName = scenario.getName();
+            // Очищаем имя сценария для использования в имени файла
+            // Удаляем только символы, недопустимые в именах файлов: / \ : * ? " < > |
+            String safeScenarioName = rawName.replaceAll("[/\\\\:*?\"<>|]", "_");
+
+            Path dir = Paths.get("logs", "scenarios");
+            Files.createDirectories(dir);
+
+            Path logFile = dir.resolve(safeScenarioName + ".log");
+            Files.write(logFile, scenarioLog.getBytes(StandardCharsets.UTF_8));
+
+            log.debug("Лог сценария записан в файл: {}", logFile.toAbsolutePath());
+        } catch (Exception e) {
+            // Не должен ломать тест, если файл по какой-то причине не записался
+            log.error("Не удалось записать лог сценария в файл", e);
+        }
     }
 
     /**
