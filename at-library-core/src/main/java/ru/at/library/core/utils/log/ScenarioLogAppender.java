@@ -71,15 +71,17 @@ public class ScenarioLogAppender extends AbstractAppender {
                 config.addAppender(appender);
 
                 // Подключаемся к root-логгеру и всем существующим логгерам
+                int connectedLoggers = 0;
                 for (Map.Entry<String, LoggerConfig> entry : config.getLoggers().entrySet()) {
                     LoggerConfig loggerConfig = entry.getValue();
                     loggerConfig.addAppender(appender, null, null);
+                    connectedLoggers++;
                 }
                 config.getRootLogger().addAppender(appender, null, null);
 
                 ctx.updateLoggers();
                 INSTANCE = appender;
-                LOG.debug("ScenarioLogAppender успешно инициализирован");
+                LOG.info("ScenarioLogAppender успешно инициализирован и подключен к {} логгерам", connectedLoggers);
             } catch (Exception e) {
                 // Не должны ломать запуск тестов, если что-то пошло не так
                 LOG.error("Не удалось инициализировать ScenarioLogAppender", e);
@@ -92,6 +94,7 @@ public class ScenarioLogAppender extends AbstractAppender {
      */
     public static void startScenarioLogging() {
         SCENARIO_LOG.set(new StringBuilder());
+        LOG.debug("ScenarioLogAppender: начат сбор логов для потока {}", Thread.currentThread().getName());
     }
 
     /**
@@ -100,10 +103,13 @@ public class ScenarioLogAppender extends AbstractAppender {
     public static String getAndClearScenarioLog() {
         StringBuilder sb = SCENARIO_LOG.get();
         if (sb == null) {
+            LOG.warn("ScenarioLogAppender: буфер логов отсутствует для потока {}", Thread.currentThread().getName());
             return null;
         }
         String result = sb.toString();
+        int logLength = result.length();
         SCENARIO_LOG.remove();
+        LOG.debug("ScenarioLogAppender: собрано {} символов логов для потока {}", logLength, Thread.currentThread().getName());
         return result;
     }
 
