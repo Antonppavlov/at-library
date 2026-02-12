@@ -210,14 +210,23 @@ public class CoreInitialSetup {
         // Получаем накопленный лог сценария
         String scenarioLog = ScenarioLogAppender.getAndClearScenarioLog();
 
-        // Пишем лог сценария в отдельный файл
-        if (scenarioLog != null) {
-            writeScenarioLogToFile(scenario, sequenceNumber, scenarioLog);
+        // Диагностика для отладки
+        if (scenarioLog == null) {
+            log.warn("scenarioLog is NULL для сценария: {}", scenario.getName());
+        } else if (scenarioLog.isEmpty()) {
+            log.warn("scenarioLog ПУСТОЙ для сценария: {}", scenario.getName());
+        } else {
+            log.info("scenarioLog содержит {} символов для сценария: {}", scenarioLog.length(), scenario.getName());
         }
 
-        // Прикладываем к Allure только непустой лог
+        // Пишем лог сценария в отдельный файл
         if (scenarioLog != null && !scenarioLog.isEmpty()) {
+            writeScenarioLogToFile(scenario, sequenceNumber, scenarioLog);
+            // Прикладываем к Allure
             Allure.addAttachment("Лог сценария: " + scenario.getName(), "text/plain", scenarioLog);
+            log.debug("Лог прикреплен к Allure для сценария: {}", scenario.getName());
+        } else {
+            log.warn("Лог НЕ прикреплен к Allure (пустой или null) для сценария: {}", scenario.getName());
         }
 
     }
