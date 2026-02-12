@@ -1,7 +1,6 @@
 package ru.at.library.web.scenario;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 import ru.at.library.web.scenario.annotations.Name;
 
 import java.util.Set;
@@ -12,9 +11,8 @@ import java.util.Set;
  * Держит реестр страниц в ThreadLocal и инициализирует его, сканируя классы,
  * аннотированные {@link Name} и наследующие {@link CorePage}.
  */
+@Log4j2
 public final class WebScenario {
-
-    private static final Logger log = LogManager.getLogger(WebScenario.class);
 
     private static final ThreadLocal<Pages> PAGES_HOLDER = ThreadLocal.withInitial(Pages::new);
 

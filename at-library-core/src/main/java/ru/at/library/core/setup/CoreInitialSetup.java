@@ -14,14 +14,19 @@ package ru.at.library.core.setup;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
+import io.qameta.allure.Allure;
 import io.qameta.allure.Step;
 import lombok.experimental.Delegate;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 import ru.at.library.core.cucumber.api.CoreEnvironment;
 import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.core.utils.helpers.AssertionHelper;
+import ru.at.library.core.utils.log.ScenarioLogAppender;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,9 +38,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Веб-драйвер и RestAssured настраиваются в специализированных модулях
  * (at-library-web, at-library-api) через отдельные хуки.
  */
+@Log4j2
 public class CoreInitialSetup {
 
-    private static final Logger log = LogManager.getLogger(CoreInitialSetup.class);
+    static {
+        // Инициализируем дополнительный логгер для сбора логов сценария
+        ScenarioLogAppender.installIfNeeded();
+    }
 
     /**
      * Счётчик запущенных сценариев в рамках одного запуска.
@@ -137,6 +146,9 @@ public class CoreInitialSetup {
     public void initializingCoreEnvironment(Scenario scenario) throws Exception {
         ensureWatchdogStarted();
 
+        // Запускаем накопление логов для текущего сценария
+        ScenarioLogAppender.startScenarioLogging();
+
         int testNumber = scenarioNumber.getAndIncrement();
         int total = totalScenarios;
         String scenarioId = getScenarioId(scenario);
@@ -163,7 +175,6 @@ public class CoreInitialSetup {
      * Закрытие браузера/драйвера выполняется в модуле web.
      */
     @After(order = 1)
-    @Step("Завершение сценария")
     public void afterScenario(Scenario scenario) {
         int total = totalScenarios;
         String scenarioId = getScenarioId(scenario);
@@ -196,6 +207,44 @@ public class CoreInitialSetup {
             ));
         }
 
+        // Получаем накопленный лог сценария
+        String scenarioLog = ScenarioLogAppender.getAndClearScenarioLog();
+
+        // Пишем лог сценария в отдельный файл
+        if (scenarioLog != null) {
+            writeScenarioLogToFile(scenario, sequenceNumber, scenarioLog);
+        }
+
+        // Прикладываем к Allure только непустой лог
+        if (scenarioLog != null && !scenarioLog.isEmpty()) {
+            Allure.addAttachment("Лог сценария: " + scenario.getName(), "text/plain", scenarioLog);
+        }
+
+    }
+
+    /**
+     * Запись лога конкретного сценария в отдельный файл.
+     * Формат имени: logs/scenarios/<scenarioName>.log, где scenarioName – человеко-читаемое имя сценария
+     * (с сохранением кириллицы, очищенное только от символов, недопустимых в именах файлов).
+     */
+    private void writeScenarioLogToFile(Scenario scenario, int sequenceNumber, String scenarioLog) {
+        try {
+            String rawName = scenario.getName();
+            // Очищаем имя сценария для использования в имени файла
+            // Удаляем только символы, недопустимые в именах файлов: / \ : * ? " < > |
+            String safeScenarioName = rawName.replaceAll("[/\\\\:*?\"<>|]", "_");
+
+            Path dir = Paths.get("logs", "scenarios");
+            Files.createDirectories(dir);
+
+            Path logFile = dir.resolve(safeScenarioName + ".log");
+            Files.write(logFile, scenarioLog.getBytes(StandardCharsets.UTF_8));
+
+            log.debug("Лог сценария записан в файл: {}", logFile.toAbsolutePath());
+        } catch (Exception e) {
+            // Не должен ломать тест, если файл по какой-то причине не записался
+            log.error("Не удалось записать лог сценария в файл", e);
+        }
     }
 
     /**

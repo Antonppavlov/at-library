@@ -1,8 +1,7 @@
 package ru.at.library.api.helpers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 import org.testng.asserts.SoftAssert;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
@@ -32,8 +31,8 @@ import static ru.at.library.core.utils.helpers.PropertyLoader.loadProperty;
 /**
  * Вспомогательные методы для валидации и обработки JSON/XML/URL-параметров и подстановки переменных в JSON.
  */
+@Log4j2
 public class Utils {
-    private static final Logger log = LogManager.getLogger(Utils.class);
 
     public static final String CURVE_BRACES_PATTERN = "\\{([^{}]+)\\}";
     private static final SoftAssert sa = new SoftAssert();

@@ -14,8 +14,7 @@ import io.restassured.path.json.config.JsonPathConfig;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSender;
 import io.restassured.specification.RequestSpecification;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 import ru.at.library.api.helpers.Utils;
 import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.core.utils.helpers.PropertyLoader;
@@ -36,9 +35,8 @@ import static org.hamcrest.Matchers.is;
  * Новая линейка шагов ориентирована на краткие и понятные формулировки,
  * но сохраняет всю гибкость старой реализации (таблица параметров, polling, проверка ответа).
  */
+@Log4j2
 public class SendRequestSteps {
-
-    private static final Logger log = LogManager.getLogger(SendRequestSteps.class);
 
     private static final int DEFAULT_TIMEOUT = PropertyLoader.loadPropertyInt("http.timeout", 10);
     private static final String HTTP_METHOD_PATTERN = "((?:GET|PUT|POST|DELETE|HEAD|TRACE|OPTIONS|PATCH))";

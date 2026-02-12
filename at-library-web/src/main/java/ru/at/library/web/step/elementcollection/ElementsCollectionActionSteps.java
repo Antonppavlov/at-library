@@ -173,7 +173,7 @@ public class ElementsCollectionActionSteps {
         elements = elements.filter(visible);
         SelenideElement element = getRandomElementFromCollection(elements.filter(visible));
         element.click();
-        log.trace("Выполнено нажатие на случайный элемент: " + element);
+        log.trace("Выполнено нажатие на случайный элемент: locator={}, text='{}'", element, element.getText());
         return new CommonStepResult(element);
     }
 
@@ -200,7 +200,7 @@ public class ElementsCollectionActionSteps {
         elements = elements.filter(visible);
         SelenideElement element = elements.last();
         element.click();
-        log.trace("Выполнено нажатие на последний элемент: " + element);
+        log.trace("Выполнено нажатие на последний элемент: locator={}, text='{}'", element, element.getText());
         return new CommonStepResult(element);
     }
 

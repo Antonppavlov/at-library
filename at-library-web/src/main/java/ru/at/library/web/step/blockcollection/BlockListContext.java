@@ -12,6 +12,10 @@ import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod
 /**
  * Вспомогательный класс для работы со списком блоков в шагах.
  * Инкапсулирует получение/ожидание списка блоков и типовые операции поиска.
+ *
+ * ВАЖНО: контекст хранит снимок списка блоков на момент создания. Это повторяет
+ * исходное (стабильное) поведение библиотеки и исключает неожиданные изменения
+ * порядка/состава блоков во время выполнения сложных шагов.
  */
 class BlockListContext {
 
@@ -49,8 +53,21 @@ class BlockListContext {
         return containerName;
     }
 
-    CorePage nthBlock(int oneBasedIndex) {
-        return blocks.get(oneBasedIndex - 1);
+    /**
+     * Возвращает блок по его порядковому номеру в списке.
+     *
+     * @param blockNumber номер блока, начиная с 1 (как его видит пользователь в шагах)
+     * @return {@link CorePage} с указанным номером
+     * @throws IllegalArgumentException если номер выходит за пределы списка
+     */
+    CorePage getBlockByNumber(int blockNumber) {
+        int zeroBasedIndex = blockNumber - 1;
+        if (blockNumber < 1 || zeroBasedIndex >= blocks.size()) {
+            throw new IllegalArgumentException(String.format(
+                    "Индекс блока должен быть в диапазоне [1..%d], получено: %d",
+                    blocks.size(), blockNumber));
+        }
+        return blocks.get(zeroBasedIndex);
     }
 
     CorePage findByTextEquals(String elementName, String expectedText) {

@@ -7,8 +7,7 @@ import com.codeborne.selenide.WebDriverRunner;
 import io.cucumber.java.ru.А;
 import io.cucumber.java.ru.И;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
@@ -27,9 +26,8 @@ import static ru.at.library.core.steps.OtherSteps.*;
 /**
  * Действия с SelenideElement
  */
+@Log4j2
 public class SelenideElementActionSteps {
-
-    private static final Logger log = LogManager.getLogger(SelenideElementActionSteps.class);
 
     /**
      * ######################################################################################################################
@@ -160,8 +158,8 @@ public class SelenideElementActionSteps {
      * Перед использованием поле нужно очистить
      */
     public String setFieldValue(SelenideElement element, String value) {
-        cleanInput(element);
         value = getPropertyOrStringVariableOrValue(value);
+        element.shouldHave(Condition.visible);
         element.setValue(value);
         return value;
     }
@@ -188,11 +186,10 @@ public class SelenideElementActionSteps {
 
     /**
      * Набирается значение посимвольно (в приоритете: из property, из переменной сценария, значение аргумента) в заданное поле.
-     * Перед использованием поле очищается
      */
     public void sendKeysCharacterByCharacter(SelenideElement element, String value) {
         value = getPropertyOrStringVariableOrValue(value);
-        cleanInput(element);
+        element.shouldHave(Condition.visible);
         for (char character : value.toCharArray()) {
             element.sendKeys(String.valueOf(character));
             sleep(100);

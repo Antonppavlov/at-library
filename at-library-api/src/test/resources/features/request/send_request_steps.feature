@@ -5,6 +5,7 @@
 Функционал: Проверка шагов отправки HTTP-запросов (SendRequestSteps)
   Для примеров используется публичное API Petstore (https://petstore.swagger.io) и свойства из application.properties.
 
+  @unit_debug
   # sendHttpRequestExpectStatusAndSave (без параметров)
   Сценарий: GET без параметров, проверка кода и сохранение ответа
     И отправлен HTTP GET запрос на URL "url.store.inventory" и ожидается код ответа 200, а ответ сохранён в переменную "inventory_response"

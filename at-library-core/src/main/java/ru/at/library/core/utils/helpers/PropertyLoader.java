@@ -13,8 +13,7 @@ package ru.at.library.core.utils.helpers;
 
 import com.google.common.base.Strings;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 import ru.at.library.core.cucumber.api.CoreScenario;
 
 import java.io.IOException;
@@ -33,9 +32,8 @@ import java.util.regex.Pattern;
 /**
  * Класс для получения свойств
  */
+@Log4j2
 public class PropertyLoader {
-
-    private static final Logger log = LogManager.getLogger(PropertyLoader.class);
 
     public static String PROPERTIES_FILE = System.getProperty("properties", "application.properties");
     private static final Properties PROPERTIES = getPropertiesInstance();
@@ -178,10 +176,10 @@ public class PropertyLoader {
                     .resolve(valueToFind);
             pathAsString = path.toString();
             String fileValue = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
-            log.warn("Значение из файла " + valueToFind + " = " + fileValue);
+            log.debug("Значение из файла {} = {}", valueToFind, fileValue);
             return fileValue;
         } catch (IOException | InvalidPathException e) {
-            log.warn("Значение не найдено по пути " + pathAsString);
+            log.debug("Значение не найдено по пути {}", pathAsString);
         }
         // Попытка загрузить значение как ресурс из classpath (src/test/resources, src/main/resources и т.п.)
         String resourcePath = valueToFind.startsWith("/") ? valueToFind.substring(1) : valueToFind;
@@ -193,7 +191,7 @@ public class PropertyLoader {
             if (is != null) {
                 try (InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
                     String fileValue = readAll(reader);
-                    log.warn("Значение из classpath ресурса " + valueToFind + " = " + fileValue);
+                    log.debug("Значение из classpath ресурса {} = {}", valueToFind, fileValue);
                     return fileValue;
                 }
             }
@@ -208,7 +206,7 @@ public class PropertyLoader {
 //            }
             return (String) var;
         }
-        log.warn("Значение не найдено в хранилище. Будет использовано значение по умолчанию " + valueToFind);
+        log.debug("Значение не найдено в хранилище. Будет использовано значение по умолчанию {}", valueToFind);
         return valueToFind;
     }
 
@@ -223,7 +221,7 @@ public class PropertyLoader {
         String pathAsString = StringUtils.EMPTY;
         String propertyValue = tryLoadProperty(valueToFind);
         if (StringUtils.isNotBlank(propertyValue)) {
-            log.warn("Значение переменной: " + valueToFind + " из " + PROPERTIES_FILE + " = " + propertyValue);
+            log.debug("Значение переменной: {} из {} = {}", valueToFind, PROPERTIES_FILE, propertyValue);
             return propertyValue;
         }
         try {
@@ -231,10 +229,10 @@ public class PropertyLoader {
                     .resolve(valueToFind);
             pathAsString = path.toString();
             String fileValue = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
-            log.warn("Значение из файла " + valueToFind + " = " + fileValue);
+            log.debug("Значение из файла {} = {}", valueToFind, fileValue);
             return fileValue;
         } catch (IOException | InvalidPathException e) {
-            log.warn("Значение не найдено по пути: " + pathAsString);
+            log.debug("Значение не найдено по пути: {}", pathAsString);
         }
         // Попытка загрузить значение как ресурс из classpath (src/test/resources, src/main/resources и т.п.)
         String resourcePath = valueToFind.startsWith("/") ? valueToFind.substring(1) : valueToFind;
@@ -246,7 +244,7 @@ public class PropertyLoader {
             if (is != null) {
                 try (InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
                     String fileValue = readAll(reader);
-                    log.warn("Значение из classpath ресурса " + valueToFind + " = " + fileValue);
+                    log.debug("Значение из classpath ресурса {} = {}", valueToFind, fileValue);
                     return fileValue;
                 }
             }
@@ -261,7 +259,7 @@ public class PropertyLoader {
 //            }
             return (String) var;
         }
-        log.warn("Значение не найдено в хранилище. Будет использовано значение по умолчанию " + valueToFind);
+        log.debug("Значение не найдено в хранилище. Будет использовано значение по умолчанию {}", valueToFind);
         return valueToFind;
     }
 

@@ -56,6 +56,7 @@ public class ProxySteps {
         System.setProperty("https.proxyPort", proxyPort);
 
         RestAssured.proxy = ProxySpecification.host(proxyHost).withPort(Integer.parseInt(proxyPort));
+        log.info("Включено использование proxy {}:{}", proxyHost, proxyPort);
     }
 
     /**
@@ -74,6 +75,7 @@ public class ProxySteps {
         System.clearProperty("https.proxyPort");
 
         RestAssured.proxy = null;
+        log.info("Выключено использование proxy (http/https proxy свойства очищены)");
     }
 
     /**
@@ -85,9 +87,11 @@ public class ProxySteps {
         RestAssured.config =
                 RestAssuredConfig.newConfig().jsonConfig(JsonConfig.jsonConfig().numberReturnType(JsonPathConfig.NumberReturnType.BIG_DECIMAL));
 
+        log.trace("Отправка GET запроса через proxy на URL='{}'", url);
         RequestSpecification request = RestAssured.given();
         Response response = request.request(Method.GET, url);
 
         response.then().assertThat().body(Matchers.not(Matchers.equalTo("")));
+        log.trace("Ответ от proxy по URL='{}' успешно получен (тело не пустое)", url);
     }
 }

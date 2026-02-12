@@ -6,8 +6,7 @@ import io.cucumber.java.ru.И;
 import io.restassured.module.jsv.JsonSchemaValidator;
 import io.restassured.response.Response;
 import net.minidev.json.JSONObject;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 import net.minidev.json.parser.JSONParser;
 import net.minidev.json.parser.ParseException;
 import org.hamcrest.Matchers;
@@ -22,9 +21,8 @@ import static org.testng.Assert.*;
 /**
  * Шаги для проверки и обработки JSON/XML-ответов: сравнение значений, извлечение по jsonpath и проверка по JSON-схемам.
  */
+@Log4j2
 public class JsonVerificationSteps {
-
-    private static final Logger log = LogManager.getLogger(JsonVerificationSteps.class);
 
     private final CoreScenario coreScenario = CoreScenario.getInstance();
 
@@ -158,7 +156,7 @@ public class JsonVerificationSteps {
             }
 
             coreScenario.setVar(varName, value);
-            log.trace(typeContentBody.toUpperCase() + " path: " + path + ", значение: " + value + ", записано в переменную: " + varName);
+            log.trace("{} path='{}', значение='{}', записано в переменную '{}'", typeContentBody.toUpperCase(), path, value, varName);
         }
     }
 

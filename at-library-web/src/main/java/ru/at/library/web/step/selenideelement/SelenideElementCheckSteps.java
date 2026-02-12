@@ -5,8 +5,7 @@ import com.codeborne.selenide.Selenide;
 import com.codeborne.selenide.SelenideElement;
 import io.cucumber.java.ru.А;
 import io.cucumber.java.ru.И;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import lombok.extern.log4j.Log4j2;
 import org.openqa.selenium.By;
 import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.core.steps.OtherSteps;
@@ -27,9 +26,8 @@ import static ru.at.library.core.steps.OtherSteps.getTranslateNormalizeSpaceText
 /**
  * Проверки SelenideElement
  */
+@Log4j2
 public class SelenideElementCheckSteps {
-
-    private static final Logger log = LogManager.getLogger(SelenideElementCheckSteps.class);
 
     /**
      * ######################################################################################################################
