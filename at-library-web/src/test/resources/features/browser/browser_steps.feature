@@ -10,6 +10,7 @@
     Тогда совершен переход по ссылке "https://www.google.com/"
     * текущий URL равен "https://www.google.com/"
 
+  @web_debug
   @logger-test
   Сценарий: совершен переход по ссылке \"([^\"]*)\" [VARIABLE]
     * установлено значение переменной "url_google" равным "https://www.google.com/"
