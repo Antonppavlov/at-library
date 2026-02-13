@@ -23,12 +23,13 @@
     </Appenders>
 
     <Loggers>
-        <Root level="WARN" additivity="false">
+        <Root level="WARN">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="File"/>
         </Root>
         <!-- RestAssured логгер перенесён в at-library-api (ru.at.library.api.log.Log4jRestAssuredFilter) -->
-        <Logger name="ru" level="TRACE" additivity="false">
+        <!-- additivity="true" ОБЯЗАТЕЛЬНО для работы ScenarioLogAppender! -->
+        <Logger name="ru" level="TRACE" additivity="true">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="File"/>
         </Logger>

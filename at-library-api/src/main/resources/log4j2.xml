@@ -19,17 +19,18 @@
     </Appenders>
 
     <Loggers>
-        <Root level="WARN" additivity="false">
+        <Root level="WARN">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="File"/>
         </Root>
         <!-- Включаем детальное логирование для всего пакета ru.* в API-модуле,
              чтобы ScenarioLogAppender собирал логи шагов и хуков так же, как в core -->
-        <Logger name="ru" level="TRACE" additivity="false">
+        <!-- additivity="true" ОБЯЗАТЕЛЬНО для работы ScenarioLogAppender! -->
+        <Logger name="ru" level="TRACE" additivity="true">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="File"/>
         </Logger>
-        <Logger name="ru.at.library.api.log.Log4jRestAssuredFilter" level="TRACE" additivity="false">
+        <Logger name="ru.at.library.api.log.Log4jRestAssuredFilter" level="TRACE" additivity="true">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="File"/>
         </Logger>

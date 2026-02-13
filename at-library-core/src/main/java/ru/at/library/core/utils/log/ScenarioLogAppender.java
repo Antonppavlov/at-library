@@ -70,18 +70,13 @@ public class ScenarioLogAppender extends AbstractAppender {
 
                 config.addAppender(appender);
 
-                // Подключаемся к root-логгеру и всем существующим логгерам
-                int connectedLoggers = 0;
-                for (Map.Entry<String, LoggerConfig> entry : config.getLoggers().entrySet()) {
-                    LoggerConfig loggerConfig = entry.getValue();
-                    loggerConfig.addAppender(appender, null, null);
-                    connectedLoggers++;
-                }
+                // Подключаемся ТОЛЬКО к root-логгеру.
+                // Все дочерние логгеры с additivity=true автоматически унаследуют этот аппендер.
                 config.getRootLogger().addAppender(appender, null, null);
 
                 ctx.updateLoggers();
                 INSTANCE = appender;
-                LOG.info("ScenarioLogAppender успешно инициализирован и подключен к {} логгерам", connectedLoggers);
+                LOG.info("ScenarioLogAppender успешно инициализирован и подключен к root-логгеру");
             } catch (Exception e) {
                 // Не должны ломать запуск тестов, если что-то пошло не так
                 LOG.error("Не удалось инициализировать ScenarioLogAppender", e);
