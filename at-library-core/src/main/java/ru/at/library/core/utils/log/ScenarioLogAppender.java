@@ -75,21 +75,13 @@ public class ScenarioLogAppender extends AbstractAppender {
 
                 config.addAppender(appender);
 
-                // Подключаемся к root-логгеру с уровнем TRACE, чтобы получать все логи
+                // Подключаемся ТОЛЬКО к root-логгеру.
+                // Все дочерние логгеры с additivity=true автоматически унаследуют этот аппендер.
                 config.getRootLogger().addAppender(appender, org.apache.logging.log4j.Level.TRACE, null);
-
-                // Явно подключаемся ко всем существующим логгерам тоже
-                int connectedLoggers = 0;
-                for (Map.Entry<String, LoggerConfig> entry : config.getLoggers().entrySet()) {
-                    LoggerConfig loggerConfig = entry.getValue();
-                    loggerConfig.addAppender(appender, org.apache.logging.log4j.Level.TRACE, null);
-                    connectedLoggers++;
-                    LOG.debug("ScenarioLogAppender: подключен к логгеру: {}", entry.getKey());
-                }
 
                 ctx.updateLoggers();
                 INSTANCE = appender;
-                LOG.info("ScenarioLogAppender успешно инициализирован и подключен к root + {} логгерам", connectedLoggers);
+                LOG.debug("ScenarioLogAppender успешно инициализирован и подключен к root-логгеру");
             } catch (Exception e) {
                 // Не должны ломать запуск тестов, если что-то пошло не так
                 LOG.error("Не удалось инициализировать ScenarioLogAppender", e);
@@ -121,7 +113,7 @@ public class ScenarioLogAppender extends AbstractAppender {
         int events = eventCount != null ? eventCount : 0;
         SCENARIO_LOG.remove();
         EVENT_COUNT.remove();
-        LOG.info("ScenarioLogAppender: собрано {} символов логов ({} событий) для потока {}", logLength, events, Thread.currentThread().getName());
+        LOG.debug("ScenarioLogAppender: собрано {} символов логов ({} событий) для потока {}", logLength, events, Thread.currentThread().getName());
         return result;
     }
 

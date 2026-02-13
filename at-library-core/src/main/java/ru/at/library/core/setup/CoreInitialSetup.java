@@ -194,16 +194,21 @@ public class CoreInitialSetup {
         }
 
         int runningNow = runningScenarios.size();
+        
+        // Определяем статус теста
+        String status = scenario.getStatus().toString();
+        String statusEmoji = scenario.isFailed() ? "❌" : "✅";
+        String statusRu = scenario.isFailed() ? "ПРОВАЛЕН" : "УСПЕШНО";
 
         if (total > 0 && sequenceNumber > 0) {
             log.info(String.format(
-                    "\n++++++++++++\nЗавершён сценарий: %d/%d\nИмя: [%s]\nid: %s\nДлительность: %s\nСейчас выполняется сценариев: %d\n++++++++++++",
-                    sequenceNumber, total, scenario.getName(), scenarioId, durationInfo, runningNow
+                    "\n++++++++++++\nЗавершён сценарий: %d/%d\nИмя: [%s]\nid: %s\nСтатус: %s %s (%s)\nДлительность: %s\nСейчас выполняется сценариев: %d\n++++++++++++",
+                    sequenceNumber, total, scenario.getName(), scenarioId, statusEmoji, statusRu, status, durationInfo, runningNow
             ));
         } else {
             log.info(String.format(
-                    "\n++++++++++++\nЗавершён сценарий\nИмя: [%s]\nid: %s\nДлительность: %s\nСейчас выполняется сценариев: %d\n++++++++++++",
-                    scenario.getName(), scenarioId, durationInfo, runningNow
+                    "\n++++++++++++\nЗавершён сценарий\nИмя: [%s]\nid: %s\nСтатус: %s %s (%s)\nДлительность: %s\nСейчас выполняется сценариев: %d\n++++++++++++",
+                    scenario.getName(), scenarioId, statusEmoji, statusRu, status, durationInfo, runningNow
             ));
         }
 
@@ -216,7 +221,7 @@ public class CoreInitialSetup {
         } else if (scenarioLog.isEmpty()) {
             log.warn("scenarioLog ПУСТОЙ для сценария: {}", scenario.getName());
         } else {
-            log.info("scenarioLog содержит {} символов для сценария: {}", scenarioLog.length(), scenario.getName());
+            log.debug("scenarioLog содержит {} символов для сценария: {}", scenarioLog.length(), scenario.getName());
         }
 
         // Пишем лог сценария в отдельный файл
