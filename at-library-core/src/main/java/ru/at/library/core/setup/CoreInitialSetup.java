@@ -252,7 +252,13 @@ public class CoreInitialSetup {
             Files.createDirectories(dir);
 
             Path logFile = dir.resolve(safeScenarioName + ".log");
-            Files.write(logFile, scenarioLog.getBytes(StandardCharsets.UTF_8));
+            // UTF-8 BOM (EF BB BF) — чтобы браузер/Jenkins корректно определял кодировку
+            byte[] bom = {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+            byte[] content = scenarioLog.getBytes(StandardCharsets.UTF_8);
+            byte[] result = new byte[bom.length + content.length];
+            System.arraycopy(bom, 0, result, 0, bom.length);
+            System.arraycopy(content, 0, result, bom.length, content.length);
+            Files.write(logFile, result);
 
             log.debug("Лог сценария записан в файл: {}", logFile.toAbsolutePath());
         } catch (Exception e) {
