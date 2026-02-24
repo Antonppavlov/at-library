@@ -5,95 +5,112 @@
     <parent>
         <artifactId>at-library</artifactId>
         <groupId>ru</groupId>
-        <version>13.02.2026</version>
+        <version>24.02.2026</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>at-library-core</artifactId>
 
     <properties>
+        <!--ОБЩИЕ-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>21</java.version>
         <skip.assembly>false</skip.assembly>
+        <!--BDD ФРЕЙМВОРК-->
+        <aspectj.version>1.9.22</aspectj.version>
+        <cucumber.version>7.13.0</cucumber.version>
+        <testng.version>7.10.2</testng.version>
+        <!--ОТЧЁТНОСТЬ-->
+        <allure.version>2.29.1</allure.version>
+        <!--ЛОГИРОВАНИЕ-->
+        <logging.version>2.24.0</logging.version>
+        <!--АССЕРТЫ-->
+        <hamcrest.version>2.1</hamcrest.version>
+        <!--КОДОГЕНЕРАЦИЯ-->
+        <lombok.version>1.18.40</lombok.version>
+        <!--УТИЛИТЫ-->
+        <guava.version>33.0.0-jre</guava.version>
+        <commons-lang3.version>3.15.0</commons-lang3.version>
+        <groovy.version>3.0.21</groovy.version>
+        <gson.version>2.11.0</gson.version>
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>jcifs</groupId>
-            <artifactId>jcifs</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy</artifactId>
-            <scope>compile</scope>
-        </dependency>
-
-        <!-- Общие зависимости, реально используемые в core -->
+        <!--BDD ФРЕЙМВОРК-->
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjrt</artifactId>
+            <version>${aspectj.version}</version>
         </dependency>
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
+            <version>${testng.version}</version>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-java</artifactId>
+            <version>${cucumber.version}</version>
         </dependency>
         <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-testng</artifactId>
+            <version>${cucumber.version}</version>
         </dependency>
+
+        <!--ОТЧЁТНОСТЬ-->
         <dependency>
             <groupId>io.qameta.allure</groupId>
             <artifactId>allure-cucumber7-jvm</artifactId>
+            <version>${allure.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-        </dependency>
+
+        <!--ЛОГИРОВАНИЕ-->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
+            <version>${logging.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j-impl</artifactId>
+            <version>${logging.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-        </dependency>
+
+        <!--АССЕРТЫ-->
         <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest</artifactId>
+            <version>${hamcrest.version}</version>
+        </dependency>
+
+        <!--КОДОГЕНЕРАЦИЯ-->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+        </dependency>
+
+        <!--УТИЛИТЫ-->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${commons-lang3.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy</artifactId>
+            <version>${groovy.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-        </dependency>
-        <!-- JACKSON: нужен log4j-core для jackson-десериализаторов -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-        </dependency>
-        <!-- JNA: требуется ByteBuddy ClassInjector$UsingJna* -->
-        <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
+            <version>${gson.version}</version>
         </dependency>
     </dependencies>
 

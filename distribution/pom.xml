@@ -7,12 +7,16 @@
     <parent>
         <groupId>ru</groupId>
         <artifactId>at-library</artifactId>
-        <version>13.02.2026</version>
+        <version>24.02.2026</version>
     </parent>
 
     <groupId>ru</groupId>
     <artifactId>distribution</artifactId>
     <name>distribution</name>
+
+    <properties>
+        <maven-shade-plugin.version>3.4.1</maven-shade-plugin.version>
+    </properties>
 
     <dependencies>
         <dependency>

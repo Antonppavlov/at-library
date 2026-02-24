@@ -5,109 +5,88 @@
     <parent>
         <artifactId>at-library</artifactId>
         <groupId>ru</groupId>
-        <version>13.02.2026</version>
+        <version>24.02.2026</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>at-library-api</artifactId>
 
     <properties>
+        <!--ОБЩИЕ-->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>21</java.version>
         <skip.assembly>false</skip.assembly>
+        <!--ОТЧЁТНОСТЬ-->
+        <allure.version>2.29.1</allure.version>
+        <!--КОДОГЕНЕРАЦИЯ-->
+        <lombok.version>1.18.40</lombok.version>
+        <!--REST API ТЕСТИРОВАНИЕ-->
+        <rest-assured.version>5.5.0</rest-assured.version>
+        <!--JSON / СЕРИАЛИЗАЦИЯ-->
+        <jackson.version>2.18.0</jackson.version>
+        <jsonpath.version>2.9.0</jsonpath.version>
+        <json-smart.version>2.5.0</json-smart.version>
     </properties>
 
     <dependencies>
+        <!--МОДУЛИ ПРОЕКТА-->
         <dependency>
             <groupId>ru</groupId>
             <artifactId>at-library-core</artifactId>
             <version>${project.version}</version>
-            <scope>compile</scope>
         </dependency>
 
-        <!-- API ТЕСТИРОВАНИЕ (RestAssured) -->
+        <!--REST API ТЕСТИРОВАНИЕ-->
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
+            <version>${rest-assured.version}</version>
         </dependency>
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>json-schema-validator</artifactId>
+            <version>${rest-assured.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.mashape.unirest</groupId>
-            <artifactId>unirest-java</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.jcraft</groupId>
-            <artifactId>jsch</artifactId>
-        </dependency>
+
+        <!--JSON / СЕРИАЛИЗАЦИЯ-->
         <dependency>
             <groupId>com.jayway.jsonpath</groupId>
             <artifactId>json-path</artifactId>
+            <version>${jsonpath.version}</version>
         </dependency>
-        <!-- JSON-SMART (используется напрямую в JsonVerificationSteps / FormattedDataContainer) -->
         <dependency>
             <groupId>net.minidev</groupId>
             <artifactId>json-smart</artifactId>
+            <version>${json-smart.version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.qameta.allure</groupId>
-            <artifactId>allure-rest-assured</artifactId>
-        </dependency>
-        <!--JACKSON-->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.version}</version>
         </dependency>
 
-        <!-- Общие зависимости, реально используемые в api -->
-        <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjrt</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-java</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.cucumber</groupId>
-            <artifactId>cucumber-testng</artifactId>
-        </dependency>
+        <!--ОТЧЁТНОСТЬ-->
         <dependency>
             <groupId>io.qameta.allure</groupId>
-            <artifactId>allure-cucumber7-jvm</artifactId>
+            <artifactId>allure-rest-assured</artifactId>
+            <version>${allure.version}</version>
         </dependency>
+
+        <!--КОДОГЕНЕРАЦИЯ-->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-slf4j-impl</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest</artifactId>
+            <version>${lombok.version}</version>
         </dependency>
     </dependencies>
 
