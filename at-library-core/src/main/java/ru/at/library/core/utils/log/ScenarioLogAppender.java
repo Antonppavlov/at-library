@@ -18,6 +18,7 @@ import org.apache.logging.log4j.core.config.plugins.PluginFactory;
 import org.apache.logging.log4j.core.layout.PatternLayout;
 
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Log4j2 плагин-аппендер, собирающий логи текущего потока в буфер.
@@ -81,6 +82,7 @@ public class ScenarioLogAppender extends AbstractAppender {
         }
         if (layout == null) {
             layout = PatternLayout.newBuilder()
+                    .withCharset(StandardCharsets.UTF_8)
                     .withPattern("%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p [%t] %c{1} - %m%n")
                     .build();
         }
@@ -115,6 +117,7 @@ public class ScenarioLogAppender extends AbstractAppender {
 
                 Layout<? extends Serializable> layout = PatternLayout.newBuilder()
                         .withConfiguration(config)
+                        .withCharset(StandardCharsets.UTF_8)
                         .withPattern("%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p [%t] %c{1} - %m%n")
                         .build();
 
