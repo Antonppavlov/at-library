@@ -2,37 +2,57 @@ package ru.at.library.core.utils.log;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.Appender;
-import org.apache.logging.log4j.core.appender.AppenderLoggingException;
+import org.apache.logging.log4j.core.Core;
 import org.apache.logging.log4j.core.Filter;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.appender.AppenderLoggingException;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.plugins.Plugin;
+import org.apache.logging.log4j.core.config.plugins.PluginAttribute;
+import org.apache.logging.log4j.core.config.plugins.PluginElement;
+import org.apache.logging.log4j.core.config.plugins.PluginFactory;
 import org.apache.logging.log4j.core.layout.PatternLayout;
 
 import java.io.Serializable;
-import java.util.Map;
 
 /**
- * Дополнительный аппендер Log4j2, который собирает логи текущего потока
- * в буфер. Буфер инициализируется в начале сценария и считывается в конце
- * для прикладывания в Allure.
+ * Log4j2 плагин-аппендер, собирающий логи текущего потока в буфер.
+ * Буфер инициализируется в начале сценария и считывается в конце
+ * для прикладывания в Allure и записи в отдельный файл.
+ * <p>
+ * <b>Рекомендуемый способ подключения</b> — через log4j2.xml потребителя:
+ * <pre>{@code
+ * <Configuration packages="ru.at.library.core.utils.log">
+ *   <Appenders>
+ *     <ScenarioLog name="ScenarioLogAppender">
+ *       <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p [%t] %c{1} - %m%n"/>
+ *     </ScenarioLog>
+ *   </Appenders>
+ *   <Loggers>
+ *     <Root level="INFO">
+ *       <AppenderRef ref="ScenarioLogAppender" level="TRACE"/>
+ *     </Root>
+ *   </Loggers>
+ * </Configuration>
+ * }</pre>
+ * <p>
+ * Если аппендер не сконфигурирован в XML, {@link #installIfNeeded()} выполнит
+ * программную инициализацию (фолбэк с ограниченной функциональностью).
  */
+@Plugin(name = "ScenarioLog", category = Core.CATEGORY_NAME,
+        elementType = "appender", printObject = true)
 public class ScenarioLogAppender extends AbstractAppender {
 
     private static final Logger LOG = LogManager.getLogger(ScenarioLogAppender.class);
 
-    /**
-     * Буфер логов для текущего потока выполнения (один поток = один сценарий).
-     */
+    /** Буфер логов для текущего потока выполнения (один поток = один сценарий). */
     private static final ThreadLocal<StringBuilder> SCENARIO_LOG = new ThreadLocal<>();
 
-    /**
-     * Счетчик событий для диагностики.
-     */
+    /** Счетчик событий для диагностики. */
     private static final ThreadLocal<Integer> EVENT_COUNT = new ThreadLocal<>();
 
     private static volatile ScenarioLogAppender INSTANCE;
@@ -44,9 +64,42 @@ public class ScenarioLogAppender extends AbstractAppender {
         super(name, filter, layout, ignoreExceptions);
     }
 
+    // ── Фабрика для XML-конфигурации ──────────────────────────────────
+
     /**
-     * Инициализация и подключение аппендера ко всем логгерам приложения.
-     * Вызывается один раз при первом обращении к CoreInitialSetup.
+     * Создаёт экземпляр аппендера из XML-конфигурации log4j2.
+     */
+    @PluginFactory
+    public static ScenarioLogAppender createAppender(
+            @PluginAttribute("name") String name,
+            @PluginElement("Layout") Layout<? extends Serializable> layout,
+            @PluginElement("Filter") Filter filter) {
+
+        if (name == null) {
+            LOG.error("Не указано имя для ScenarioLogAppender");
+            return null;
+        }
+        if (layout == null) {
+            layout = PatternLayout.newBuilder()
+                    .withPattern("%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p [%t] %c{1} - %m%n")
+                    .build();
+        }
+
+        ScenarioLogAppender appender = new ScenarioLogAppender(name, filter, layout, true);
+        INSTANCE = appender;
+        LOG.info("ScenarioLogAppender создан через XML-конфигурацию (имя: {})", name);
+        return appender;
+    }
+
+    // ── Программная инициализация (фолбэк) ───────────────────────────
+
+    /**
+     * Программная инициализация — используется только если аппендер
+     * НЕ сконфигурирован в log4j2.xml потребителя.
+     * <p>
+     * ОГРАНИЧЕНИЕ: программный {@code addAppender()} может не перехватывать
+     * события, пришедшие через additivity от дочерних LoggerConfig'ов.
+     * Для полного сбора логов используйте конфигурацию через XML.
      */
     public static void installIfNeeded() {
         if (INSTANCE != null) {
@@ -66,31 +119,32 @@ public class ScenarioLogAppender extends AbstractAppender {
                         .build();
 
                 ScenarioLogAppender appender = new ScenarioLogAppender(
-                        "ScenarioLogAppender",
-                        null,
-                        layout,
-                        true
+                        "ScenarioLogAppender", null, layout, true
                 );
                 appender.start();
-
                 config.addAppender(appender);
 
-                // Подключаемся ТОЛЬКО к root-логгеру.
-                // Все дочерние логгеры с additivity=true автоматически унаследуют этот аппендер.
+                // Подключаемся к root и ко всем именованным LoggerConfig'ам
                 config.getRootLogger().addAppender(appender, org.apache.logging.log4j.Level.TRACE, null);
+                for (LoggerConfig loggerConfig : config.getLoggers().values()) {
+                    loggerConfig.addAppender(appender, org.apache.logging.log4j.Level.TRACE, null);
+                }
 
                 ctx.updateLoggers();
                 INSTANCE = appender;
-                LOG.debug("ScenarioLogAppender успешно инициализирован и подключен к root-логгеру");
+                LOG.warn("ScenarioLogAppender инициализирован ПРОГРАММНО (фолбэк). "
+                        + "Для полного сбора логов добавьте ScenarioLog в log4j2.xml "
+                        + "(packages=\"ru.at.library.core.utils.log\")");
             } catch (Exception e) {
-                // Не должны ломать запуск тестов, если что-то пошло не так
                 LOG.error("Не удалось инициализировать ScenarioLogAppender", e);
             }
         }
     }
 
+    // ── API для управления сбором логов ───────────────────────────────
+
     /**
-     * Вызывается в начале сценария – очищает и инициализирует буфер логов.
+     * Вызывается в начале сценария — очищает и инициализирует буфер логов.
      */
     public static void startScenarioLogging() {
         SCENARIO_LOG.set(new StringBuilder());
@@ -105,7 +159,8 @@ public class ScenarioLogAppender extends AbstractAppender {
         StringBuilder sb = SCENARIO_LOG.get();
         Integer eventCount = EVENT_COUNT.get();
         if (sb == null) {
-            LOG.warn("ScenarioLogAppender: буфер логов отсутствует для потока {}", Thread.currentThread().getName());
+            LOG.warn("ScenarioLogAppender: буфер логов отсутствует для потока {}",
+                    Thread.currentThread().getName());
             return null;
         }
         String result = sb.toString();
@@ -113,25 +168,26 @@ public class ScenarioLogAppender extends AbstractAppender {
         int events = eventCount != null ? eventCount : 0;
         SCENARIO_LOG.remove();
         EVENT_COUNT.remove();
-        LOG.debug("ScenarioLogAppender: собрано {} символов логов ({} событий) для потока {}", logLength, events, Thread.currentThread().getName());
+        LOG.debug("ScenarioLogAppender: собрано {} символов логов ({} событий) для потока {}",
+                logLength, events, Thread.currentThread().getName());
         return result;
     }
+
+    // ── Основной метод аппендера ──────────────────────────────────────
 
     @Override
     public void append(LogEvent event) {
         StringBuilder sb = SCENARIO_LOG.get();
         if (sb == null) {
-            return; // логгирование вне контекста сценария – пропускаем
+            return; // логгирование вне контекста сценария — пропускаем
         }
         try {
-            // Инкрементируем счетчик событий
             Integer count = EVENT_COUNT.get();
             EVENT_COUNT.set(count != null ? count + 1 : 1);
 
             Layout<? extends Serializable> layout = getLayout();
             if (layout != null) {
-                Serializable serializable = layout.toSerializable(event);
-                sb.append(serializable);
+                sb.append(layout.toSerializable(event));
             } else {
                 sb.append(event.getMessage().getFormattedMessage()).append("\n");
             }
