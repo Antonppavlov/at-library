@@ -60,21 +60,40 @@
                 <artifactId>maven-dependency-plugin</artifactId>
                 <version>3.6.1</version>
                 <executions>
+                    <!-- Копируем fat JAR-ы модулей (со всеми зависимостями) -->
                     <execution>
-                        <id>copy-module-jars</id>
-                        <phase>install</phase>
+                        <id>copy-module-fat-jars</id>
+                        <phase>package</phase>
                         <goals>
-                            <goal>copy-dependencies</goal>
+                            <goal>copy</goal>
                         </goals>
                         <configuration>
-                            <!-- Копируем только наши модульные JAR'ы -->
-                            <includeGroupIds>ru</includeGroupIds>
-                            <includeArtifactIds>at-library-core,at-library-web,at-library-api</includeArtifactIds>
-                            <includeTypes>jar</includeTypes>
-                            <includeScope>compile</includeScope>
-                            <!-- Складываем прямо в distribution/target -->
-                            <outputDirectory>${project.build.directory}</outputDirectory>
-                            <overWriteReleases>false</overWriteReleases>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>ru</groupId>
+                                    <artifactId>at-library-core</artifactId>
+                                    <version>${project.version}</version>
+                                    <classifier>all</classifier>
+                                    <outputDirectory>${project.build.directory}</outputDirectory>
+                                    <destFileName>at-library-core-${project.version}.jar</destFileName>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>ru</groupId>
+                                    <artifactId>at-library-web</artifactId>
+                                    <version>${project.version}</version>
+                                    <classifier>all</classifier>
+                                    <outputDirectory>${project.build.directory}</outputDirectory>
+                                    <destFileName>at-library-web-${project.version}.jar</destFileName>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>ru</groupId>
+                                    <artifactId>at-library-api</artifactId>
+                                    <version>${project.version}</version>
+                                    <classifier>all</classifier>
+                                    <outputDirectory>${project.build.directory}</outputDirectory>
+                                    <destFileName>at-library-api-${project.version}.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
                         </configuration>
                     </execution>
                 </executions>
