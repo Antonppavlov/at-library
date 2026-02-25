@@ -82,6 +82,18 @@ public class CoreInitialSetup {
     private static final ConcurrentHashMap<String, ScenarioRunInfo> runningScenarios = new ConcurrentHashMap<>();
 
     /**
+     * Счётчик запусков каждого сценария: scenarioId -> количество запусков.
+     * Если значение > 1, значит сценарий перезапускался (retry).
+     */
+    private static final ConcurrentHashMap<String, AtomicInteger> scenarioRunCounts = new ConcurrentHashMap<>();
+
+    /**
+     * Оригинальный порядковый номер сценария (присвоенный при первом запуске).
+     * При retry повторно используется тот же номер, чтобы не превышать totalScenarios.
+     */
+    private static final ConcurrentHashMap<String, Integer> scenarioOriginalNumbers = new ConcurrentHashMap<>();
+
+    /**
      * Флаг, что watchdog-поток уже запущен.
      */
     private static final AtomicInteger watchdogStarted = new AtomicInteger(0);
@@ -149,20 +161,38 @@ public class CoreInitialSetup {
         // Запускаем накопление логов для текущего сценария
         ScenarioLogAppender.startScenarioLogging();
 
-        int testNumber = scenarioNumber.getAndIncrement();
         int total = totalScenarios;
         String scenarioId = getScenarioId(scenario);
 
+        // Считаем, какой это запуск данного сценария (1 = первый, 2 = первый retry и т.д.)
+        int runNumber = scenarioRunCounts
+                .computeIfAbsent(scenarioId, k -> new AtomicInteger(0))
+                .incrementAndGet();
+
+        // При первом запуске присваиваем новый номер, при retry — используем оригинальный
+        int testNumber;
+        if (runNumber == 1) {
+            testNumber = scenarioNumber.getAndIncrement();
+            scenarioOriginalNumbers.put(scenarioId, testNumber);
+        } else {
+            testNumber = scenarioOriginalNumbers.getOrDefault(scenarioId, -1);
+        }
+
         // запоминаем время старта, имя и порядковый номер запуска для последующего расчёта длительности и мониторинга
         runningScenarios.put(scenarioId, new ScenarioRunInfo(scenario.getName(), System.currentTimeMillis(), testNumber));
+
+        String retryInfo = runNumber > 1
+                ? String.format("\n🔄 ПЕРЕЗАПУСК #%d", runNumber - 1)
+                : "";
 
         log.info(String.format(
                 "\n++++++++++++\n" +
                 "Запущен сценарий: %d/%d\n" +
                 "Имя: [%s]\n" +
-                "id: %s\n" +
+                "id: %s" +
+                "%s\n" +
                 "++++++++++++",
-                testNumber, total, scenario.getName(), scenarioId
+                testNumber, total, scenario.getName(), scenarioId, retryInfo
         ));
 
         coreScenario.setEnvironment(new CoreEnvironment(scenario));
@@ -200,15 +230,22 @@ public class CoreInitialSetup {
         String statusEmoji = scenario.isFailed() ? "❌" : "✅";
         String statusRu = scenario.isFailed() ? "ПРОВАЛЕН" : "УСПЕШНО";
 
+        // Информация о retry
+        AtomicInteger counter = scenarioRunCounts.get(scenarioId);
+        int runNumber = counter != null ? counter.get() : 1;
+        String retryInfo = runNumber > 1
+                ? String.format("\n🔄 ПЕРЕЗАПУСК #%d", runNumber - 1)
+                : "";
+
         if (total > 0 && sequenceNumber > 0) {
             log.info(String.format(
-                    "\n++++++++++++\nЗавершён сценарий: %d/%d\nИмя: [%s]\nid: %s\nСтатус: %s %s (%s)\nДлительность: %s\nСейчас выполняется сценариев: %d\n++++++++++++",
-                    sequenceNumber, total, scenario.getName(), scenarioId, statusEmoji, statusRu, status, durationInfo, runningNow
+                    "\n++++++++++++\nЗавершён сценарий: %d/%d\nИмя: [%s]\nid: %s\nСтатус: %s %s (%s)\nДлительность: %s%s\nСейчас выполняется сценариев: %d\n++++++++++++",
+                    sequenceNumber, total, scenario.getName(), scenarioId, statusEmoji, statusRu, status, durationInfo, retryInfo, runningNow
             ));
         } else {
             log.info(String.format(
-                    "\n++++++++++++\nЗавершён сценарий\nИмя: [%s]\nid: %s\nСтатус: %s %s (%s)\nДлительность: %s\nСейчас выполняется сценариев: %d\n++++++++++++",
-                    scenario.getName(), scenarioId, statusEmoji, statusRu, status, durationInfo, runningNow
+                    "\n++++++++++++\nЗавершён сценарий\nИмя: [%s]\nid: %s\nСтатус: %s %s (%s)\nДлительность: %s%s\nСейчас выполняется сценариев: %d\n++++++++++++",
+                    scenario.getName(), scenarioId, statusEmoji, statusRu, status, durationInfo, retryInfo, runningNow
             ));
         }
 
