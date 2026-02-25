@@ -1,8 +1,8 @@
 package ru.at.library.core.utils.log;
 
 import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.Core;
+import org.apache.logging.log4j.status.StatusLogger;
 import org.apache.logging.log4j.core.Filter;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LogEvent;
@@ -48,13 +48,14 @@ import java.nio.charset.StandardCharsets;
         elementType = "appender", printObject = true)
 public class ScenarioLogAppender extends AbstractAppender {
 
-    private static final Logger LOG = LogManager.getLogger(ScenarioLogAppender.class);
+    /**
+     * StatusLogger — внутренний логгер Log4j, доступный даже во время инициализации конфигурации.
+     * Используется в {@link #createAppender} (фабрике, вызываемой до завершения init Log4j).
+     */
+    private static final StatusLogger STATUS_LOG = StatusLogger.getLogger();
 
     /** Буфер логов для текущего потока выполнения (один поток = один сценарий). */
     private static final ThreadLocal<StringBuilder> SCENARIO_LOG = new ThreadLocal<>();
-
-    /** Счетчик событий для диагностики. */
-    private static final ThreadLocal<Integer> EVENT_COUNT = new ThreadLocal<>();
 
     private static volatile ScenarioLogAppender INSTANCE;
 
@@ -77,7 +78,7 @@ public class ScenarioLogAppender extends AbstractAppender {
             @PluginElement("Filter") Filter filter) {
 
         if (name == null) {
-            LOG.error("Не указано имя для ScenarioLogAppender");
+            STATUS_LOG.error("Не указано имя для ScenarioLogAppender");
             return null;
         }
         if (layout == null) {
@@ -89,7 +90,6 @@ public class ScenarioLogAppender extends AbstractAppender {
 
         ScenarioLogAppender appender = new ScenarioLogAppender(name, filter, layout, true);
         INSTANCE = appender;
-        LOG.info("ScenarioLogAppender создан через XML-конфигурацию (имя: {})", name);
         return appender;
     }
 
@@ -135,11 +135,8 @@ public class ScenarioLogAppender extends AbstractAppender {
 
                 ctx.updateLoggers();
                 INSTANCE = appender;
-                LOG.warn("ScenarioLogAppender инициализирован ПРОГРАММНО (фолбэк). "
-                        + "Для полного сбора логов добавьте ScenarioLog в log4j2.xml "
-                        + "(packages=\"ru.at.library.core.utils.log\")");
             } catch (Exception e) {
-                LOG.error("Не удалось инициализировать ScenarioLogAppender", e);
+                STATUS_LOG.error("Не удалось инициализировать ScenarioLogAppender", e);
             }
         }
     }
@@ -151,8 +148,6 @@ public class ScenarioLogAppender extends AbstractAppender {
      */
     public static void startScenarioLogging() {
         SCENARIO_LOG.set(new StringBuilder());
-        EVENT_COUNT.set(0);
-        LOG.debug("ScenarioLogAppender: начат сбор логов для потока {}", Thread.currentThread().getName());
     }
 
     /**
@@ -160,19 +155,11 @@ public class ScenarioLogAppender extends AbstractAppender {
      */
     public static String getAndClearScenarioLog() {
         StringBuilder sb = SCENARIO_LOG.get();
-        Integer eventCount = EVENT_COUNT.get();
         if (sb == null) {
-            LOG.warn("ScenarioLogAppender: буфер логов отсутствует для потока {}",
-                    Thread.currentThread().getName());
             return null;
         }
         String result = sb.toString();
-        int logLength = result.length();
-        int events = eventCount != null ? eventCount : 0;
         SCENARIO_LOG.remove();
-        EVENT_COUNT.remove();
-        LOG.debug("ScenarioLogAppender: собрано {} символов логов ({} событий) для потока {}",
-                logLength, events, Thread.currentThread().getName());
         return result;
     }
 
@@ -185,9 +172,6 @@ public class ScenarioLogAppender extends AbstractAppender {
             return; // логгирование вне контекста сценария — пропускаем
         }
         try {
-            Integer count = EVENT_COUNT.get();
-            EVENT_COUNT.set(count != null ? count + 1 : 1);
-
             Layout<? extends Serializable> layout = getLayout();
             if (layout != null) {
                 sb.append(layout.toSerializable(event));

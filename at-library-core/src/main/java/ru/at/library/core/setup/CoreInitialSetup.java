@@ -82,13 +82,14 @@ public class CoreInitialSetup {
     private static final ConcurrentHashMap<String, ScenarioRunInfo> runningScenarios = new ConcurrentHashMap<>();
 
     /**
-     * Счётчик запусков каждого сценария: scenarioId -> количество запусков.
+     * Счётчик запусков каждого сценария: stableKey -> количество запусков.
+     * Ключ — {@code uri:line} (одинаков при retry, в отличие от {@code scenario.getId()}).
      * Если значение > 1, значит сценарий перезапускался (retry).
      */
     private static final ConcurrentHashMap<String, AtomicInteger> scenarioRunCounts = new ConcurrentHashMap<>();
 
     /**
-     * Оригинальный порядковый номер сценария (присвоенный при первом запуске).
+     * Оригинальный порядковый номер сценария (присвоенный при первом запуске): stableKey -> номер.
      * При retry повторно используется тот же номер, чтобы не превышать totalScenarios.
      */
     private static final ConcurrentHashMap<String, Integer> scenarioOriginalNumbers = new ConcurrentHashMap<>();
@@ -163,19 +164,20 @@ public class CoreInitialSetup {
 
         int total = totalScenarios;
         String scenarioId = getScenarioId(scenario);
+        String stableKey = getStableScenarioKey(scenario);
 
         // Считаем, какой это запуск данного сценария (1 = первый, 2 = первый retry и т.д.)
         int runNumber = scenarioRunCounts
-                .computeIfAbsent(scenarioId, k -> new AtomicInteger(0))
+                .computeIfAbsent(stableKey, k -> new AtomicInteger(0))
                 .incrementAndGet();
 
         // При первом запуске присваиваем новый номер, при retry — используем оригинальный
         int testNumber;
         if (runNumber == 1) {
             testNumber = scenarioNumber.getAndIncrement();
-            scenarioOriginalNumbers.put(scenarioId, testNumber);
+            scenarioOriginalNumbers.put(stableKey, testNumber);
         } else {
-            testNumber = scenarioOriginalNumbers.getOrDefault(scenarioId, -1);
+            testNumber = scenarioOriginalNumbers.getOrDefault(stableKey, -1);
         }
 
         // запоминаем время старта, имя и порядковый номер запуска для последующего расчёта длительности и мониторинга
@@ -231,7 +233,8 @@ public class CoreInitialSetup {
         String statusRu = scenario.isFailed() ? "ПРОВАЛЕН" : "УСПЕШНО";
 
         // Информация о retry
-        AtomicInteger counter = scenarioRunCounts.get(scenarioId);
+        String stableKey = getStableScenarioKey(scenario);
+        AtomicInteger counter = scenarioRunCounts.get(stableKey);
         int runNumber = counter != null ? counter.get() : 1;
         String retryInfo = runNumber > 1
                 ? String.format("\n🔄 ПЕРЕЗАПУСК #%d", runNumber - 1)
@@ -252,23 +255,9 @@ public class CoreInitialSetup {
         // Получаем накопленный лог сценария
         String scenarioLog = ScenarioLogAppender.getAndClearScenarioLog();
 
-        // Диагностика для отладки
-        if (scenarioLog == null) {
-            log.warn("scenarioLog is NULL для сценария: {}", scenario.getName());
-        } else if (scenarioLog.isEmpty()) {
-            log.warn("scenarioLog ПУСТОЙ для сценария: {}", scenario.getName());
-        } else {
-            log.debug("scenarioLog содержит {} символов для сценария: {}", scenarioLog.length(), scenario.getName());
-        }
-
-        // Пишем лог сценария в отдельный файл
         if (scenarioLog != null && !scenarioLog.isEmpty()) {
             writeScenarioLogToFile(scenario, sequenceNumber, scenarioLog);
-            // Прикладываем к Allure
             Allure.addAttachment("Лог сценария: " + scenario.getName(), "text/plain", scenarioLog);
-            log.debug("Лог прикреплен к Allure для сценария: {}", scenario.getName());
-        } else {
-            log.warn("Лог НЕ прикреплен к Allure (пустой или null) для сценария: {}", scenario.getName());
         }
 
     }
@@ -305,12 +294,22 @@ public class CoreInitialSetup {
     }
 
     /**
-     * Возвращает сокращенный ID сценария
+     * Возвращает сокращенный ID сценария (уникальный для каждого запуска, меняется при retry).
      *
      * @return ID сценария в формате feature_file.feature:ID
      */
     public static String getScenarioId(Scenario scenario) {
         String fullID = scenario.getId();
         return fullID.substring(fullID.lastIndexOf('/') + 1).replace(':', '_');
+    }
+
+    /**
+     * Возвращает стабильный ключ сценария (одинаковый при retry).
+     * Основан на URI feature-файла и номере строки сценария.
+     */
+    private static String getStableScenarioKey(Scenario scenario) {
+        String uri = scenario.getUri().toString();
+        String fileName = uri.substring(uri.lastIndexOf('/') + 1);
+        return fileName + ":" + scenario.getLine();
     }
 }
