@@ -115,6 +115,17 @@ public abstract class CorePage {
                         Class<?> fieldType = fieldCheckedType.getType();
                         if (CorePage.class.isAssignableFrom(fieldType)) {
                             obj = com.codeborne.selenide.Selenide.page((Class<? extends CorePage>) fieldType);
+                            // Если у поля-блока есть @FindBy — устанавливаем self блока,
+                            // чтобы элементы внутри него искались относительно корня блока.
+                            FindBy blockFindBy = fieldCheckedType.getAnnotation(FindBy.class);
+                            if (blockFindBy != null) {
+                                CorePage block = (CorePage) obj;
+                                if (!blockFindBy.css().isEmpty()) {
+                                    block.setSelf(getSelf().$(blockFindBy.css()));
+                                } else if (!blockFindBy.xpath().isEmpty()) {
+                                    block.setSelf(getSelf().$x(blockFindBy.xpath()));
+                                }
+                            }
                         } else if (List.class.isAssignableFrom(fieldType)
                                 && fieldCheckedType.getGenericType() instanceof ParameterizedType) {
                             ParameterizedType listType = (ParameterizedType) fieldCheckedType.getGenericType();
