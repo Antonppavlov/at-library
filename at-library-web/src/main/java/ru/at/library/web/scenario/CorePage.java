@@ -56,8 +56,10 @@ public abstract class CorePage {
      * работали от корня. Для вложенных блоков корень задаётся явно через {@link #setSelf(SelenideElement)} (например,
      * {@code <tr>} таблицы), и относительные xpath/css‑локаторы полей блока вычисляются относительно этого элемента.
      * </p>
+     * <p><b>Тип поля намеренно {@code Object}</b>, а не {@code SelenideElement}, чтобы {@code Selenide.page()} /
+     * {@code PageFactory.initElements()} не перезаписывал его прокси {@code {by id or name "self"}}.</p>
      */
-    private SelenideElement self;
+    private Object self;
 
 /**
      * Признак того, что {@link #self} был установлен программно через {@link #setSelf(SelenideElement)}.
@@ -374,7 +376,7 @@ public abstract class CorePage {
      * что позволяет корректно обрабатывать относительные локаторы вида ".//td[4]".
      */
     private SelenideElement initElementWithinSelf(FindBy findBy) {
-        if (!hasCustomSelf || self == null) {
+        if (!hasCustomSelf || !(self instanceof SelenideElement)) {
             throw new IllegalStateException("Невозможно инициализировать элемент относительно self: self не был явно задан через setSelf");
         }
         if (!findBy.css().isEmpty()) {
@@ -391,7 +393,7 @@ public abstract class CorePage {
      * Объединяем xpath в одно выражение через оператор | и ищем относительно self.
      */
     private SelenideElement initElementWithinSelf(FindAll findAll) {
-        if (!hasCustomSelf || self == null) {
+        if (!hasCustomSelf || !(self instanceof SelenideElement)) {
             throw new IllegalStateException("Невозможно инициализировать элемент относительно self: self не был явно задан через setSelf");
         }
         // Поддерживаем только xpath-локаторы. Если задан css, берём первый css как есть.
@@ -420,7 +422,7 @@ public abstract class CorePage {
      * Инициализация коллекции элементов внутри блока (self) по аннотации @FindBy.
      */
     private ElementsCollection initElementsCollectionWithinSelf(FindBy findBy) {
-        if (!hasCustomSelf || self == null) {
+        if (!hasCustomSelf || !(self instanceof SelenideElement)) {
             throw new IllegalStateException("Невозможно инициализировать ElementsCollection относительно self: self не был явно задан через setSelf");
         }
         if (!findBy.css().isEmpty()) {
@@ -559,7 +561,7 @@ public abstract class CorePage {
      * Если явно не задано (self == null), используется весь документ (html).
      */
     public SelenideElement getSelf() {
-        return self != null ? self : Selenide.$("html");
+        return self instanceof SelenideElement ? (SelenideElement) self : Selenide.$("html");
     }
 
     /**
