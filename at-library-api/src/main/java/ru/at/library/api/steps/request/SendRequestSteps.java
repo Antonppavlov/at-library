@@ -59,60 +59,40 @@ public class SendRequestSteps {
     // =======================================================================
 
     /**
-     * Отправка HTTP-запроса без таблицы параметров. Ответ сохраняется в переменную.
-     * Пример:
-     *  И отправлен HTTP GET запрос на URL "https://example.com" и ответ сохранён в переменную "response"
+     * Отправка HTTP-запроса без таблицы параметров. Опционально проверяет код ответа.
+     * Примеры:
+     *  И отправлен HTTP GET на "url.store.inventory" ответ сохранен в "response"
+     *  И отправлен HTTP GET на "url.store.inventory" код ответа 200 ответ сохранен в "response"
      */
-    @И("^отправлен HTTP " + HTTP_METHOD_PATTERN + " запрос на URL \"([^\"]+)\" и ответ сохранён в переменную \"([^\"]+)\"$")
-    public void sendHttpRequestAndSave(String method,
-                                       String address,
-                                       String responseVar) {
-        Response response = sendRequest(method, address, null);
+    @И("^отправлен HTTP " + HTTP_METHOD_PATTERN + " на \"([^\"]+)\"(?: код ответа (\\d+))? ответ сохранен в \"([^\"]+)\"$")
+    public void httpRequest(String method,
+                            String address,
+                            Integer expectedStatus,
+                            String responseVar) {
+        Response response = (expectedStatus != null)
+                ? sendWithRetries(method, address, null, expectedStatus)
+                : sendRequest(method, address, null);
         saveResponse(responseVar, response);
     }
 
     /**
-     * Отправка HTTP-запроса с таблицей параметров (HEADER, PARAMETER, BODY, FILE и т.п.). Ответ сохраняется в переменную.
-     * Пример:
-     *  И отправлен HTTP GET запрос на URL "https://example.com" с параметрами запроса и ответ сохранён в переменную "response"
-     *    | HEADER    | Accept       | application/json |
-     *    | PARAMETER | status       | available        |
+     * Отправка HTTP-запроса с таблицей параметров. Опционально проверяет код ответа.
+     * Примеры:
+     *  И отправлен HTTP GET на "url.pet.findByStatus" ответ сохранен в "pets":
+     *    | PARAMETER | status | available |
+     *  И отправлен HTTP GET на "url.pet.findByStatus" код ответа 200 ответ сохранен в "pets":
+     *    | HEADER    | Accept | application/json |
+     *    | PARAMETER | status | available        |
      */
-    @И("^отправлен HTTP " + HTTP_METHOD_PATTERN + " запрос на URL \"([^\"]+)\" с параметрами запроса и ответ сохранён в переменную \"([^\"]+)\"$")
-    public void sendHttpRequestWithParamsAndSave(String method,
-                                                 String address,
-                                                 String responseVar,
-                                                 DataTable paramsTable) {
-        Response response = sendRequest(method, address, paramsTable);
-        saveResponse(responseVar, response);
-    }
-
-    /**
-     * Отправка HTTP-запроса без таблицы параметров с ожиданием кода ответа и сохранением ответа.
-     * Пример:
-     *  И отправлен HTTP GET запрос на URL "https://example.com" и ожидается код ответа 200, а ответ сохранён в переменную "response"
-     */
-    @И("^отправлен HTTP " + HTTP_METHOD_PATTERN + " запрос на URL \"([^\"]+)\" и ожидается код ответа (\\d+), а ответ сохранён в переменную \"([^\"]+)\"$")
-    public void sendHttpRequestExpectStatusAndSave(String method,
-                                                   String address,
-                                                   int expectedStatus,
-                                                   String responseVar) {
-        Response response = sendWithRetries(method, address, null, expectedStatus);
-        saveResponse(responseVar, response);
-    }
-
-    /**
-     * Отправка HTTP-запроса с таблицей параметров, ожиданием кода ответа и сохранением ответа.
-     * Пример:
-     *  И отправлен HTTP GET запрос на URL "https://example.com" с параметрами запроса и ожидается код ответа 200, а ответ сохранён в переменную "response"
-     */
-    @И("^отправлен HTTP " + HTTP_METHOD_PATTERN + " запрос на URL \"([^\"]+)\" с параметрами запроса и ожидается код ответа (\\d+), а ответ сохранён в переменную \"([^\"]+)\"$")
-    public void sendHttpRequestWithParamsExpectStatusAndSave(String method,
-                                                             String address,
-                                                             int expectedStatus,
-                                                             String responseVar,
-                                                             DataTable paramsTable) {
-        Response response = sendWithRetries(method, address, paramsTable, expectedStatus);
+    @И("^отправлен HTTP " + HTTP_METHOD_PATTERN + " на \"([^\"]+)\"(?: код ответа (\\d+))? ответ сохранен в \"([^\"]+)\":$")
+    public void httpRequestWithParams(String method,
+                                      String address,
+                                      Integer expectedStatus,
+                                      String responseVar,
+                                      DataTable paramsTable) {
+        Response response = (expectedStatus != null)
+                ? sendWithRetries(method, address, paramsTable, expectedStatus)
+                : sendRequest(method, address, paramsTable);
         saveResponse(responseVar, response);
     }
 
@@ -121,48 +101,41 @@ public class SendRequestSteps {
     // =======================================================================
 
     /**
-     * Периодическая отправка HTTP-запроса без таблицы параметров до получения нужного кода ответа или истечения таймаута.
+     * Периодическая отправка HTTP-запроса без таблицы параметров.
      * Пример:
-     *  И в течение 30 секунд каждые 5 секунд отправляется HTTP GET запрос на URL "https://example.com" и ожидается код ответа 200, а ответ сохранён в переменную "response"
+     *  И каждые 2с/10с отправлен HTTP GET на "url.store.inventory" код ответа 200 ответ сохранен в "response"
      */
-    @И("^в течение (\\d+) секунд каждые (\\d+) секунд отправляется HTTP " + HTTP_METHOD_PATTERN + " запрос на URL \"([^\"]+)\" и ожидается код ответа (\\d+), а ответ сохранён в переменную \"([^\"]+)\"$")
-    public void pollHttpRequestAndSave(int timeoutSec,
-                                       int periodSec,
-                                       String method,
-                                       String address,
-                                       int expectedStatus,
-                                       String responseVar) {
+    @И("^каждые (\\d+)с/(\\d+)с отправлен HTTP " + HTTP_METHOD_PATTERN + " на \"([^\"]+)\" код ответа (\\d+) ответ сохранен в \"([^\"]+)\"$")
+    public void pollRequest(int periodSec,
+                            int timeoutSec,
+                            String method,
+                            String address,
+                            int expectedStatus,
+                            String responseVar) {
         Response response = pollWithParams(timeoutSec, periodSec, method, address, null, null, expectedStatus);
         saveResponse(responseVar, response);
     }
 
     /**
-     * Периодическая отправка HTTP-запроса с таблицей параметров до получения нужного кода ответа или истечения таймаута.
+     * Периодическая отправка HTTP-запроса с таблицей параметров.
+     * Если таблица содержит разделитель RESPONSE, строки после него используются для проверки ответа.
+     * Примеры:
+     *  И каждые 2с/10с отправлен HTTP GET на "url.pet.findByStatus" код ответа 200 ответ сохранен в "pets":
+     *    | PARAMETER | status | available |
+     *
+     *  И каждые 2с/10с отправлен HTTP GET на "url.store.inventory" код ответа 200 ответ сохранен в "response":
+     *    | HEADER   | Accept       | application/json |
+     *    | RESPONSE |              |                  |
+     *    | HEADER   | Content-Type | application/json |
      */
-    @И("^в течение (\\d+) секунд каждые (\\d+) секунд отправляется HTTP " + HTTP_METHOD_PATTERN + " запрос на URL \"([^\"]+)\" с параметрами запроса и ожидается код ответа (\\d+), а ответ сохранён в переменную \"([^\"]+)\"$")
-    public void pollHttpRequestWithParamsAndSave(int timeoutSec,
-                                                 int periodSec,
-                                                 String method,
-                                                 String address,
-                                                 int expectedStatus,
-                                                 String responseVar,
-                                                 DataTable paramsTable) {
-        Response response = pollWithParams(timeoutSec, periodSec, method, address, paramsTable, null, expectedStatus);
-        saveResponse(responseVar, response);
-    }
-
-    /**
-     * Периодическая отправка HTTP-запроса с таблицей параметров до получения нужного кода ответа и совпадения параметров ответа по таблице.
-     * Таблица делится строкой с "RESPONSE" в первом столбце на параметры запроса и параметры ответа.
-     */
-    @И("^в течение (\\d+) секунд каждые (\\d+) секунд отправляется HTTP " + HTTP_METHOD_PATTERN + " запрос на URL \"([^\"]+)\" с параметрами запроса и ожидается код ответа (\\d+) и параметры ответа по таблице, а ответ сохранён в переменную \"([^\"]+)\"$")
-    public void pollHttpRequestWithParamsAndResponseCheck(int timeoutSec,
-                                                          int periodSec,
-                                                          String method,
-                                                          String address,
-                                                          int expectedStatus,
-                                                          String responseVar,
-                                                          DataTable dataTable) {
+    @И("^каждые (\\d+)с/(\\d+)с отправлен HTTP " + HTTP_METHOD_PATTERN + " на \"([^\"]+)\" код ответа (\\d+) ответ сохранен в \"([^\"]+)\":$")
+    public void pollRequestWithParams(int periodSec,
+                                      int timeoutSec,
+                                      String method,
+                                      String address,
+                                      int expectedStatus,
+                                      String responseVar,
+                                      DataTable dataTable) {
         DataTable requestParams = dataTable;
         DataTable responseParams = null;
         int responseDividerIndex = dataTable.column(0).indexOf("RESPONSE");

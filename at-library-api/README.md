@@ -8,7 +8,7 @@ at-library-api
 <dependency>
       <groupId>ru</groupId>
       <artifactId>at-library-api</artifactId>
-      <version>27.02.2026</version>
+      <version>06.03.2026</version>
 </dependency>
 ```
 
@@ -21,21 +21,21 @@ at-library-api
 1. **Отправка запроса и сохранение ответа**
 
 ```gherkin
-И отправлен HTTP GET запрос на URL "url.store.inventory" и ответ сохранён в переменную "inventory_response"
+И отправлен HTTP GET на "url.store.inventory" ответ сохранен в "inventory_response"
 ```
 
 2. **Отправка запроса с параметрами (headers/query/body/path и т.д.)**
 
 ```gherkin
-И отправлен HTTP GET запрос на URL "url.pet.findByStatus" с параметрами запроса и ответ сохранён в переменную "pets_response"
+И отправлен HTTP GET на "url.pet.findByStatus" ответ сохранен в "pets_response":
   | HEADER    | Accept       | application/json |
   | PARAMETER | status       | available        |
 ```
 
-3. **Отправка запроса с ожиданием кода ответа и сохранением ответа**
+3. **Отправка запроса с проверкой кода ответа и сохранением**
 
 ```gherkin
-И отправлен HTTP POST запрос на URL "url.pet" с параметрами запроса и ожидается код ответа 200, а ответ сохранён в переменную "create_pet_response"
+И отправлен HTTP POST на "url.pet" код ответа 200 ответ сохранен в "create_pet_response":
   | HEADER | Accept       | application/json   |
   | HEADER | Content-Type | application/json   |
   | BODY   | BODY         | ${json.post.pet}   |
@@ -44,17 +44,15 @@ at-library-api
 4. **Периодическая отправка (polling) до выполнения условия**
 
 ```gherkin
-И в течение 30 секунд каждые 5 секунд отправляется HTTP GET запрос на URL "url.store.inventory"
-  и ожидается код ответа 200, а ответ сохранён в переменную "inventory_response"
+И каждые 5с/30с отправлен HTTP GET на "url.store.inventory" код ответа 200 ответ сохранен в "inventory_response"
 ```
 
 или с проверкой параметров ответа по таблице:
 
 ```gherkin
-И в течение 60 секунд каждые 5 секунд отправляется HTTP GET запрос на URL "url.store.inventory" с параметрами запроса
-  и ожидается код ответа 200 и параметры ответа по таблице, а ответ сохранён в переменную "inventory_response"
+И каждые 5с/60с отправлен HTTP GET на "url.store.inventory" код ответа 200 ответ сохранен в "inventory_response":
   | HEADER   | Accept       | application/json |
-  | RESPONSE |             |                  |
+  | RESPONSE |              |                  |
   | HEADER   | Content-Type | application/json |
 ```
 

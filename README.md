@@ -50,14 +50,14 @@ distribution    ──► core + web + api
     <dependency>
         <groupId>ru</groupId>
         <artifactId>at-library-web</artifactId>
-        <version>27.02.2026</version>
+        <version>06.03.2026</version>
     </dependency>
 
     <!-- REST API тестирование -->
     <dependency>
         <groupId>ru</groupId>
         <artifactId>at-library-api</artifactId>
-        <version>27.02.2026</version>
+        <version>06.03.2026</version>
     </dependency>
 </dependencies>
 ```

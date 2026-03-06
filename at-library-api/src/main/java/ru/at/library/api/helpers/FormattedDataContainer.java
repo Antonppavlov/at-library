@@ -71,6 +71,7 @@ public class FormattedDataContainer {
                 if (valueList != null && valueList.getLength() > 0) {
                     return valueList.item(0).getTextContent();
                 }
+                break;
             case PARAMS:
                 try {
                     String value = paramsMap.get(path);
@@ -78,10 +79,11 @@ public class FormattedDataContainer {
                         return URLDecoder.decode(value, "UTF-8");
                     }
                 } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
+                    throw new RuntimeException("Ошибка декодирования параметра: " + path, e);
                 }
+                break;
         }
-        return null;
+        throw new IllegalArgumentException("Не найдено значение по пути '" + path + "' в " + dataFormat);
     }
 
 }
