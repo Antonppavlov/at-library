@@ -229,14 +229,30 @@ public class SendRequestSteps {
     /**
      * Отправка http-запроса.
      */
+    private static final String BANNER_REQUEST =
+            "\n╔══════════════════════════════════════════════════════════════╗" +
+            "\n║                          REQUEST                            ║" +
+            "\n╚══════════════════════════════════════════════════════════════╝\n";
+
+    private static final String BANNER_RESPONSE =
+            "\n╔══════════════════════════════════════════════════════════════╗" +
+            "\n║                         RESPONSE                            ║" +
+            "\n╚══════════════════════════════════════════════════════════════╝\n";
+
     private Response sendRequest(String method, String address, DataTable dataTable) {
         address = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(address);
         configureRestAssuredIfNeeded();
 
         RequestSender request = createRequest(dataTable);
-        Response response = request.request(Method.valueOf(method), address);
+
         if (LOG_HTTP) {
-            // Логируем ответ сразу после выполнения запроса
+            System.out.println(BANNER_REQUEST);
+        }
+
+        Response response = request.request(Method.valueOf(method), address);
+
+        if (LOG_HTTP) {
+            System.out.println(BANNER_RESPONSE);
             response.then().log().all();
         }
         return response;

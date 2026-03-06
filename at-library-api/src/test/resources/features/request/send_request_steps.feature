@@ -47,11 +47,59 @@
 
   # Дополнительные сценарии, показывающие использование разных HTTP-методов и типов параметров
 
-  Сценарий: POST создание питомца по Petstore (BODY из JSON-шаблона)
+  # =======================================================================
+  # ОТПРАВКА JSON ИЗ ФАЙЛА (BODY)
+  # =======================================================================
+
+  # BODY из property → путь к classpath-ресурсу (${property.key})
+  Сценарий: POST с BODY из JSON-файла через property
     И отправлен HTTP POST на "url.pet" код ответа 200 ответ сохранен в "create_pet_response":
-      | HEADER | Accept       | application/json        |
-      | HEADER | Content-Type | application/json        |
-      | BODY   | BODY         | ${json.post.pet}        |
+      | HEADER | Accept       | application/json |
+      | HEADER | Content-Type | application/json |
+      | BODY   | BODY         | ${json.post.pet} |
+    И в ответе "create_pet_response" содержимое найденное по jsonPath "name" равно "tomas"
+
+  # BODY из classpath-ресурса напрямую (без property)
+  Сценарий: POST с BODY из JSON-файла по classpath-пути
+    И отправлен HTTP POST на "url.pet" код ответа 200 ответ сохранен в "create_pet_classpath_response":
+      | HEADER | Accept       | application/json             |
+      | HEADER | Content-Type | application/json             |
+      | BODY   | BODY         | restBodies/post_new_pet.json |
+    И в ответе "create_pet_classpath_response" содержимое найденное по jsonPath "name" равно "tomas"
+
+  # BODY из переменной (JSON заранее сохранён через TemplateJsonSteps)
+  Сценарий: POST с BODY из заполненного шаблона
+    И заполнение JSON-шаблон "json.post.pet" данными из таблицы и сохранение в переменную "custom_pet_body"
+      | tomas     | Мурзик    |
+      | available | sold      |
+    И отправлен HTTP POST на "url.pet" код ответа 200 ответ сохранен в "create_custom_pet_response":
+      | HEADER | Accept       | application/json   |
+      | HEADER | Content-Type | application/json   |
+      | BODY   | BODY         | {custom_pet_body}  |
+    И в ответе "create_custom_pet_response" содержимое найденное по jsonPath "name" равно "Мурзик"
+    И в ответе "create_custom_pet_response" содержимое найденное по jsonPath "status" равно "sold"
+
+  # BODY из JSON-файла с переменными {pet.id}, {pet.name}, {pet.status} — резолвятся из application.properties
+  Сценарий: POST с BODY из JSON-файла с переменными из properties
+    И отправлен HTTP POST на "url.pet" код ответа 200 ответ сохранен в "create_pet_vars_response":
+      | HEADER | Accept       | application/json                  |
+      | HEADER | Content-Type | application/json                  |
+      | BODY   | BODY         | restBodies/post_new_pet_vars.json |
+    И в ответе "create_pet_vars_response" содержимое найденное по jsonPath "id" равно "17122019"
+    И в ответе "create_pet_vars_response" содержимое найденное по jsonPath "name" равно "tomas"
+    И в ответе "create_pet_vars_response" содержимое найденное по jsonPath "status" равно "available"
+
+  # PUT с BODY из файла через property
+  Сценарий: PUT обновление питомца с JSON из файла
+    И отправлен HTTP PUT на "url.pet" код ответа 200 ответ сохранен в "update_pet_response":
+      | HEADER | Accept       | application/json |
+      | HEADER | Content-Type | application/json |
+      | BODY   | BODY         | ${json.put.pet}  |
+    И в ответе "update_pet_response" содержимое найденное по jsonPath "name" равно "tomas dangerous"
+
+  # =======================================================================
+  # ОСТАЛЬНЫЕ HTTP-МЕТОДЫ И ПАРАМЕТРЫ
+  # =======================================================================
 
   Сценарий: GET питомца по id через переменную в URL
     И отправлен HTTP GET на "https://petstore.swagger.io/v2/pet/{pet.id}" код ответа 200 ответ сохранен в "get_pet_by_id_response"
@@ -60,12 +108,6 @@
     И отправлен HTTP GET на "url.pet.petId" код ответа 200 ответ сохранен в "get_pet_by_pathparam_response":
       | PATH_PARAMETER | petId  | pet.id           |
       | HEADER         | Accept | application/json |
-
-  Сценарий: PUT обновление питомца по Petstore
-    И отправлен HTTP PUT на "url.pet" код ответа 200 ответ сохранен в "update_pet_response":
-      | HEADER | Accept       | application/json      |
-      | HEADER | Content-Type | application/json      |
-      | BODY   | BODY         | ${json.put.pet}       |
 
   Сценарий: DELETE питомца по id
     И отправлен HTTP DELETE на "https://petstore.swagger.io/v2/pet/{pet.id}" код ответа 200 ответ сохранен в "delete_pet_response"

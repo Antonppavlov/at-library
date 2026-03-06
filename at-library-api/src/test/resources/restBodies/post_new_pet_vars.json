@@ -1,0 +1,18 @@
+{
+  "id": {pet.id},
+  "category": {
+    "id": {pet.id},
+    "name": "cat"
+  },
+  "name": "{pet.name}",
+  "photoUrls": [
+    "string"
+  ],
+  "tags": [
+    {
+      "id": {pet.id},
+      "name": "domestic cat"
+    }
+  ],
+  "status": "{pet.status}"
+}

@@ -22,7 +22,9 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -175,26 +177,24 @@ public class Utils {
      * В случае нахождения параметра - заменяет его значение на значение из properties или хранилища переменных
      */
     public static String resolveJsonVars(String inputJsonAsString) {
-        if (isJSONValid(inputJsonAsString)) return inputJsonAsString;
         Pattern p = Pattern.compile(CURVE_BRACES_PATTERN);
         Matcher m = p.matcher(inputJsonAsString);
-        String newString = "";
+
+        Set<String> varNames = new LinkedHashSet<>();
         while (m.find()) {
-            String varName = m.group(1);
+            varNames.add(m.group(1));
+        }
+
+        String result = inputJsonAsString;
+        for (String varName : varNames) {
             String value = loadProperty(varName, (String) CoreScenario.getInstance().tryGetVar(varName));
-            if (value == null) {
-                log.trace(
-                        "Значение " + varName +
-                                " не было найдено ни в properties, ни в environment переменной");
+            if (value != null) {
+                result = result.replace("{" + varName + "}", value);
+            } else {
+                log.trace("Значение {} не было найдено ни в properties, ни в environment переменной", varName);
             }
-            newString = m.replaceFirst(value);
-            if (isJSONValid(newString)) return newString;
-            m = p.matcher(newString);
         }
-        if (newString.isEmpty()) {
-            newString = inputJsonAsString;
-        }
-        return newString;
+        return result;
     }
 
 }
