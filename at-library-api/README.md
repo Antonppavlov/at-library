@@ -151,6 +151,27 @@ JSON-шаблоны тел запросов
 mvn -pl at-library-api -am clean test -Dapi.http.log.disable=true
 ```
 
+Структура feature-файлов (1 класс шагов = 1 feature)
+=====================================================
+
+Основные feature-файлы в `src/test/resources/features` разнесены по принципу:
+**один класс шагов — один feature-файл**.
+
+- `request/send_request_steps.feature` → `SendRequestSteps`
+- `proxy/proxy_steps.feature` → `ProxySteps`
+- `response/json_response.feature` → `JsonResponseSteps`
+- `response/xml_response.feature` → `XmlResponseSteps`
+- `response/yaml_response.feature` → `YamlResponseSteps`
+- `response/status_code_check_steps.feature` → `StatusCodeCheckSteps`
+- `response/header_check_steps.feature` → `HeaderCheckSteps`
+- `response/body_extract_steps.feature` → `BodyExtractSteps`
+- `response/cookie_check_steps.feature` → `CookieCheckSteps`
+- `response/string_content_steps.feature` → `StringContentSteps`
+- `response/template_json_steps.feature` → `TemplateJsonSteps`
+
+Файлы `response/response_metadata.feature` и `response/string_content.feature`
+оставлены как deprecated-заглушки без сценариев, чтобы исключить дубли и смешивание классов шагов.
+
 Запуск тестов модуля at-library-api
 ===================================
 
@@ -174,3 +195,72 @@ mvn -pl at-library-api -am clean test -Dcucumber.options="--tags @api"
 cd at-library-api
 mvn allure:serve
 ```
+
+Готовые feature-файлы для расширения покрытия шагов
+====================================================
+
+Добавлены готовые заготовки feature-файлов в директорию:
+
+- `src/test/resources/feature-extensions/request/send_request_steps_extension.feature`
+- `src/test/resources/feature-extensions/response/json_response_extension.feature`
+- `src/test/resources/feature-extensions/response/xml_response_extension.feature`
+- `src/test/resources/feature-extensions/response/yaml_response_extension.feature`
+- `src/test/resources/feature-extensions/response/metadata_and_string_extension.feature`
+- `src/test/resources/feature-extensions/proxy/proxy_steps_extension.feature`
+
+Зачем отдельная директория:
+- текущий раннер запускает только `src/test/resources/features`, поэтому расширения не влияют на стабильность текущего CI-пула;
+- файлы можно переносить по одному в `features`, когда вы готовы включить их в постоянный прогон.
+
+Важно: extension-файлы уже настроены на публичные API и содержат ссылку на Swagger/OpenAPI в шапке каждого feature.
+
+Рекомендованный порядок включения:
+1. Убедиться, что публичные API доступны из вашего контура.
+2. При необходимости переопределить URL через `application.properties`.
+3. Перенести нужный `.feature` из `feature-extensions` в `features`.
+4. Запустить модульные API-тесты и убедиться, что сценарии стабильны.
+
+
+Публичные API для написания и стабилизации API-тестов
+=====================================================
+
+Да, можно использовать общедоступные API, но лучше разделять их на 2 группы:
+
+1. **Стабильные для базовых smoke/contract шагов**
+2. **Вспомогательные только для локальной отладки**
+
+Рекомендуемый минимум:
+
+- **Swagger Petstore** (`https://petstore.swagger.io/v2`)
+  - Подходит для: GET/POST/PUT/DELETE, query/path/body, базовых JSON-проверок, polling.
+  - Уже используется в текущем наборе примеров.
+
+- **JSONPlaceholder** (`https://jsonplaceholder.typicode.com`)
+  - Подходит для: чтение/создание JSON-ресурсов, проверки jsonPath, сравнение ответов.
+  - Ограничение: это фейковый write API (POST/PUT/DELETE не всегда отражают персистентное состояние).
+
+- **Postman Echo** (`https://postman-echo.com`)
+  - Подходит для: проверки headers/query/form-data/cookies, эхо-валидация тела запроса.
+  - Хорош для шагов `HEADER`, `PARAMETER`, `FORM_PARAMETER`, `MULTIPART`, `ACCESS_TOKEN`.
+
+- **ReqRes** (`https://reqres.in/api`)
+  - Подходит для: сценарии авторизации, негативные кейсы, валидация кодов ответа.
+  - Ограничение: некоторые эндпоинты могут требовать api-key/лимитироваться.
+
+Практическая рекомендация по надёжности CI:
+
+- Для **регресса в CI** лучше держать основной пул тестов на **mock-сервисе** (WireMock/MockServer).
+- Публичные API оставить как отдельный smoke-пул (например, тег `@external_api`), чтобы внешняя нестабильность не ломала релизный пайплайн.
+- Если нужен 100% охват всех шагов библиотеки, правильнее сделать локальные фикстуры (JSON/XML/YAML/XSD) и отдавать их через mock endpoint'ы.
+
+
+Публичные API и Swagger ссылки для extension-тестов
+===================================================
+
+Все расширенные feature-файлы ссылаются на публичные API и используют ссылки из `application.properties`:
+
+- `api.docs.petstore=https://petstore.swagger.io/`
+- `api.docs.fakerest=https://fakerestapi.azurewebsites.net/index.html`
+- `api.docs.petstore.v3.openapi=https://petstore3.swagger.io/`
+
+Это позволяет явно видеть, какое API и по какой спецификации проверяется в каждом feature.

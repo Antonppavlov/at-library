@@ -6,7 +6,7 @@
   Для примеров используется публичное API Petstore (https://petstore.swagger.io).
 
   Предыстория: Получение списка доступных питомцев
-    И отправлен HTTP GET на "url.pet.findByStatus" код ответа 200 ответ сохранен в "json_response":
+    И отправлен HTTP GET на "https://petstore.swagger.io/v2/pet/findByStatus" код ответа 200 ответ сохранен в "json_response":
       | PARAMETER | status | available |
 
   # =======================================================================
@@ -48,14 +48,14 @@
 
   # compareJsonResponses — сравнение двух ответов по jsonPath
   Сценарий: Сравнение значений по jsonPath между двумя ответами
-    И отправлен HTTP GET на "url.pet.findByStatus" код ответа 200 ответ сохранен в "json_response_2":
+    И отправлен HTTP GET на "https://petstore.swagger.io/v2/pet/findByStatus" код ответа 200 ответ сохранен в "json_response_2":
       | PARAMETER | status | available |
     И в ответах "json_response" и "json_response_2" содержимые найденные по jsonPath совпадают:
       | [0].status |
 
   # compareJsonBody — сравнение body с эталонным JSON
   Сценарий: Сравнение body ответа с эталонным JSON
-    И отправлен HTTP POST на "url.pet" код ответа 200 ответ сохранен в "created_pet":
+    И отправлен HTTP POST на "https://petstore.swagger.io/v2/pet" код ответа 200 ответ сохранен в "created_pet":
       | HEADER | Accept       | application/json |
       | HEADER | Content-Type | application/json |
       | BODY   | BODY         | json.post.pet    |
@@ -96,3 +96,8 @@
   # arraySortedDesc — сортировка по убыванию
   Сценарий: Массив отсортирован по убыванию
     И в ответе "json_response" массив значений найденных по jsonPath "status" отсортирован по убыванию
+
+  # arrayDatesInRange — проверка периода дат
+  Сценарий: Все даты находятся в указанном периоде
+    И отправлен HTTP GET на "https://fakerestapi.azurewebsites.net/api/v1/Activities" код ответа 200 ответ сохранен в "json_dates_response"
+    И в ответе "json_dates_response" массив значений найденных по jsonPath "dueDate" в периоде между "0001-01-01T00:00:00+00:00" и "9999-12-31T23:59:59+00:00" в формате "yyyy-MM-dd'T'HH:mm:ssXXX"
