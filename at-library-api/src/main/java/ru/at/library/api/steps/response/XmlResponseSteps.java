@@ -8,11 +8,20 @@ import io.restassured.response.Response;
 import lombok.extern.log4j.Log4j2;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import ru.at.library.api.helpers.Utils;
 import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.core.utils.helpers.PropertyLoader;
 
 import java.io.ByteArrayInputStream;
+import java.io.StringReader;
+import java.io.StringWriter;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -203,9 +212,39 @@ public class XmlResponseSteps {
      */
     @И("^в ответе \"([^\"]+)\" содержимое равно xml \"([^\"]+)\"$")
     public void compareXmlBody(String responseVar, String expectedXml) {
-        String xml = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(expectedXml);
-        Response response = ResponseHelper.getResponse(responseVar);
-        response.then().body(equalTo(xml));
+        String expected = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(expectedXml);
+        String actual = ResponseHelper.getResponse(responseVar).asString();
+
+        String normalizedExpected = normalizeXmlForComparison(expected);
+        String normalizedActual = normalizeXmlForComparison(actual);
+        assertThat("Сравнение XML body без учета форматирования", normalizedActual, equalTo(normalizedExpected));
+    }
+
+
+    /**
+     * Нормализация XML для устойчивого сравнения:
+     * убирает декларацию и пробелы между тегами, сохраняя структуру и значения.
+     */
+    private String normalizeXmlForComparison(String xml) {
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            javax.xml.parsers.DocumentBuilder builder = factory.newDocumentBuilder();
+            Document document = builder.parse(new InputSource(new StringReader(xml)));
+
+            Transformer transformer = TransformerFactory.newInstance().newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+            transformer.setOutputProperty(OutputKeys.INDENT, "no");
+
+            StringWriter writer = new StringWriter();
+            transformer.transform(new DOMSource(document), new StreamResult(writer));
+
+            return writer.toString()
+                    .replaceAll(">\\s+<", "><")
+                    .trim();
+        } catch (Exception e) {
+            throw new RuntimeException("Не удалось нормализовать XML для сравнения", e);
+        }
     }
 
     // =======================================================================

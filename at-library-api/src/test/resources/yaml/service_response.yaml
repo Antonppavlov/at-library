@@ -1,0 +1,13 @@
+service:
+  name: billing
+  version: 1.2.0
+env:
+  - prod
+statuses:
+  - READY
+  - READY
+hosts:
+  - node-1
+events:
+  - date: 2026-01-10T10:00:00+00:00
+  - date: 2026-11-10T10:00:00+00:00
