@@ -308,7 +308,7 @@ public class JsonResponseSteps {
      * @param jsonPath    jsonPath-выражение
      */
     @И("^в ответе \"([^\"]+)\" массив значений найденных по jsonPath \"([^\"]+)\" не пустой$")
-    public void arraySizeNotNull(String responseVar, String jsonPath, int expectedSize) {
+    public void arraySizeNotNull(String responseVar, String jsonPath) {
         List<String> list = getJsonList(responseVar, jsonPath);
         assertThat("Размер массива '" + jsonPath + "'", list.size(), is(notNullValue()));
     }
