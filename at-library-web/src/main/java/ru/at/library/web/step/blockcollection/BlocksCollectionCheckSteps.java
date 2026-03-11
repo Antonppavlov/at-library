@@ -873,7 +873,7 @@ public class BlocksCollectionCheckSteps {
 
 
     @SuppressWarnings("deprecation")
-    @И("^в списке блоков \\\"([^\\\"]*)\\\" (\\\\d+) блок расположен (в|вне) видимой части браузера$")
+    @И("^в списке блоков \"([^\"]+)\" (\\d+) блок расположен (в|вне) видимой части браузера$")
     public IStepResult checkBlockListItemInBounds(String blockListName, int blockIndex, String boundsCondition) {
         CorePage block = waitForBlockByNumber(blockListName, blockIndex);
         inBounds(block.getSelf(), boundsCondition);
@@ -881,7 +881,7 @@ public class BlocksCollectionCheckSteps {
     }
 
     @SuppressWarnings("deprecation")
-    @И("^в блоке \\\"([^\\\"]*)\\\" в списке блоков \\\"([^\\\"]*)\\\" (\\\\d+) блок расположен (в|вне) видимой части браузера$")
+    @И("^в блоке \"([^\"]+)\" в списке блоков \"([^\"]+)\" (\\d+) блок расположен (в|вне) видимой части браузера$")
     public IStepResult checkBlockListItemInBounds(String blockName, String blockListName, int blockIndex, String boundsCondition) {
         CorePage block = waitForBlockByNumber(blockName, blockListName, blockIndex);
         inBounds(block.getSelf(), boundsCondition);

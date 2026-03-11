@@ -41,10 +41,18 @@
 
   # Примеры типов параметров запроса
   Сценарий: POST c BODY из JSON-файла
+    И отправлен HTTP POST на "https://petstore.swagger.io/v2/pet" код ответа 200 ответ сохранен в "create_pet_prepare_response":
+      | HEADER | Accept       | application/json |
+      | HEADER | Content-Type | application/json |
+      | BODY   | BODY         | json.post.pet    |
+    И отправлен HTTP PUT на "https://petstore.swagger.io/v2/pet" код ответа 200 ответ сохранен в "update_pet_prepare_response":
+      | HEADER | Accept       | application/json |
+      | HEADER | Content-Type | application/json |
+      | BODY   | BODY         | json.put.pet     |
     И отправлен HTTP POST на "https://petstore.swagger.io/v2/pet" код ответа 200 ответ сохранен в "create_pet_response":
       | HEADER | Accept       | application/json |
       | HEADER | Content-Type | application/json |
-      | BODY   | BODY         | ${json.post.pet} |
+      | BODY   | BODY         | json.post.pet    |
 
   Сценарий: GET c PATH_PARAMETER
     И отправлен HTTP GET на "https://petstore.swagger.io/v2/pet/{petId}" код ответа 200 ответ сохранен в "get_pet_by_pathparam_response":
@@ -52,7 +60,16 @@
       | HEADER         | Accept | application/json |
 
   Сценарий: DELETE питомца по id
-    И отправлен HTTP DELETE на "https://petstore.swagger.io/v2/pet/{pet.id}" код ответа 200 ответ сохранен в "delete_pet_response"
+    И отправлен HTTP POST на "https://petstore.swagger.io/v2/pet" код ответа 200 ответ сохранен в "create_pet_for_delete_response":
+      | HEADER | Accept       | application/json |
+      | HEADER | Content-Type | application/json |
+      | BODY   | BODY         | json.post.pet.delete |
+    И отправлен HTTP PUT на "https://petstore.swagger.io/v2/pet" код ответа 200 ответ сохранен в "update_pet_for_delete_response":
+      | HEADER | Accept       | application/json |
+      | HEADER | Content-Type | application/json |
+      | BODY   | BODY         | json.put.pet.delete |
+    И отправлен HTTP DELETE на "https://petstore.swagger.io/v2/pet/{petId}" код ответа 200 ответ сохранен в "delete_pet_response":
+      | PATH_PARAMETER | petId  | pet.id.delete      |
 
   Сценарий: HEAD запрос к inventory
     И отправлен HTTP HEAD на "https://petstore.swagger.io/v2/store/inventory" ответ сохранен в "inventory_head_response"

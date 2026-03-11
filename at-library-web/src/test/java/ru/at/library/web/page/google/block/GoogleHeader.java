@@ -10,11 +10,11 @@ import ru.at.library.web.scenario.annotations.Name;
 public class GoogleHeader extends CorePage {
 
     @Name("Кнопка Почта")
-    @FindBy(css = "[aria-label*=\"Почта\"]")
+    @FindBy(css = "a[href*='mail.google.']")
     public ElementsCollection googleAppsList;
 
     @Name("Кнопка Картинки")
-    @FindBy(css = "[aria-label*=\"Поиск картинок\"]")
+    @FindBy(css = "a[href*='imghp']")
     public SelenideElement otherAppsBtn;
 
 }

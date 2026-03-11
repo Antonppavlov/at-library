@@ -262,7 +262,54 @@ public class XmlResponseSteps {
     @И("^в ответе \"([^\"]+)\" содержимое соответствует xsd схеме \"([^\"]+)\"$")
     public void validateXsdSchema(String responseVar, String schemaPath) {
         Response response = ResponseHelper.getResponse(responseVar);
-        response.then().assertThat().body(RestAssuredMatchers.matchesXsdInClasspath(schemaPath));
+        String schema = resolveXsdSchema(schemaPath);
+        response.then().assertThat().body(RestAssuredMatchers.matchesXsd(schema));
+    }
+
+    private String resolveXsdSchema(String schemaPath) {
+        String loadedSchema = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(schemaPath);
+        if (looksLikeSchema(loadedSchema)) {
+            return loadedSchema;
+        }
+
+        String normalizedPath = normalizeResourcePath(schemaPath);
+        if (!normalizedPath.equals(schemaPath)) {
+            String loadedNormalizedSchema = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(normalizedPath);
+            if (looksLikeSchema(loadedNormalizedSchema)) {
+                return loadedNormalizedSchema;
+            }
+        }
+
+        throw new AssertionError(String.format(
+                "Не удалось загрузить XSD-схему по пути '%s'. Используйте classpath-путь (например, 'xsd/file.xsd') " +
+                        "или путь от корня проекта.", schemaPath));
+    }
+
+    private boolean looksLikeSchema(String value) {
+        if (value == null) {
+            return false;
+        }
+        String trimmed = value.trim();
+        return trimmed.startsWith("<");
+    }
+
+    private String normalizeResourcePath(String schemaPath) {
+        String normalized = schemaPath;
+        if (normalized.startsWith("/")) {
+            normalized = normalized.substring(1);
+        }
+
+        String testPrefix = "src/test/resources/";
+        if (normalized.startsWith(testPrefix)) {
+            normalized = normalized.substring(testPrefix.length());
+        }
+
+        String mainPrefix = "src/main/resources/";
+        if (normalized.startsWith(mainPrefix)) {
+            normalized = normalized.substring(mainPrefix.length());
+        }
+
+        return normalized;
     }
 
     // =======================================================================

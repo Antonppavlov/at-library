@@ -5,7 +5,7 @@
       <xs:sequence>
         <xs:element name="slide" maxOccurs="unbounded">
           <xs:complexType mixed="true">
-            <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:sequence>
               <xs:element name="title" type="xs:string" minOccurs="0"/>
               <xs:element name="item" minOccurs="0" maxOccurs="unbounded">
                 <xs:complexType mixed="true">
@@ -14,7 +14,6 @@
                   </xs:sequence>
                 </xs:complexType>
               </xs:element>
-              <xs:any processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
             </xs:sequence>
             <xs:attribute name="type" type="xs:string" use="optional"/>
           </xs:complexType>

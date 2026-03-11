@@ -14,7 +14,7 @@ public class GooglePage extends CorePage {
     public SelenideElement searchInput;
 
     @Name("Кнопка Почта")
-    @FindBy(css = "header [aria-label*=\"Почта\"]")
+    @FindBy(css = "header a[href*='mail.google.']")
     public SelenideElement menuBtn;
 
     @Name("Google Header")

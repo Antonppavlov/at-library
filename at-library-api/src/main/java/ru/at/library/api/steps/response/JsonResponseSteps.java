@@ -15,7 +15,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.*;
 
 /**
  * Шаги для работы с JSON: проверка значений, сохранение, шаблоны, сравнение, схемы и массивы.
@@ -33,10 +33,10 @@ public class JsonResponseSteps {
      * Проверка одного значения в json ответа по jsonPath.
      * <p>Сравнение выполняется как строковое, даже если значение — число или boolean.</p>
      * Пример:
-     *  И в ответе "response" содержимое найденное по jsonPath "[0].status" равно "available"
+     * И в ответе "response" содержимое найденное по jsonPath "[0].status" равно "available"
      *
-     * @param responseVar  имя переменной, содержащей {@link Response}
-     * @param jsonPath     jsonPath-выражение
+     * @param responseVar   имя переменной, содержащей {@link Response}
+     * @param jsonPath      jsonPath-выражение
      * @param expectedValue ожидаемое значение
      */
     @И("^в ответе \"([^\"]+)\" содержимое найденное по jsonPath \"([^\"]+)\" равно \"([^\"]+)\"$")
@@ -52,7 +52,7 @@ public class JsonResponseSteps {
     /**
      * Сохранение одного значения из json ответа по jsonPath в переменную.
      * Пример:
-     *  И из ответа "response" содержимое найденное по jsonPath "[0].status" сохранено в "pet_status"
+     * И из ответа "response" содержимое найденное по jsonPath "[0].status" сохранено в "pet_status"
      *
      * @param responseVar имя переменной, содержащей {@link Response}
      * @param jsonPath    jsonPath-выражение
@@ -71,14 +71,14 @@ public class JsonResponseSteps {
     /**
      * Проверка значений в json ответа по jsonPath (простое равенство).
      * Пример:
-     *  И в ответе "response" содержимые найденные по jsonPath равны:
-     *    | [0].status | available |
-     *  И в ответе "response" содержимые найденные по jsonPath без учета регистра равны:
-     *    | [0].status | AVAILABLE |
+     * И в ответе "response" содержимые найденные по jsonPath равны:
+     * | [0].status | available |
+     * И в ответе "response" содержимые найденные по jsonPath без учета регистра равны:
+     * | [0].status | AVAILABLE |
      *
-     * @param responseVar             имя переменной, содержащей {@link Response}
+     * @param responseVar              имя переменной, содержащей {@link Response}
      * @param caseInsensitiveIndicator пусто или "без учета регистра "
-     * @param dataTable               таблица: jsonPath, ожидаемое значение
+     * @param dataTable                таблица: jsonPath, ожидаемое значение
      */
     @И("^в ответе \"([^\"]+)\" содержимые найденные по jsonPath (|без учета регистра )равны:$")
     public void checkJsonResponseValues(String responseVar, String caseInsensitiveIndicator, DataTable dataTable) {
@@ -118,9 +118,9 @@ public class JsonResponseSteps {
     /**
      * Сохранение значений из json ответа по jsonPath.
      * Пример:
-     *  И из ответа "response" содержимые найденные по jsonPath сохранены в переменные:
-     *    | [0].status | first_pet_status |
-     *    | [0].id     | first_pet_id     |
+     * И из ответа "response" содержимые найденные по jsonPath сохранены в переменные:
+     * | [0].status | first_pet_status |
+     * | [0].id     | first_pet_id     |
      *
      * @param responseVar имя переменной, содержащей {@link Response}
      * @param dataTable   таблица: jsonPath, имя переменной
@@ -150,9 +150,9 @@ public class JsonResponseSteps {
     /**
      * Сравнение значений по jsonPath между двумя ответами.
      * Пример:
-     *  И в ответах "response1" и "response2" содержимые найденные по jsonPath совпадают:
-     *    | [0].status |
-     *    | [0].name   |
+     * И в ответах "response1" и "response2" содержимые найденные по jsonPath совпадают:
+     * | [0].status |
+     * | [0].name   |
      *
      * @param responseVar1 имя первого ответа
      * @param responseVar2 имя второго ответа
@@ -190,7 +190,7 @@ public class JsonResponseSteps {
     /**
      * Сравнение body ответа с эталонным JSON.
      * Пример:
-     *  И в ответе "response" содержимое равно json "expected.json"
+     * И в ответе "response" содержимое равно json "expected.json"
      *
      * @param responseVar  имя переменной с {@link Response}
      * @param expectedJson путь к эталонному JSON (property/resource)
@@ -210,7 +210,7 @@ public class JsonResponseSteps {
     /**
      * Проверка ответа на соответствие JSON-схеме.
      * Пример:
-     *  И в ответе "response" содержимое соответствует json схеме "json/pet_array_schema.json"
+     * И в ответе "response" содержимое соответствует json схеме "json/pet_array_schema.json"
      *
      * @param responseVar имя переменной с {@link Response}
      * @param schemaPath  путь до .json файла со схемой в classpath
@@ -228,7 +228,7 @@ public class JsonResponseSteps {
     /**
      * Проверка что массив значений найденных по jsonPath содержит указанное значение.
      * Пример:
-     *  И в ответе "response" массив значений найденных по jsonPath "status" содержит значение "available"
+     * И в ответе "response" массив значений найденных по jsonPath "status" содержит значение "available"
      *
      * @param responseVar имя переменной, содержащей {@link Response}
      * @param jsonPath    jsonPath-выражение
@@ -247,7 +247,7 @@ public class JsonResponseSteps {
     /**
      * Проверка что все элементы массива равны указанному значению.
      * Пример:
-     *  И в ответе "response" массив значений найденных по jsonPath "status" все значения равны "available"
+     * И в ответе "response" массив значений найденных по jsonPath "status" все значения равны "available"
      *
      * @param responseVar имя переменной, содержащей {@link Response}
      * @param jsonPath    jsonPath-выражение
@@ -267,7 +267,7 @@ public class JsonResponseSteps {
     /**
      * Проверка что все элементы массива содержат подстроку.
      * Пример:
-     *  И в ответе "response" массив значений найденных по jsonPath "status" все значения содержат "avail"
+     * И в ответе "response" массив значений найденных по jsonPath "status" все значения содержат "avail"
      *
      * @param responseVar имя переменной, содержащей {@link Response}
      * @param jsonPath    jsonPath-выражение
@@ -287,22 +287,36 @@ public class JsonResponseSteps {
     /**
      * Проверка размера массива по jsonPath.
      * Пример:
-     *  И в ответе "response" массив значений найденных по jsonPath "[0].tags" размер 0
+     * И в ответе "response" массив значений найденных по jsonPath "[0].tags" размер 0
      *
      * @param responseVar  имя переменной, содержащей {@link Response}
      * @param jsonPath     jsonPath-выражение
      * @param expectedSize ожидаемый размер массива
      */
-    @И("^в ответе \"([^\"]+)\" массив значений найденных по jsonPath \"([^\"]+)\" размер (\\\\d+)$")
+    @И("^в ответе \"([^\"]+)\" массив значений найденных по jsonPath \"([^\"]+)\" размер (\\d+)$")
     public void arraySize(String responseVar, String jsonPath, int expectedSize) {
         List<String> list = getJsonList(responseVar, jsonPath);
         assertThat("Размер массива '" + jsonPath + "'", list.size(), equalTo(expectedSize));
     }
 
     /**
+     * Проверка размера массива по jsonPath.
+     * Пример:
+     * И в ответе "response" массив значений найденных по jsonPath "[0].tags" не пустой
+     *
+     * @param responseVar имя переменной, содержащей {@link Response}
+     * @param jsonPath    jsonPath-выражение
+     */
+    @И("^в ответе \"([^\"]+)\" массив значений найденных по jsonPath \"([^\"]+)\" не пустой$")
+    public void arraySizeNotNull(String responseVar, String jsonPath, int expectedSize) {
+        List<String> list = getJsonList(responseVar, jsonPath);
+        assertThat("Размер массива '" + jsonPath + "'", list.size(), is(notNullValue()));
+    }
+
+    /**
      * Проверка что массив отсортирован по возрастанию.
      * Пример:
-     *  И в ответе "response" массив значений найденных по jsonPath "status" отсортирован по возрастанию
+     * И в ответе "response" массив значений найденных по jsonPath "status" отсортирован по возрастанию
      *
      * @param responseVar имя переменной, содержащей {@link Response}
      * @param jsonPath    jsonPath-выражение
@@ -318,7 +332,7 @@ public class JsonResponseSteps {
     /**
      * Проверка что массив отсортирован по убыванию.
      * Пример:
-     *  И в ответе "response" массив значений найденных по jsonPath "status" отсортирован по убыванию
+     * И в ответе "response" массив значений найденных по jsonPath "status" отсортирован по убыванию
      *
      * @param responseVar имя переменной, содержащей {@link Response}
      * @param jsonPath    jsonPath-выражение
@@ -334,7 +348,7 @@ public class JsonResponseSteps {
     /**
      * Проверка что все даты в массиве находятся в указанном периоде.
      * Пример:
-     *  И в ответе "response" массив значений найденных по jsonPath "dates" в периоде между "date_start" и "date_end" в формате "date_format"
+     * И в ответе "response" массив значений найденных по jsonPath "dates" в периоде между "date_start" и "date_end" в формате "date_format"
      *
      * @param responseVar имя переменной, содержащей {@link Response}
      * @param jsonPath    jsonPath-выражение
@@ -354,11 +368,19 @@ public class JsonResponseSteps {
 
         List<String> list = getJsonList(responseVar, jsonPath);
         for (String item : list) {
-            OffsetDateTime date = OffsetDateTime.parse(item, formatter);
+            OffsetDateTime date = parseOffsetDateTime(item, formatter);
             if (date.isBefore(startDate) || date.isAfter(endDate)) {
                 throw new AssertionError(String.format(
                         "Массив '%s': дата '%s' вне периода [%s, %s]", jsonPath, item, startStr, endStr));
             }
+        }
+    }
+
+    private OffsetDateTime parseOffsetDateTime(String value, DateTimeFormatter formatter) {
+        try {
+            return OffsetDateTime.parse(value, formatter);
+        } catch (Exception ignored) {
+            return OffsetDateTime.parse(value, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
         }
     }
 

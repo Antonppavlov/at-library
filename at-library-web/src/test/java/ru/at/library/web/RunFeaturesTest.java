@@ -15,7 +15,7 @@ import ru.at.library.core.setup.CoreInitialSetup;
 public class RunFeaturesTest extends AbstractTestNGCucumberTests {
 
     @Override
-    @DataProvider(parallel = true)
+    @DataProvider(parallel = false)
     public Object[][] scenarios() {
         Object[][] scenarios = super.scenarios();
         CoreInitialSetup.totalScenarios = scenarios.length;

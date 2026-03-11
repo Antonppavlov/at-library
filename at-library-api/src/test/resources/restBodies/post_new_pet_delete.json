@@ -1,0 +1,18 @@
+{
+  "id": 17122029,
+  "category": {
+    "id": 17122029,
+    "name": "cat"
+  },
+  "name": "tomas delete",
+  "photoUrls": [
+    "string"
+  ],
+  "tags": [
+    {
+      "id": 17122029,
+      "name": "domestic cat"
+    }
+  ],
+  "status": "available"
+}

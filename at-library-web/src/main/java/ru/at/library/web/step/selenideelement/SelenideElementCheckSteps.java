@@ -272,26 +272,28 @@ public class SelenideElementCheckSteps {
         int elementRightBound = elementLeftBound + element.getSize().width;
         int elementLowerBound = elementUpperBound + element.getSize().height;
 
-        Long winLeftBound = executeJavaScript("return window.pageXOffset");
-        Long winUpperBound = executeJavaScript("return window.pageYOffset");
-        Long winWidth = executeJavaScript("return document.documentElement.clientWidth");
-        Long winHeight = executeJavaScript("return document.documentElement.clientHeight");
+        Number winLeftBound = executeJavaScript("return window.pageXOffset");
+        Number winUpperBound = executeJavaScript("return window.pageYOffset");
+        Number winWidth = executeJavaScript("return document.documentElement.clientWidth");
+        Number winHeight = executeJavaScript("return document.documentElement.clientHeight");
         if (winLeftBound == null || winUpperBound == null || winWidth == null || winHeight == null) {
             throw new RuntimeException("Ошибка при получении размера окан браузера или координат элемента");
         }
-        long winRightBound = winLeftBound + winWidth;
-        long winLowerBound = winUpperBound + winHeight;
+        long left = winLeftBound.longValue();
+        long upper = winUpperBound.longValue();
+        long right = left + winWidth.longValue();
+        long lower = upper + winHeight.longValue();
 
-        boolean inBounds = winLeftBound <= elementLeftBound
-                && winUpperBound <= elementUpperBound
-                && winRightBound >= elementRightBound
-                && winLowerBound >= elementLowerBound;
+        boolean inBounds = left <= elementLeftBound
+                && upper <= elementUpperBound
+                && right >= elementRightBound
+                && lower >= elementLowerBound;
 
         boolean expectedCondition = boundsCondition.equals("в");
 
         CoreScenario.getInstance().getAssertionHelper().hamcrestAssert(
                 String.format("Элемент %s видимой части браузера.\nВидимая область: %d %d %d %d\nКоординаты элемента: %d %d %d %d", boundsCondition,
-                        winLeftBound, winUpperBound, winRightBound, winLowerBound, elementLeftBound, elementUpperBound, elementRightBound, elementLowerBound),
+                        left, upper, right, lower, elementLeftBound, elementUpperBound, elementRightBound, elementLowerBound),
                 inBounds,
                 is(equalTo(expectedCondition))
         );

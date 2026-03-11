@@ -3,10 +3,10 @@
 @api
 #noinspection NonAsciiCharacters
 Функционал: Проверка шагов CookieCheckSteps
-  Для сценария используется Postman Echo cookies endpoint.
+  Для сценария используется endpoint, который возвращает Set-Cookie в ответе.
 
   Предыстория: Получение ответа с cookies
-    И отправлен HTTP GET на "https://postman-echo.com/cookies/set?session_id=abc123&theme=dark" код ответа 200 ответ сохранен в "cookie_response"
+    И отправлен HTTP GET на "https://httpbin.org/response-headers?Set-Cookie=session_id=abc123&Set-Cookie=theme=dark" код ответа 200 ответ сохранен в "cookie_response"
 
   Сценарий: Проверка cookies по таблице
     И в ответе "cookie_response" cookies равны значениям из таблицы:

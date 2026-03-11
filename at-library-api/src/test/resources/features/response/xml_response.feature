@@ -28,11 +28,11 @@
       | //slide[1]/title |
 
   Сценарий: Сравнение XML body и проверка XSD схемы
-    И в ответе "xml_response" содержимое равно xml "xml/httpbin_slideshow.xml"
-    И в ответе "xml_response" содержимое соответствует xsd схеме "xsd/httpbin_slideshow.xsd"
+    И в ответе "xml_response" содержимое равно xml "src/test/resources/xml/httpbin_slideshow.xml"
+    И в ответе "xml_response" содержимое соответствует xsd схеме "src/test/resources/xsd/httpbin_slideshow.xsd"
 
   Сценарий: Проверки списка значений по xPath
     И в ответе "xml_response" список значений найденных по xPath "//slide/title" содержит значение "Overview"
-    И в ответе "xml_response" список значений найденных по xPath "//slide/type" все значения равны "all"
-    И в ответе "xml_response" список значений найденных по xPath "//slide/type" все значения содержат "all"
+    И в ответе "xml_response" список значений найденных по xPath "//slide/@type" все значения равны "all"
+    И в ответе "xml_response" список значений найденных по xPath "//slide/@type" все значения содержат "all"
     И в ответе "xml_response" список значений найденных по xPath "//slide/title" размер 2
