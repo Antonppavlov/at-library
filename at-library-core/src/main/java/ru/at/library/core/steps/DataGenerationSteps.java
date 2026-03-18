@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 import static org.apache.commons.lang3.RandomUtils.nextBoolean;
 import static ru.at.library.core.steps.OtherSteps.getPropertyOrStringVariableOrValue;
@@ -68,6 +69,16 @@ public class DataGenerationSteps {
         ;
         coreScenario.setVar(varName, numSeq);
         log.trace("Случайное число равно: " + numSeq);
+    }
+
+    /**
+     * Генерация GUID и сохранение в переменную
+     */
+    @И("^генерация guid и сохранение в переменную \"([^\"]*)\"$")
+    public void randomGuid(String varName) {
+        String guid = UUID.randomUUID().toString();
+        coreScenario.setVar(varName, guid);
+        log.trace("Сгенерированный guid равен: " + guid);
     }
 
     /**
