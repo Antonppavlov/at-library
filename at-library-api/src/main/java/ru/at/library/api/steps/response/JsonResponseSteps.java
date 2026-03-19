@@ -1,10 +1,16 @@
 package ru.at.library.api.steps.response;
 
 import com.google.common.collect.Ordering;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion;
+import com.networknt.schema.ValidationMessage;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.ru.И;
 import io.qameta.allure.Allure;
-import io.restassured.module.jsv.JsonSchemaValidator;
 import io.restassured.response.Response;
 import lombok.extern.log4j.Log4j2;
 import ru.at.library.api.helpers.Utils;
@@ -14,6 +20,8 @@ import ru.at.library.core.utils.helpers.PropertyLoader;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -24,6 +32,7 @@ import static org.hamcrest.Matchers.*;
 @Log4j2
 public class JsonResponseSteps {
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private final CoreScenario coreScenario = CoreScenario.getInstance();
 
     // =======================================================================
@@ -219,9 +228,16 @@ public class JsonResponseSteps {
     @И("^в ответе \"([^\"]+)\" содержимое соответствует json схеме \"([^\"]+)\"$")
     public void validateJsonSchema(String responseVar, String schemaPath) {
         String resolvedSchemaPath = PropertyLoader.loadProperty(schemaPath, schemaPath);
-        attachJsonSchemaToAllure(schemaPath, resolvedSchemaPath);
+        String schemaBody = loadJsonSchema(schemaPath, resolvedSchemaPath);
         Response response = ResponseHelper.getResponse(responseVar);
-        response.then().assertThat().body(JsonSchemaValidator.matchesJsonSchemaInClasspath(resolvedSchemaPath));
+        String responseBody = response.getBody().asPrettyString();
+        List<String> validationErrors = validateJsonAgainstSchema(responseBody, schemaBody);
+        attachJsonSchemaToAllure(schemaPath, resolvedSchemaPath, schemaBody);
+        attachResponseJsonToAllure(responseVar, responseBody);
+        attachSchemaValidationReportToAllure(validationErrors);
+        if (!validationErrors.isEmpty()) {
+            throw new AssertionError("JSON не соответствует schema:\n" + String.join("\n", validationErrors));
+        }
     }
 
     // =======================================================================
@@ -399,8 +415,39 @@ public class JsonResponseSteps {
         return list;
     }
 
-    private void attachJsonSchemaToAllure(String originalSchemaPath, String resolvedSchemaPath) {
-        String schemaBody = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(resolvedSchemaPath);
+    private String loadJsonSchema(String originalSchemaPath, String resolvedSchemaPath) {
+        String schemaBody = PropertyLoader.loadValueFromFileOrVariableOrDefault(resolvedSchemaPath);
+        if (schemaBody == null || schemaBody.trim().isEmpty() || schemaBody.equals(resolvedSchemaPath)) {
+            throw new IllegalArgumentException(String.format(
+                    "Не удалось загрузить JSON schema. Исходный путь: '%s', resolved path: '%s'",
+                    originalSchemaPath,
+                    resolvedSchemaPath
+            ));
+        }
+        return schemaBody;
+    }
+
+    private List<String> validateJsonAgainstSchema(String responseBody, String schemaBody) {
+        try {
+            JsonNode schemaNode = OBJECT_MAPPER.readTree(schemaBody);
+            JsonNode responseNode = OBJECT_MAPPER.readTree(responseBody);
+            JsonSchema schema = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4).getSchema(schemaNode);
+            Set<ValidationMessage> errors = schema.validate(responseNode);
+            return errors.stream()
+                    .map(ValidationMessage::toString)
+                    .sorted()
+                    .map(this::formatValidationMessage)
+                    .collect(Collectors.toList());
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Не удалось распарсить JSON schema или response body", e);
+        }
+    }
+
+    private String formatValidationMessage(String validationMessage) {
+        return validationMessage;
+    }
+
+    private void attachJsonSchemaToAllure(String originalSchemaPath, String resolvedSchemaPath, String schemaBody) {
         String attachmentBody = String.format(
                 "Original schema path: %s%nResolved schema path: %s%n%n%s",
                 originalSchemaPath,
@@ -408,5 +455,16 @@ public class JsonResponseSteps {
                 schemaBody
         );
         Allure.addAttachment("JSON schema: " + resolvedSchemaPath, "application/json", attachmentBody, ".json");
+    }
+
+    private void attachResponseJsonToAllure(String responseVar, String responseBody) {
+        Allure.addAttachment("Response JSON: " + responseVar, "application/json", responseBody, ".json");
+    }
+
+    private void attachSchemaValidationReportToAllure(List<String> validationErrors) {
+        String reportBody = validationErrors.isEmpty()
+                ? "JSON schema validation passed"
+                : String.join(System.lineSeparator(), validationErrors);
+        Allure.addAttachment("JSON schema validation report", "text/plain", reportBody, ".txt");
     }
 }
