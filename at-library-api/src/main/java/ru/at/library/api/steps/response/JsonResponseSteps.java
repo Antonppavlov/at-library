@@ -3,6 +3,7 @@ package ru.at.library.api.steps.response;
 import com.google.common.collect.Ordering;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.ru.И;
+import io.qameta.allure.Allure;
 import io.restassured.module.jsv.JsonSchemaValidator;
 import io.restassured.response.Response;
 import lombok.extern.log4j.Log4j2;
@@ -217,8 +218,10 @@ public class JsonResponseSteps {
      */
     @И("^в ответе \"([^\"]+)\" содержимое соответствует json схеме \"([^\"]+)\"$")
     public void validateJsonSchema(String responseVar, String schemaPath) {
+        String resolvedSchemaPath = PropertyLoader.loadProperty(schemaPath, schemaPath);
+        attachJsonSchemaToAllure(schemaPath, resolvedSchemaPath);
         Response response = ResponseHelper.getResponse(responseVar);
-        response.then().assertThat().body(JsonSchemaValidator.matchesJsonSchemaInClasspath(schemaPath));
+        response.then().assertThat().body(JsonSchemaValidator.matchesJsonSchemaInClasspath(resolvedSchemaPath));
     }
 
     // =======================================================================
@@ -394,5 +397,16 @@ public class JsonResponseSteps {
             throw new AssertionError(String.format("По jsonPath '%s' массив не найден", jsonPath));
         }
         return list;
+    }
+
+    private void attachJsonSchemaToAllure(String originalSchemaPath, String resolvedSchemaPath) {
+        String schemaBody = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(resolvedSchemaPath);
+        String attachmentBody = String.format(
+                "Original schema path: %s%nResolved schema path: %s%n%n%s",
+                originalSchemaPath,
+                resolvedSchemaPath,
+                schemaBody
+        );
+        Allure.addAttachment("JSON schema: " + resolvedSchemaPath, "application/json", attachmentBody, ".json");
     }
 }
