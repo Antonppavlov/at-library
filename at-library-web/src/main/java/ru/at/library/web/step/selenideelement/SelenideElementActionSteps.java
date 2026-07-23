@@ -6,6 +6,7 @@ import com.codeborne.selenide.SelenideElement;
 import com.codeborne.selenide.WebDriverRunner;
 import io.cucumber.java.ru.А;
 import io.cucumber.java.ru.И;
+import io.qameta.allure.Step;
 import org.apache.commons.lang3.RandomStringUtils;
 import lombok.extern.log4j.Log4j2;
 import org.openqa.selenium.By;
@@ -254,7 +255,7 @@ public class SelenideElementActionSteps {
      * При неверном формате, используется dd.MM.yyyy
      */
     public void currentDateIsTypedInTheFormat(SelenideElement element, String dateFormat) {
-        dateFormat = getPropertyOrStringVariableOrValue(dateFormat);
+
         long date = System.currentTimeMillis();
         String currentStringDate;
         try {
@@ -398,15 +399,15 @@ public class SelenideElementActionSteps {
      */
 
     @И("^в поле \"([^\"]*)\" введено случайное число из \"([^\"]*)\" (?:цифр|цифры)$")
-    public String inputRandomNumSequence(String elementName, String seqLengthString) {
-        return inputRandomNumSequence(
+    public void inputRandomNumSequence(String elementName, String seqLengthString) {
+        inputRandomNumSequence(
                 WebScenario.getCurrentPage().getElement(elementName),
                 seqLengthString);
     }
 
     @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено случайное число из \"([^\"]*)\" (?:цифр|цифры)$")
-    public String inputRandomNumSequence(String blockName, String elementName, String seqLengthString) {
-        return inputRandomNumSequence(
+    public void inputRandomNumSequence(String blockName, String elementName, String seqLengthString) {
+        inputRandomNumSequence(
                 WebScenario.getCurrentPage().getBlock(blockName).getElement(elementName),
                 seqLengthString);
     }
@@ -417,9 +418,18 @@ public class SelenideElementActionSteps {
      * @return сгенерированное число
      */
     public String inputRandomNumSequence(SelenideElement element, String seqLengthString) {
+        seqLengthString = getPropertyOrStringVariableOrValue(seqLengthString);
+
+        String randomNumeric = randomNumSequence(seqLengthString);
+        element.shouldHave(Condition.visible);
+        element.setValue(randomNumeric);
+        return randomNumeric;
+    }
+
+    @Step("Генерация случайного числа из '{seqLengthString}' цифр")
+    public String randomNumSequence(String seqLengthString) {
         int seqLength = Integer.parseInt(seqLengthString);
-        String numSeq = RandomStringUtils.randomNumeric(seqLength);
-        return setFieldValue(element, numSeq);
+        return RandomStringUtils.randomNumeric(seqLength);
     }
 
     /**
@@ -489,15 +499,11 @@ public class SelenideElementActionSteps {
     }
 
     /**
-     * Скроллит страницу вниз до появления элемента каждую секунду.
-     * Если достигнут футер страницы и элемент не найден - выбрасывается exception.
+     * Прокручивает страницу к указанному элементу.
+     * Selenide ожидает появления элемента в пределах настроенного timeout.
      */
     public void scrollWhileElemNotFoundOnPage(SelenideElement element) {
-        do {
-            element.scrollTo();
-            executeJavaScript("return window.scrollBy(0, 250);");
-            sleep(1000);
-        } while (!atBottom());
+        element.scrollTo();
     }
 
     /**
