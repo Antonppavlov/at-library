@@ -1,96 +1,87 @@
 package ru.at.library.web.step.blockcollection;
 
-import com.codeborne.selenide.SelenideElement;
-import io.cucumber.datatable.DataTable;
 import ru.at.library.web.scenario.CorePage;
 import ru.at.library.web.scenario.CustomCondition;
+import ru.at.library.web.scenario.WebScenario;
 
 import java.util.List;
 
-import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.*;
+import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.getBlockListWithCheckingTheQuantity;
 
 /**
- * Вспомогательный класс для работы со списком блоков в шагах.
- * Инкапсулирует получение/ожидание списка блоков и типовые операции поиска.
- *
- * ВАЖНО: контекст хранит снимок списка блоков на момент создания. Это повторяет
- * исходное (стабильное) поведение библиотеки и исключает неожиданные изменения
- * порядка/состава блоков во время выполнения сложных шагов.
+ * Источник списка блоков: сохранённый снимок для обычных проверок
+ * и координаты списка для повторного чтения DOM во время retry.
  */
 class BlockListContext {
 
-    private final List<CorePage> blocks;
+    private final List<CorePage> snapshot;
     private final String listName;
-    private final String containerName; // может быть null
+    private final String containerName;
 
-    private BlockListContext(List<CorePage> blocks, String listName, String containerName) {
-        this.blocks = blocks;
+    private BlockListContext(List<CorePage> snapshot, String listName, String containerName) {
+        this.snapshot = snapshot;
         this.listName = listName;
         this.containerName = containerName;
     }
 
-    static BlockListContext fromList(String listName) {
+    static BlockListContext snapshot(String listName) {
         List<CorePage> blocks =
                 getBlockListWithCheckingTheQuantity(listName, CustomCondition.Comparison.more, 0);
         return new BlockListContext(blocks, listName, null);
     }
 
-    static BlockListContext fromBlock(String blockName, String listName) {
+    static BlockListContext snapshotInBlock(String blockName, String listName) {
         List<CorePage> blocks =
                 getBlockListWithCheckingTheQuantity(blockName, listName, CustomCondition.Comparison.more, 0);
         return new BlockListContext(blocks, listName, blockName);
     }
 
-    List<CorePage> getBlocks() {
-        return blocks;
-    }
-
-    String getListName() {
-        return listName;
-    }
-
-    String getContainerName() {
-        return containerName;
-    }
-
     /**
-     * Возвращает блок по его порядковому номеру в списке.
-     *
-     * @param blockNumber номер блока, начиная с 1 (как его видит пользователь в шагах)
-     * @return {@link CorePage} с указанным номером
-     * @throws IllegalArgumentException если номер выходит за пределы списка
+     * Создаёт только описание источника. Сам список впервые получается уже
+     * внутри polling-попытки, поэтому ошибка перерисовки не выйдет за deadline.
      */
-    CorePage getBlockByNumber(int blockNumber) {
-        int zeroBasedIndex = blockNumber - 1;
-        if (blockNumber < 1 || zeroBasedIndex >= blocks.size()) {
-            throw new IllegalArgumentException(String.format(
-                    "Индекс блока должен быть в диапазоне [1..%d], получено: %d",
-                    blocks.size(), blockNumber));
+    static BlockListContext live(String listName) {
+        return new BlockListContext(List.of(), listName, null);
+    }
+
+    static BlockListContext liveInBlock(String blockName, String listName) {
+        return new BlockListContext(List.of(), listName, blockName);
+    }
+
+    List<CorePage> getBlocks() {
+        return snapshot;
+    }
+
+    List<CorePage> freshBlocks() {
+        return loadBlocks(listName, containerName);
+    }
+
+    String describe() {
+        return describe(listName, containerName);
+    }
+
+    static String describe(String listName, String containerName) {
+        StringBuilder description = new StringBuilder()
+                .append("Текущая страница: '")
+                .append(WebScenario.getCurrentPage().getName())
+                .append("'");
+
+        if (containerName != null) {
+            description.append("\nБлок-контейнер: '")
+                    .append(containerName)
+                    .append("'");
         }
-        return blocks.get(zeroBasedIndex);
+
+        return description.append("\nСписок блоков: '")
+                .append(listName)
+                .append("'")
+                .toString();
     }
 
-    CorePage findByTextEquals(String elementName, String expectedText) {
-        return findCorePageByTextInElement(blocks, elementName, expectedText);
-    }
-
-    CorePage findByTextContains(String elementName, String expectedText) {
-        return findCorePageByTextContainInElement(blocks, elementName, expectedText);
-    }
-
-    CorePage findByRegExp(String elementName, String expectedRegExp) {
-        return findCorePageByRegExpInElement(blocks, elementName, expectedRegExp);
-    }
-
-    CorePage findByVisibleElement(String elementName) {
-        return findCorePageByVisibleElement(blocks, elementName);
-    }
-
-    List<CorePage> filterByConditions(DataTable conditionsTable) {
-        return getBlockListWithComplexCondition(blocks, conditionsTable);
-    }
-
-    SelenideElement element(CorePage block, String elementName) {
-        return block.getElement(elementName);
+    private static List<CorePage> loadBlocks(String listName, String containerName) {
+        CorePage owner = containerName == null
+                ? WebScenario.getCurrentPage()
+                : WebScenario.getCurrentPage().getBlock(containerName);
+        return owner.getBlocksList(listName);
     }
 }

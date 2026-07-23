@@ -6,6 +6,7 @@ import com.codeborne.selenide.WebElementCondition;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.ru.И;
 import io.cucumber.java.ru.То;
+import io.qameta.allure.Allure;
 import io.qameta.allure.Step;
 import lombok.extern.log4j.Log4j2;
 import org.openqa.selenium.Point;
@@ -19,9 +20,9 @@ import ru.at.library.web.scenario.IStepResult;
 import ru.at.library.web.scenario.WebScenario;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -75,6 +76,7 @@ public class BlocksCollectionCheckSteps {
         return new BlockListStepResult(blockListContext.getBlocks());
     }
 
+
     /**
      * ######################################################################################################################
      */
@@ -96,6 +98,7 @@ public class BlocksCollectionCheckSteps {
 
         return new BlockListStepResult(blocksList);
     }
+
 
 
     /**
@@ -127,10 +130,11 @@ public class BlocksCollectionCheckSteps {
         }
     }
 
+
+
     /**
      * ######################################################################################################################
      */
-
 
     @SuppressWarnings("deprecation")
     @И("^список блоков \"([^\"]*)\" блоки расположены по (\\d+) в ряд$")
@@ -146,6 +150,7 @@ public class BlocksCollectionCheckSteps {
         return checkBlockListRowsFormat(blockListContext, elementsInRow);
     }
 
+
     /**
      * ######################################################################################################################
      */
@@ -157,7 +162,11 @@ public class BlocksCollectionCheckSteps {
         String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
 
         WebElementCondition condition = Condition.cssValue(resolvedCssName, resolvedCssValue);
-        CorePage block = waitUntilBlockByNumberSelfMeetsCondition(blockListName, blockIndex, condition);
+        CorePage block = waitUntilBlockByNumberSelfMeetsCondition(
+                BlockListContext.live(blockListName),
+                blockIndex,
+                condition
+        );
         return new BlockListStepResult(block);
     }
 
@@ -168,14 +177,19 @@ public class BlocksCollectionCheckSteps {
         String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
 
         WebElementCondition condition = Condition.cssValue(resolvedCssName, resolvedCssValue);
-        CorePage block = waitUntilBlockByNumberSelfMeetsCondition(blockName, blockListName, blockIndex, condition);
+        CorePage block = waitUntilBlockByNumberSelfMeetsCondition(
+                BlockListContext.liveInBlock(blockName, blockListName),
+                blockIndex,
+                condition
+        );
         return new BlockListStepResult(block);
     }
+
+
 
     /**
      * ######################################################################################################################
      */
-
 
     @SuppressWarnings("deprecation")
     @И("^список блоков \"([^\"]*)\" расположен по ширине элемента \"([^\"]*)\"$")
@@ -209,6 +223,7 @@ public class BlocksCollectionCheckSteps {
                 block -> block.getElement(elementVisible).shouldHave(Condition.visible));
     }
 
+
     /**
      * ######################################################################################################################
      */
@@ -224,6 +239,7 @@ public class BlocksCollectionCheckSteps {
         return forEachBlock(createBlockListContextFromBlock(blockName, blockListName), elementHidden,
                 block -> block.getElement(elementHidden).shouldNot(Condition.visible));
     }
+
 
     /**
      * ######################################################################################################################
@@ -245,6 +261,7 @@ public class BlocksCollectionCheckSteps {
                         .shouldHave(Condition.visible));
     }
 
+
     /**
      * ######################################################################################################################
      */
@@ -262,6 +279,7 @@ public class BlocksCollectionCheckSteps {
         return forEachBlock(createBlockListContextFromBlock(blockName, blockListName), elementName,
                 block -> shouldHaveTextMatches(block, elementName, resolvedRegExp));
     }
+
 
     /**
      * ######################################################################################################################
@@ -289,6 +307,7 @@ public class BlocksCollectionCheckSteps {
                 )));
     }
 
+
     /**
      * ######################################################################################################################
      */
@@ -308,6 +327,7 @@ public class BlocksCollectionCheckSteps {
     }
 
 
+
     /**
      * ######################################################################################################################
      */
@@ -325,6 +345,7 @@ public class BlocksCollectionCheckSteps {
         return forEachBlock(createBlockListContextFromBlock(blockName, blockListName), elementName,
                 block -> methodCheckNotHasCssInBlockList(block, elementName, cssName, resolvedCssValue));
     }
+
 
     /**
      * ######################################################################################################################
@@ -350,6 +371,7 @@ public class BlocksCollectionCheckSteps {
     /**
      * -----------------------------------------------В ЛЮБОМ ИЗ БЛОКОВ------------------------------------------------
      */
+
 
     /**
      * ######################################################################################################################
@@ -388,6 +410,7 @@ public class BlocksCollectionCheckSteps {
         return checkBlockListForComplexCondition(blockListContext, conditionsTable);
     }
 
+
     /**
      * ######################################################################################################################
      */
@@ -396,13 +419,11 @@ public class BlocksCollectionCheckSteps {
     public IStepResult checkTextInAnyBlock(String blockListName, String elementName, String expectedText) {
         String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
 
-        WebElementCondition condition = Condition.or("проверка на текст",
-                Condition.exactText(resolvedExpectedText),
-                Condition.exactValue(resolvedExpectedText),
-                Condition.attribute("title", resolvedExpectedText)
+        CorePage block = waitUntilAnyBlockElementMeetsCondition(
+                BlockListContext.live(blockListName),
+                elementName,
+                BlockConditions.textEquals(resolvedExpectedText)
         );
-
-        CorePage block = waitUntilAnyBlockElementMeetsCondition(blockListName, elementName, condition);
         return new BlockListStepResult(block, elementName);
     }
 
@@ -410,15 +431,14 @@ public class BlocksCollectionCheckSteps {
     public IStepResult checkTextInAnyBlock(String blockName, String blockListName, String elementName, String expectedText) {
         String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
 
-        WebElementCondition condition = Condition.or("проверка на текст",
-                Condition.exactText(resolvedExpectedText),
-                Condition.exactValue(resolvedExpectedText),
-                Condition.attribute("title", resolvedExpectedText)
+        CorePage block = waitUntilAnyBlockElementMeetsCondition(
+                BlockListContext.liveInBlock(blockName, blockListName),
+                elementName,
+                BlockConditions.textEquals(resolvedExpectedText)
         );
-
-        CorePage block = waitUntilAnyBlockElementMeetsCondition(blockName, blockListName, elementName, condition);
         return new BlockListStepResult(block, elementName);
     }
+
 
     /**
      * ######################################################################################################################
@@ -428,13 +448,11 @@ public class BlocksCollectionCheckSteps {
     public IStepResult checkByRegExpInElementInAnyBlock(String blockListName, String elementName, String expectedText) {
         String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
 
-        WebElementCondition condition = Condition.or("проверка на текст",
-                Condition.matchText(resolvedExpectedText),
-                Condition.attributeMatching("value", resolvedExpectedText),
-                Condition.attributeMatching("title", resolvedExpectedText)
+        CorePage block = waitUntilAnyBlockElementMeetsCondition(
+                BlockListContext.live(blockListName),
+                elementName,
+                BlockConditions.textMatches(resolvedExpectedText)
         );
-
-        CorePage block = waitUntilAnyBlockElementMeetsCondition(blockListName, elementName, condition);
         return new BlockListStepResult(block, elementName);
     }
 
@@ -442,54 +460,48 @@ public class BlocksCollectionCheckSteps {
     public IStepResult checkByRegExpInElementInAnyBlock(String blockName, String blockListName, String elementName, String expectedText) {
         String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
 
-        WebElementCondition condition = Condition.or("проверка на текст",
-                Condition.matchText(resolvedExpectedText),
-                Condition.attributeMatching("value", resolvedExpectedText),
-                Condition.attributeMatching("title", resolvedExpectedText)
+        CorePage block = waitUntilAnyBlockElementMeetsCondition(
+                BlockListContext.liveInBlock(blockName, blockListName),
+                elementName,
+                BlockConditions.textMatches(resolvedExpectedText)
         );
-
-        CorePage block = waitUntilAnyBlockElementMeetsCondition(blockName, blockListName, elementName, condition);
         return new BlockListStepResult(block, elementName);
     }
+
 
 
     /**
      * ######################################################################################################################
      */
 
-    @И("^в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст содержит")
     @И("^в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст содержит \"([^\"]*)\"$")
     public IStepResult checkContainTextInAnyBlock(String blockListName, String elementName, String expectedText) {
         String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
 
-        WebElementCondition condition = Condition.or("проверка на текст",
-                Condition.text(resolvedExpectedText),
-                Condition.value(resolvedExpectedText),
-                Condition.attribute("title", resolvedExpectedText)
+        CorePage block = waitUntilAnyBlockElementMeetsCondition(
+                BlockListContext.live(blockListName),
+                elementName,
+                BlockConditions.textContains(resolvedExpectedText)
         );
-
-        CorePage block = waitUntilAnyBlockElementMeetsCondition(blockListName, elementName, condition);
         return new BlockListStepResult(block, elementName);
     }
 
-    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в любом из блоков \"([^\"]*)\" в элементе \"([^\"]*)\" текст содержит")
-    @То("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в любом из блоков \"([^\"]*)\" в элементе \"([^\"]*)\" текст содержит \"([^\"]*)\"$")
+    @То("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст содержит \"([^\"]*)\"$")
     public IStepResult checkContainTextInAnyBlock(String blockName, String blockListName, String elementName, String expectedText) {
         String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
 
-        WebElementCondition condition = Condition.or("проверка на текст",
-                Condition.text(resolvedExpectedText),
-                Condition.value(resolvedExpectedText),
-                Condition.attribute("title", resolvedExpectedText)
+        CorePage block = waitUntilAnyBlockElementMeetsCondition(
+                BlockListContext.liveInBlock(blockName, blockListName),
+                elementName,
+                BlockConditions.textContains(resolvedExpectedText)
         );
-
-        CorePage block = waitUntilAnyBlockElementMeetsCondition(blockName, blockListName, elementName, condition);
         return new BlockListStepResult(block, elementName);
     }
 
     /**
      * -----------------------------------------------В КАКОМ-ТО КОЛИЧЕСТВЕ------------------------------------------------
      */
+
 
     /**
      * ######################################################################################################################
@@ -532,6 +544,7 @@ public class BlocksCollectionCheckSteps {
                 },
                 failureHeader);
     }
+
 
     /**
      * ######################################################################################################################
@@ -591,6 +604,7 @@ public class BlocksCollectionCheckSteps {
         return elementDisplayedInBlockWhereTextEquals(blockListContext, elementNameSearch, expectedTextSearch, expectedElementVisible);
     }
 
+
     /**
      * ######################################################################################################################
      */
@@ -606,6 +620,7 @@ public class BlocksCollectionCheckSteps {
         BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
         return elementNotDisplayedInBlockWhereTextEquals(blockListContext, elementNameSearch, expectedTextSearch, expectedElementVisible);
     }
+
 
     /**
      * ######################################################################################################################
@@ -623,6 +638,7 @@ public class BlocksCollectionCheckSteps {
         return checkTextInAnyBlockMatches(blockListContext, elementNameSearch, expectedTextSearch, expectedElementVisible);
     }
 
+
     /**
      * ######################################################################################################################
      */
@@ -638,6 +654,7 @@ public class BlocksCollectionCheckSteps {
         BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
         return checkTextInAnyBlock(blockListContext, elementNameSearch, expectedTextSearch, elementNameFind, expectedTextFind);
     }
+
 
     /**
      * ######################################################################################################################
@@ -655,6 +672,7 @@ public class BlocksCollectionCheckSteps {
         return checkTextInAnyBlockMatches1(blockListContext, elementNameSearch, expectedTextSearch, elementNameFind, expectedTextFind);
     }
 
+
     /**
      * ######################################################################################################################
      */
@@ -670,6 +688,7 @@ public class BlocksCollectionCheckSteps {
         BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
         return checkCssInAnyBlock(blockListContext, elementNameSearch, expectedTextSearch, elementNameFind, cssName, cssValue);
     }
+
 
     /**
      * ######################################################################################################################
@@ -690,6 +709,7 @@ public class BlocksCollectionCheckSteps {
     }
 
 
+
     /**
      * ######################################################################################################################
      */
@@ -699,7 +719,10 @@ public class BlocksCollectionCheckSteps {
     public IStepResult checkBlockListItemCoordinates(String blockListName, int blockIndex, int x, int y) {
         Point expectedCoordinates = new Point(x, y);
 
-        CorePage block = waitForBlockByNumber(blockListName, blockIndex);
+        CorePage block = waitForBlockByNumber(
+                BlockListContext.live(blockListName),
+                blockIndex
+        );
         Point actualCoordinates = block.getSelf().getLocation();
         this.coreScenario.getAssertionHelper().hamcrestAssert(
                 String.format("Координаты %d блока списка блоков %s не соответствуют ожидаемым\n" +
@@ -719,7 +742,10 @@ public class BlocksCollectionCheckSteps {
     public IStepResult checkBlockListItemCoordinates(String blockName, String blockListName, int blockIndex, int x, int y) {
         Point expectedCoordinates = new Point(x, y);
 
-        CorePage block = waitForBlockByNumber(blockName, blockListName, blockIndex);
+        CorePage block = waitForBlockByNumber(
+                BlockListContext.liveInBlock(blockName, blockListName),
+                blockIndex
+        );
         Point actualCoordinates = block.getSelf().getLocation();
         this.coreScenario.getAssertionHelper().hamcrestAssert(
                 String.format("Координаты %d блока списка блоков %s не соответствуют ожидаемым\n" +
@@ -734,25 +760,35 @@ public class BlocksCollectionCheckSteps {
         return new BlockListStepResult(block);
     }
 
+
     /**
      * ######################################################################################################################
      */
 
     @И("^в списке блоков \"([^\"]*)\" в (\\d+) блоке текст элемента \"([^\"]*)\" сохранен в переменную \"([^\"]*)\"$")
     public IStepResult saveElementTextForNthBlockFromBlockList(String blockListName, int blockIndex, String elementName, String varName) {
-        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(blockListName, blockIndex, elementName, Condition.visible);
-        SelenideElement element = block.getElement(elementName);
-        this.coreScenario.getEnvironment().setVar(varName, element.getText());
+        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(
+                BlockListContext.live(blockListName),
+                blockIndex,
+                elementName,
+                Condition.visible,
+                element -> this.coreScenario.getEnvironment().setVar(varName, element.getText())
+        );
         return new BlockListStepResult(block, elementName);
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в (\\d+) блоке текст элемента \"([^\"]*)\" сохранен в переменную \"([^\"]*)\"$")
     public IStepResult saveElementTextForNthBlockFromBlockList(String blockName, String blockListName, int blockIndex, String elementName, String varName) {
-        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(blockName, blockListName, blockIndex, elementName, Condition.visible);
-        SelenideElement element = block.getElement(elementName);
-        this.coreScenario.getEnvironment().setVar(varName, element.getText());
+        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(
+                BlockListContext.liveInBlock(blockName, blockListName),
+                blockIndex,
+                elementName,
+                Condition.visible,
+                element -> this.coreScenario.getEnvironment().setVar(varName, element.getText())
+        );
         return new BlockListStepResult(block, elementName);
     }
+
 
     /**
      * ######################################################################################################################
@@ -762,7 +798,12 @@ public class BlocksCollectionCheckSteps {
     public IStepResult checkElementInBlockListMatchesText(String blockListName, int blockIndex, String elementName, String expectedText) {
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
 
-        CorePage block = waitUntilTextMatchesInBlockByNumber(blockListName, blockIndex, elementName, resolvedExpectedText);
+        CorePage block = waitUntilTextMatchesInBlockByNumber(
+                BlockListContext.live(blockListName),
+                blockIndex,
+                elementName,
+                resolvedExpectedText
+        );
         return new BlockListStepResult(block, elementName);
     }
 
@@ -770,9 +811,15 @@ public class BlocksCollectionCheckSteps {
     public IStepResult checkElementInBlockListMatchesText(String blockName, String blockListName, int blockIndex, String elementName, String expectedText) {
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
 
-        CorePage block = waitUntilTextMatchesInBlockByNumber(blockName, blockListName, blockIndex, elementName, resolvedExpectedText);
+        CorePage block = waitUntilTextMatchesInBlockByNumber(
+                BlockListContext.liveInBlock(blockName, blockListName),
+                blockIndex,
+                elementName,
+                resolvedExpectedText
+        );
         return new BlockListStepResult(block, elementName);
     }
+
 
     /**
      * ######################################################################################################################
@@ -794,7 +841,12 @@ public class BlocksCollectionCheckSteps {
                 throw new IllegalArgumentException("Неизвестное условие: " + conditionString);
         }
 
-        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(blockListName, blockIndex, elementName, condition);
+        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(
+                BlockListContext.live(blockListName),
+                blockIndex,
+                elementName,
+                condition
+        );
         return new BlockListStepResult(block, elementName);
     }
 
@@ -814,9 +866,15 @@ public class BlocksCollectionCheckSteps {
                 throw new IllegalArgumentException("Неизвестное условие: " + conditionString);
         }
 
-        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(blockName, blockListName, blockIndex, elementName, condition);
+        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(
+                BlockListContext.liveInBlock(blockName, blockListName),
+                blockIndex,
+                elementName,
+                condition
+        );
         return new BlockListStepResult(block, elementName);
     }
+
 
     /**
      * ######################################################################################################################
@@ -828,7 +886,12 @@ public class BlocksCollectionCheckSteps {
         String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
 
         WebElementCondition condition = Condition.cssValue(resolvedCssName, resolvedCssValue);
-        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(blockListName, blockIndex, elementName, condition);
+        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(
+                BlockListContext.live(blockListName),
+                blockIndex,
+                elementName,
+                condition
+        );
         return new BlockListStepResult(block, elementName);
     }
 
@@ -838,9 +901,15 @@ public class BlocksCollectionCheckSteps {
         String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
 
         WebElementCondition condition = Condition.cssValue(resolvedCssName, resolvedCssValue);
-        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(blockName, blockListName, blockIndex, elementName, condition);
+        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(
+                BlockListContext.liveInBlock(blockName, blockListName),
+                blockIndex,
+                elementName,
+                condition
+        );
         return new BlockListStepResult(block, elementName);
     }
+
 
     /**
      * ######################################################################################################################
@@ -852,7 +921,12 @@ public class BlocksCollectionCheckSteps {
         String resolvedAttributeValue = OtherSteps.getPropertyOrStringVariableOrValue(attributeValue);
 
         WebElementCondition condition = Condition.attributeMatching(resolvedAttributeName, resolvedAttributeValue);
-        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(blockListName, blockIndex, elementName, condition);
+        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(
+                BlockListContext.live(blockListName),
+                blockIndex,
+                elementName,
+                condition
+        );
         return new BlockListStepResult(block, elementName);
     }
 
@@ -862,20 +936,29 @@ public class BlocksCollectionCheckSteps {
         String resolvedAttributeValue = OtherSteps.getPropertyOrStringVariableOrValue(attributeValue);
 
         WebElementCondition condition = Condition.attributeMatching(resolvedAttributeName, resolvedAttributeValue);
-        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(blockName, blockListName, blockIndex, elementName, condition);
+        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(
+                BlockListContext.liveInBlock(blockName, blockListName),
+                blockIndex,
+                elementName,
+                condition
+        );
         return new BlockListStepResult(block, elementName);
     }
+
+
 
 
     /**
      * ######################################################################################################################
      */
 
-
     @SuppressWarnings("deprecation")
     @И("^в списке блоков \"([^\"]+)\" (\\d+) блок расположен (в|вне) видимой части браузера$")
     public IStepResult checkBlockListItemInBounds(String blockListName, int blockIndex, String boundsCondition) {
-        CorePage block = waitForBlockByNumber(blockListName, blockIndex);
+        CorePage block = waitForBlockByNumber(
+                BlockListContext.live(blockListName),
+                blockIndex
+        );
         inBounds(block.getSelf(), boundsCondition);
         return new BlockListStepResult(block);
     }
@@ -883,10 +966,14 @@ public class BlocksCollectionCheckSteps {
     @SuppressWarnings("deprecation")
     @И("^в блоке \"([^\"]+)\" в списке блоков \"([^\"]+)\" (\\d+) блок расположен (в|вне) видимой части браузера$")
     public IStepResult checkBlockListItemInBounds(String blockName, String blockListName, int blockIndex, String boundsCondition) {
-        CorePage block = waitForBlockByNumber(blockName, blockListName, blockIndex);
+        CorePage block = waitForBlockByNumber(
+                BlockListContext.liveInBlock(blockName, blockListName),
+                blockIndex
+        );
         inBounds(block.getSelf(), boundsCondition);
         return new BlockListStepResult(block);
     }
+
 
     /**
      * ######################################################################################################################
@@ -904,6 +991,7 @@ public class BlocksCollectionCheckSteps {
         return saveElementTextToVarInBlockListWhereTextEquals(blockListContext, elementToCheckText, expectedText, elementToSaveText, varName);
     }
 
+
     /**
      * ######################################################################################################################
      */
@@ -916,7 +1004,7 @@ public class BlocksCollectionCheckSteps {
      */
     @Step("Создаём контекст списка блоков '{blockListName}' на текущей странице")
     private BlockListContext createBlockListContextFromList(String blockListName) {
-        return BlockListContext.fromList(blockListName);
+        return BlockListContext.snapshot(blockListName);
     }
 
     /**
@@ -925,7 +1013,7 @@ public class BlocksCollectionCheckSteps {
      */
     @Step("Создаём контекст списка блоков '{blockListName}' внутри блока-контейнера '{blockName}'")
     private BlockListContext createBlockListContextFromBlock(String blockName, String blockListName) {
-        return BlockListContext.fromBlock(blockName, blockListName);
+        return BlockListContext.snapshotInBlock(blockName, blockListName);
     }
 
     /**
@@ -935,9 +1023,7 @@ public class BlocksCollectionCheckSteps {
     @Step("Выполняем проверку для каждого блока списка, результирующий ключ '{key}'")
     private IStepResult forEachBlock(BlockListContext blockListContext, String key, Consumer<CorePage> checker) {
         List<CorePage> blocks = blockListContext.getBlocks();
-        for (CorePage block : blocks) {
-            checker.accept(block);
-        }
+        forEachBlockWithReport(blocks, checker);
         return new BlockListStepResult(blocks, key);
     }
 
@@ -946,33 +1032,18 @@ public class BlocksCollectionCheckSteps {
      */
     @Step("Выполняем действие для каждого блока списка без формирования результата")
     private void forEachBlock(BlockListContext blockListContext, Consumer<CorePage> checker) {
-        for (CorePage block : blockListContext.getBlocks()) {
-            checker.accept(block);
-        }
+        forEachBlockWithReport(blockListContext.getBlocks(), checker);
     }
 
-    /**
-     * Строит унифицированное описание контекста списка блоков для сообщений об ошибках.
-     * Содержит название текущей страницы, (опционально) блока-контейнера и списка блоков.
-     */
-    @Step("Формируем текстовое описание контекста списка блоков для сообщений об ошибках")
-    private String formatBlockListContext(BlockListContext blockListContext) {
-        StringBuilder description = new StringBuilder();
-        description.append("Текущая страница: '")
-                .append(WebScenario.getCurrentPage().getName())
-                .append("'");
-
-        if (blockListContext.getContainerName() != null) {
-            description.append("\nБлок-контейнер: '")
-                    .append(blockListContext.getContainerName())
-                    .append("'");
+    private void forEachBlockWithReport(List<CorePage> blocks, Consumer<CorePage> checker) {
+        for (int index = 0; index < blocks.size(); index++) {
+            int blockNumber = index + 1;
+            CorePage block = blocks.get(index);
+            Allure.step(
+                    "Блок №" + blockNumber + " из " + blocks.size(),
+                    () -> checker.accept(block)
+            );
         }
-
-        description.append("\nСписок блоков: '")
-                .append(blockListContext.getListName())
-                .append("'");
-
-        return description.toString();
     }
 
     /**
@@ -990,403 +1061,108 @@ public class BlocksCollectionCheckSteps {
                                                   String key,
                                                   Predicate<CorePage> predicate,
                                                   String failureHeader) {
-        List<CorePage> matches = blockListContext.getBlocks().stream()
-                .filter(predicate)
-                .collect(Collectors.toList());
+        List<CorePage> blocks = blockListContext.getBlocks();
+        List<CorePage> matches = Allure.step("Сопоставляем блоки с условием", step -> {
+            List<CorePage> result = new ArrayList<>();
+            for (CorePage block : blocks) {
+                if (predicate.test(block)) {
+                    result.add(block);
+                }
+            }
+            step.name("Условию соответствует блоков: " + result.size() + " из " + blocks.size());
+            return result;
+        });
 
-        String messageOnFailure = formatBlockListContext(blockListContext) +
+        String messageOnFailure = blockListContext.describe() +
                 "\n" + failureHeader +
                 "\nОжидаемое количество блоков, удовлетворяющих условию: " + expectedCount +
                 "\nФактическое количество таких блоков: " + matches.size() +
-                "\nОбщее количество блоков в списке: " + blockListContext.getBlocks().size();
+                "\nОбщее количество блоков в списке: " + blocks.size();
 
         Assert.assertEquals(matches.size(), expectedCount, messageOnFailure);
 
         return new BlockListStepResult(matches, key);
     }
 
-    /**
-     * Helper: проверка условия "в любом блоке" через функцию-поисковик.
-     * Используется в шагах вида "в любом из блоков ...", чтобы переиспользовать
-     * {@code findCorePageBy*} из {@link BlocksCollectionOtherMethod}.
-     */
-    @Step("Ищем один блок в списке по переданной функции-поисковику, ключ '{key}'")
-    private IStepResult checkAnyBlock(BlockListContext blockListContext,
-                                      String key,
-                                      Function<List<CorePage>, CorePage> finder) {
-        CorePage block = finder.apply(blockListContext.getBlocks());
-        return new BlockListStepResult(block, key);
+    @Step("Ожидаем появления {blockIndex}-го блока")
+    private CorePage waitForBlockByNumber(BlockListContext context, int blockIndex) {
+        return BlockSearchExecutor.awaitBlockByNumber(
+                context,
+                blockIndex,
+                "Не удалось дождаться блока №" + blockIndex + "\n" + context.describe()
+        );
     }
 
-/**
-     * Ожидание появления нужного блока по номеру в списке и возврат этого блока.
-     *
-     * <p>Используется во всех шагах вида "в списке блоков X в N блоке ...".
-     * В цикле до {@link com.codeborne.selenide.Configuration#timeout} пересобирается
-     * {@link BlockListContext} и берётся актуальный блок с указанным номером.
-     * Если внутри шага проверки над этим блоком возникает {@link AssertionError},
-     * шаг повторно попытается получить блок до тех пор, пока не истечёт таймаут.</p>
-     *
-     * @param blockListName имя списка блоков (аннотация {@code @Name} на странице)
-     * @param blockIndex    номер блока, начиная с 1 (человеческая нумерация)
-     * @return найденный {@link CorePage} с указанным номером
-     * @throws AssertionError если в течение таймаута ни одна попытка не завершилась успешно
-     */
-    @Step("Ожидаем появления {blockIndex}-го блока в списке блоков '{blockListName}'")
-    private CorePage waitForBlockByNumber(String blockListName, int blockIndex) {
-        if (blockIndex < 1) {
-            throw new IllegalArgumentException("Индекс блока должен начинаться с 1, получено: " + blockIndex);
-        }
-
-        long timeoutMs = com.codeborne.selenide.Configuration.timeout;
-        long pollingMs = com.codeborne.selenide.Configuration.pollingInterval;
-        long endTime = System.currentTimeMillis() + timeoutMs;
-        AssertionError lastError = null;
-
-        while (true) {
-            BlockListContext ctx = createBlockListContextFromList(blockListName);
-            try {
-                return ctx.getBlockByNumber(blockIndex);
-            } catch (AssertionError e) {
-                lastError = e;
-            }
-
-            if (System.currentTimeMillis() >= endTime) {
-                if (lastError != null) {
-                    throw lastError;
-                }
-                throw new AssertionError("Не удалось дождаться " + blockIndex +
-                        " блока списка блоков '" + blockListName + "' в течение таймаута " + timeoutMs + " мс");
-            }
-
-            com.codeborne.selenide.Selenide.sleep(pollingMs);
-        }
-    }
-
-    /**
-     * Вариант {@link #waitForBlockByNumber(String, int)} для списка блоков внутри контейнерного блока.
-     *
-     * @param blockName     имя блока-контейнера
-     * @param blockListName имя списка блоков внутри контейнера
-     * @param blockIndex    номер блока, начиная с 1
-     * @return найденный {@link CorePage} с указанным номером внутри контейнера
-     * @throws AssertionError если в течение таймаута блок не был найден/не прошёл проверки
-     */
-    @Step("Ожидаем появления {blockIndex}-го блока списка '{blockListName}' внутри блока '{blockName}'")
-    private CorePage waitForBlockByNumber(String blockName, String blockListName, int blockIndex) {
-        if (blockIndex < 1) {
-            throw new IllegalArgumentException("Индекс блока должен начинаться с 1, получено: " + blockIndex);
-        }
-
-        long timeoutMs = com.codeborne.selenide.Configuration.timeout;
-        long pollingMs = com.codeborne.selenide.Configuration.pollingInterval;
-        long endTime = System.currentTimeMillis() + timeoutMs;
-        AssertionError lastError = null;
-
-        while (true) {
-            BlockListContext ctx = createBlockListContextFromBlock(blockName, blockListName);
-            try {
-                return ctx.getBlockByNumber(blockIndex);
-            } catch (AssertionError e) {
-                lastError = e;
-            }
-
-            if (System.currentTimeMillis() >= endTime) {
-                if (lastError != null) {
-                    throw lastError;
-                }
-                throw new AssertionError("Не удалось дождаться " + blockIndex +
-                        " блока списка блоков '" + blockListName + "' в блоке '" + blockName +
-                        "' в течение таймаута " + timeoutMs + " мс");
-            }
-
-            com.codeborne.selenide.Selenide.sleep(pollingMs);
-        }
-    }
-
-    /**
-     * Ожидание, пока указанный элемент в N-м блоке списка блоков удовлетворит условию.
-     * По кругу пересобирает список блоков и выбирает блок по номеру, каждый раз заново беря элемент.
-     * Внутри цикла используем быстрый boolean-чеκ через {@code element.is(condition)},
-     * а полноценную проверку {@code element.should(condition)} выполняем только один раз при успехе.
-     */
-    @Step("Ожидаем, пока элемент '{elementName}' в {blockIndex}-м блоке списка '{blockListName}' удовлетворит условию")
-    private CorePage waitUntilElementInBlockByNumberMeetsCondition(String blockListName,
+    @Step("Ожидаем, пока элемент '{elementName}' в блоке №{blockIndex} удовлетворит условию")
+    private CorePage waitUntilElementInBlockByNumberMeetsCondition(BlockListContext context,
                                                                    int blockIndex,
                                                                    String elementName,
                                                                    WebElementCondition condition) {
-        if (blockIndex < 1) {
-            throw new IllegalArgumentException("Индекс блока должен начинаться с 1, получено: " + blockIndex);
-        }
-
-        long timeoutMs = com.codeborne.selenide.Configuration.timeout;
-        long pollingMs = com.codeborne.selenide.Configuration.pollingInterval;
-        long endTime = System.currentTimeMillis() + timeoutMs;
-
-        while (true) {
-            BlockListContext ctx = createBlockListContextFromList(blockListName);
-            CorePage block = ctx.getBlockByNumber(blockIndex);
-            SelenideElement element = block.getElement(elementName);
-
-            if (element.is(condition)) {
-                // Финальная проверка через should для красивого сообщения об ошибке, если что-то пойдёт не так
-                element.should(condition);
-                return block;
-            }
-
-            if (System.currentTimeMillis() >= endTime) {
-                throw new AssertionError("Не удалось дождаться, пока элемент '" + elementName + "' в " +
-                        blockIndex + " блоке списка блоков '" + blockListName + "' удовлетворит условию '" +
-                        condition + "' в течение таймаута " + timeoutMs + " мс");
-            }
-
-            com.codeborne.selenide.Selenide.sleep(pollingMs);
-        }
+        return waitUntilElementInBlockByNumberMeetsCondition(
+                context,
+                blockIndex,
+                elementName,
+                condition,
+                element -> {
+                }
+        );
     }
 
-    @Step("Ожидаем, пока элемент '{elementName}' в {blockIndex}-м блоке списка '{blockListName}' внутри блока '{blockName}' удовлетворит условию")
-    private CorePage waitUntilElementInBlockByNumberMeetsCondition(String blockName,
-                                                                   String blockListName,
+    private CorePage waitUntilElementInBlockByNumberMeetsCondition(BlockListContext context,
                                                                    int blockIndex,
                                                                    String elementName,
-                                                                   WebElementCondition condition) {
-        if (blockIndex < 1) {
-            throw new IllegalArgumentException("Индекс блока должен начинаться с 1, получено: " + blockIndex);
-        }
-
-        long timeoutMs = com.codeborne.selenide.Configuration.timeout;
-        long pollingMs = com.codeborne.selenide.Configuration.pollingInterval;
-        long endTime = System.currentTimeMillis() + timeoutMs;
-
-        while (true) {
-            BlockListContext ctx = createBlockListContextFromBlock(blockName, blockListName);
-            CorePage block = ctx.getBlockByNumber(blockIndex);
-            SelenideElement element = block.getElement(elementName);
-
-            if (element.is(condition)) {
-                element.should(condition);
-                return block;
-            }
-
-            if (System.currentTimeMillis() >= endTime) {
-                throw new AssertionError("Не удалось дождаться, пока элемент '" + elementName + "' в " +
-                        blockIndex + " блоке списка блоков '" + blockListName + "' в блоке '" + blockName +
-                        "' удовлетворит условию '" + condition + "' в течение таймаута " + timeoutMs + " мс");
-            }
-
-            com.codeborne.selenide.Selenide.sleep(pollingMs);
-        }
+                                                                   WebElementCondition condition,
+                                                                   Consumer<SelenideElement> onMatched) {
+        return BlockSearchExecutor.awaitElementInBlock(
+                context,
+                blockIndex,
+                elementName,
+                condition,
+                onMatched,
+                "Элемент '" + elementName + "' в блоке №" + blockIndex +
+                        " не удовлетворил условию '" + condition + "'\n" + context.describe()
+        );
     }
 
-    /**
-     * Ожидание, пока указанный блок (его корневой элемент) с заданным номером удовлетворит условию.
-     * Аналогично {@link #waitUntilElementInBlockByNumberMeetsCondition(String, int, String, WebElementCondition)},
-     * но условие проверяется на {@code block.getSelf()} (например, css блока).
-     */
-    @Step("Ожидаем, пока {blockIndex}-й блок списка '{blockListName}' (его корневой элемент) удовлетворит условию")
-    private CorePage waitUntilBlockByNumberSelfMeetsCondition(String blockListName,
+    @Step("Ожидаем, пока корневой элемент блока №{blockIndex} удовлетворит условию")
+    private CorePage waitUntilBlockByNumberSelfMeetsCondition(BlockListContext context,
                                                               int blockIndex,
                                                               WebElementCondition condition) {
-        if (blockIndex < 1) {
-            throw new IllegalArgumentException("Индекс блока должен начинаться с 1, получено: " + blockIndex);
-        }
-
-        long timeoutMs = com.codeborne.selenide.Configuration.timeout;
-        long pollingMs = com.codeborne.selenide.Configuration.pollingInterval;
-        long endTime = System.currentTimeMillis() + timeoutMs;
-
-        while (true) {
-            BlockListContext ctx = createBlockListContextFromList(blockListName);
-            CorePage block = ctx.getBlockByNumber(blockIndex);
-            SelenideElement self = block.getSelf();
-
-            if (self.is(condition)) {
-                self.shouldHave(condition);
-                return block;
-            }
-
-            if (System.currentTimeMillis() >= endTime) {
-                throw new AssertionError("Не удалось дождаться, пока " + blockIndex +
-                        " блок списка блоков '" + blockListName + "' удовлетворит условию '" +
-                        condition + "' в течение таймаута " + timeoutMs + " мс");
-            }
-
-            com.codeborne.selenide.Selenide.sleep(pollingMs);
-        }
+        return BlockSearchExecutor.awaitBlockRoot(
+                context,
+                blockIndex,
+                condition,
+                "Блок №" + blockIndex + " не удовлетворил условию '" + condition +
+                        "'\n" + context.describe()
+        );
     }
 
-    /**
-     * Вариант {@link #waitUntilBlockByNumberSelfMeetsCondition(String, int, WebElementCondition)}
-     * для списка блоков внутри контейнерного блока.
-     */
-    @Step("Ожидаем, пока {blockIndex}-й блок списка '{blockListName}' внутри блока '{blockName}' удовлетворит условию")
-    private CorePage waitUntilBlockByNumberSelfMeetsCondition(String blockName,
-                                                              String blockListName,
-                                                              int blockIndex,
-                                                              WebElementCondition condition) {
-        if (blockIndex < 1) {
-            throw new IllegalArgumentException("Индекс блока должен начинаться с 1, получено: " + blockIndex);
-        }
-
-        long timeoutMs = com.codeborne.selenide.Configuration.timeout;
-        long pollingMs = com.codeborne.selenide.Configuration.pollingInterval;
-        long endTime = System.currentTimeMillis() + timeoutMs;
-
-        while (true) {
-            BlockListContext ctx = createBlockListContextFromBlock(blockName, blockListName);
-            CorePage block = ctx.getBlockByNumber(blockIndex);
-            SelenideElement self = block.getSelf();
-
-            if (self.is(condition)) {
-                self.shouldHave(condition);
-                return block;
-            }
-
-            if (System.currentTimeMillis() >= endTime) {
-                throw new AssertionError("Не удалось дождаться, пока " + blockIndex +
-                        " блок списка блоков '" + blockListName + "' в блоке '" + blockName +
-                        "' удовлетворит условию '" + condition + "' в течение таймаута " + timeoutMs + " мс");
-            }
-
-            com.codeborne.selenide.Selenide.sleep(pollingMs);
-        }
-    }
-
-    /**
-     * Ожидание, пока текст элемента в N-м блоке списка блоков будет соответствовать regex-условию.
-     * Использует {@link BlocksCollectionOtherMethod#checkTextMatches(CorePage, String, String)} для быстрого
-     * boolean-чека и {@link BlocksCollectionOtherMethod#shouldHaveTextMatches(CorePage, String, String)}
-     * для финальной проверки.
-     */
-    private CorePage waitUntilTextMatchesInBlockByNumber(String blockListName,
+    @Step("Ожидаем соответствия текста элемента '{elementName}' регулярному выражению в блоке №{blockIndex}")
+    private CorePage waitUntilTextMatchesInBlockByNumber(BlockListContext context,
                                                          int blockIndex,
                                                          String elementName,
                                                          String regExp) {
-        if (blockIndex < 1) {
-            throw new IllegalArgumentException("Индекс блока должен начинаться с 1, получено: " + blockIndex);
-        }
-
-        long timeoutMs = com.codeborne.selenide.Configuration.timeout;
-        long pollingMs = com.codeborne.selenide.Configuration.pollingInterval;
-        long endTime = System.currentTimeMillis() + timeoutMs;
-
-        while (true) {
-            BlockListContext ctx = createBlockListContextFromList(blockListName);
-            CorePage block = ctx.getBlockByNumber(blockIndex);
-
-            if (checkTextMatches(block, elementName, regExp)) {
-                shouldHaveTextMatches(block, elementName, regExp);
-                return block;
-            }
-
-            if (System.currentTimeMillis() >= endTime) {
-                throw new AssertionError("Не удалось дождаться, пока текст элемента '" + elementName + "' в " +
-                        blockIndex + " блоке списка блоков '" + blockListName + "' будет соответствовать регулярному выражению '" +
-                        regExp + "' в течение таймаута " + timeoutMs + " мс");
-            }
-
-            com.codeborne.selenide.Selenide.sleep(pollingMs);
-        }
+        return BlockSearchExecutor.awaitElementInBlock(
+                context,
+                blockIndex,
+                elementName,
+                BlockConditions.textMatches(regExp),
+                "Текст элемента '" + elementName + "' в блоке №" + blockIndex +
+                        " не соответствует выражению '" + regExp + "'\n" + context.describe()
+        );
     }
 
-    /**
-     * Вариант {@link #waitUntilTextMatchesInBlockByNumber(String, int, String, String)} для списка
-     * блоков внутри контейнерного блока.
-     */
-    private CorePage waitUntilTextMatchesInBlockByNumber(String blockName,
-                                                         String blockListName,
-                                                         int blockIndex,
-                                                         String elementName,
-                                                         String regExp) {
-        if (blockIndex < 1) {
-            throw new IllegalArgumentException("Индекс блока должен начинаться с 1, получено: " + blockIndex);
-        }
-
-        long timeoutMs = com.codeborne.selenide.Configuration.timeout;
-        long pollingMs = com.codeborne.selenide.Configuration.pollingInterval;
-        long endTime = System.currentTimeMillis() + timeoutMs;
-
-        while (true) {
-            BlockListContext ctx = createBlockListContextFromBlock(blockName, blockListName);
-            CorePage block = ctx.getBlockByNumber(blockIndex);
-
-            if (checkTextMatches(block, elementName, regExp)) {
-                shouldHaveTextMatches(block, elementName, regExp);
-                return block;
-            }
-
-            if (System.currentTimeMillis() >= endTime) {
-                throw new AssertionError("Не удалось дождаться, пока текст элемента '" + elementName + "' в " +
-                        blockIndex + " блоке списка блоков '" + blockListName + "' в блоке '" + blockName +
-                        "' будет соответствовать регулярному выражению '" + regExp + "' в течение таймаута " + timeoutMs + " мс");
-            }
-
-            com.codeborne.selenide.Selenide.sleep(pollingMs);
-        }
-    }
-
-    /**
-     * Ожидаем, пока в любом блоке списка блоков элемент удовлетворит условию.
-     * В каждом цикле пересобираем список блоков и проверяем элемент в каждом блоке через element.is(condition).
-     */
-    @Step("Ожидаем, пока в любом блоке списка '{blockListName}' элемент '{elementName}' удовлетворит условию")
-    private CorePage waitUntilAnyBlockElementMeetsCondition(String blockListName,
+    @Step("Ожидаем блок, в котором элемент '{elementName}' удовлетворяет условию")
+    private CorePage waitUntilAnyBlockElementMeetsCondition(BlockListContext context,
                                                             String elementName,
                                                             WebElementCondition condition) {
-        long timeoutMs = com.codeborne.selenide.Configuration.timeout;
-        long pollingMs = com.codeborne.selenide.Configuration.pollingInterval;
-        long endTime = System.currentTimeMillis() + timeoutMs;
-
-        while (true) {
-            BlockListContext ctx = createBlockListContextFromList(blockListName);
-            for (CorePage block : ctx.getBlocks()) {
-                SelenideElement element = block.getElement(elementName);
-                if (element.is(condition)) {
-                    element.should(condition);
-                    return block;
-                }
-            }
-
-            if (System.currentTimeMillis() >= endTime) {
-                throw new AssertionError("Не удалось найти блок, в котором элемент '" + elementName +
-                        "' удовлетворяет условию '" + condition + "' в списке блоков '" + blockListName +
-                        "' в течение таймаута " + timeoutMs + " мс");
-            }
-
-            com.codeborne.selenide.Selenide.sleep(pollingMs);
-        }
-    }
-
-    /**
-     * Вариант ожидания для списка блоков внутри контейнерного блока.
-     */
-    @Step("Ожидаем, пока в любом блоке списка '{blockListName}' внутри блока '{blockName}' элемент '{elementName}' удовлетворит условию")
-    private CorePage waitUntilAnyBlockElementMeetsCondition(String blockName,
-                                                            String blockListName,
-                                                            String elementName,
-                                                            WebElementCondition condition) {
-        long timeoutMs = com.codeborne.selenide.Configuration.timeout;
-        long pollingMs = com.codeborne.selenide.Configuration.pollingInterval;
-        long endTime = System.currentTimeMillis() + timeoutMs;
-
-        while (true) {
-            BlockListContext ctx = createBlockListContextFromBlock(blockName, blockListName);
-            for (CorePage block : ctx.getBlocks()) {
-                SelenideElement element = block.getElement(elementName);
-                if (element.is(condition)) {
-                    element.should(condition);
-                    return block;
-                }
-            }
-
-            if (System.currentTimeMillis() >= endTime) {
-                throw new AssertionError("Не удалось найти блок, в котором элемент '" + elementName +
-                        "' удовлетворяет условию '" + condition + "' в списке блоков '" + blockListName +
-                        "' внутри блока '" + blockName + "' в течение таймаута " + timeoutMs + " мс");
-            }
-
-            com.codeborne.selenide.Selenide.sleep(pollingMs);
-        }
+        return BlockSearchExecutor.findInContext(
+                context,
+                elementName,
+                condition,
+                "Не найден блок, в котором элемент '" + elementName +
+                        "' удовлетворяет условию '" + condition + "'\n" + context.describe()
+        );
     }
 
     /**
@@ -1401,7 +1177,7 @@ public class BlocksCollectionCheckSteps {
                                                     boolean useOneBasedIndexInMessage) {
         List<List<String>> conditionsRows = conditionsTable.asLists();
         List<CorePage> blocksList = blockListContext.getBlocks();
-        String contextDescription = formatBlockListContext(blockListContext);
+        String contextDescription = blockListContext.describe();
         String resultMessageTemplate = "%s\nБлок с индексом %d: элемент '%s' не соответствует условию: %s '%s'\\nФактический web-элемент: %s\\n";
         StringBuilder resultMessage = new StringBuilder();
 
@@ -1508,7 +1284,8 @@ public class BlocksCollectionCheckSteps {
     @Step("Ищем блоки в списке, удовлетворяющие сложным условиям из таблицы")
     private IStepResult checkBlockListForComplexCondition(BlockListContext blockListContext,
                                                           DataTable conditionsTable) {
-        List<CorePage> resultList = blockListContext.filterByConditions(conditionsTable);
+        List<CorePage> resultList =
+                getBlockListWithComplexCondition(blockListContext, conditionsTable);
 
         return new BlockListStepResult(resultList,
                 conditionsTable.asLists().stream().map(conditionRow -> conditionRow.get(0)).collect(Collectors.toList()));
@@ -1516,48 +1293,18 @@ public class BlocksCollectionCheckSteps {
 
     // Helpers for "конкретный блок, где текст ..." and "в любом блоке где текст ..." patterns
 
-    @Step("Ожидаем блок, где в элементе '{elementNameSearch}' текст равен ожидаемому значению")
     private CorePage waitUntilBlockWhereTextEquals(BlockListContext initialContext,
                                                    String elementNameSearch,
-                                                   String resolvedExpectedText) {
-        String listName = initialContext.getListName();
-        String containerName = initialContext.getContainerName();
-
-        WebElementCondition condition = Condition.or("проверка на текст",
-                Condition.exactText(resolvedExpectedText),
-                Condition.exactValue(resolvedExpectedText),
-                Condition.attribute("title", resolvedExpectedText)
+                                                   String resolvedExpectedText,
+                                                   Consumer<CorePage> onMatched) {
+        return BlockSearchExecutor.findInContext(
+                initialContext,
+                elementNameSearch,
+                BlockConditions.textEquals(resolvedExpectedText),
+                onMatched,
+                "Во всех блоках в элементах " + elementNameSearch +
+                        " не найден текст:" + resolvedExpectedText
         );
-
-        long timeoutMs = com.codeborne.selenide.Configuration.timeout;
-        long pollingMs = com.codeborne.selenide.Configuration.pollingInterval;
-        long endTime = System.currentTimeMillis() + timeoutMs;
-
-        while (true) {
-            BlockListContext ctx = containerName == null
-                    ? createBlockListContextFromList(listName)
-                    : createBlockListContextFromBlock(containerName, listName);
-
-            List<CorePage> blocks = ctx.getBlocks();
-            for (CorePage page : blocks) {
-                SelenideElement element = page.getElement(elementNameSearch);
-                scrollToElementCenter(element);
-                if (element.is(condition)) {
-                    element.should(condition);
-                    return page;
-                }
-            }
-
-            if (System.currentTimeMillis() >= endTime) {
-                String notFoundMessage = "Во всех блоках в элементах " + elementNameSearch +
-                        " не найден текст:" + resolvedExpectedText +
-                        "\nРазмер блоков: " + blocks.size() +
-                        "\nСодержимое блоков: " + blockListToString(blocks);
-                throw new AssertionError(notFoundMessage);
-            }
-
-            com.codeborne.selenide.Selenide.sleep(pollingMs);
-        }
     }
 
     @Step("Ищем блок, где в элементе '{elementNameSearch}' текст равен '{expectedTextSearch}', и проверяем отображение элемента '{expectedElementVisible}'")
@@ -1567,9 +1314,13 @@ public class BlocksCollectionCheckSteps {
                                                                String expectedElementVisible) {
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
         CorePage corePageByTextInElement =
-                waitUntilBlockWhereTextEquals(blockListContext, elementNameSearch, resolvedExpectedText);
+                waitUntilBlockWhereTextEquals(
+                        blockListContext,
+                        elementNameSearch,
+                        resolvedExpectedText,
+                        block -> block.getElement(expectedElementVisible).shouldBe(Condition.visible)
+                );
 
-        corePageByTextInElement.getElement(elementNameSearch).shouldBe(Condition.visible);
         return new BlockListStepResult(corePageByTextInElement, elementNameSearch, expectedElementVisible);
     }
 
@@ -1580,9 +1331,13 @@ public class BlocksCollectionCheckSteps {
                                                                   String expectedElementVisible) {
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
         CorePage corePageByTextInElement =
-                waitUntilBlockWhereTextEquals(blockListContext, elementNameSearch, resolvedExpectedText);
+                waitUntilBlockWhereTextEquals(
+                        blockListContext,
+                        elementNameSearch,
+                        resolvedExpectedText,
+                        block -> block.getElement(expectedElementVisible).shouldNot(Condition.visible)
+                );
 
-        corePageByTextInElement.getElement(elementNameSearch).shouldNot(Condition.visible);
         return new BlockListStepResult(corePageByTextInElement, elementNameSearch, expectedElementVisible);
     }
 
@@ -1592,10 +1347,15 @@ public class BlocksCollectionCheckSteps {
                                                    String expectedTextSearch,
                                                    String expectedElementVisible) {
         String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedTextSearch);
-        CorePage corePageByTextInElement =
-                findCorePageByRegExpInElement(blockListContext.getBlocks(), elementNameSearch, resolvedExpectedText);
+        CorePage corePageByTextInElement = BlockSearchExecutor.findInContext(
+                blockListContext,
+                elementNameSearch,
+                BlockConditions.textMatches(resolvedExpectedText),
+                block -> block.getElement(expectedElementVisible).shouldBe(Condition.visible),
+                "Во всех блоках в элементах " + elementNameSearch +
+                        " не найден текст по выражению:" + resolvedExpectedText
+        );
 
-        corePageByTextInElement.getElement(elementNameSearch).shouldBe(Condition.visible);
         return new BlockListStepResult(corePageByTextInElement, elementNameSearch, expectedElementVisible);
     }
 
@@ -1609,9 +1369,13 @@ public class BlocksCollectionCheckSteps {
         String resolvedExpectedTextFind = getPropertyOrStringVariableOrValue(expectedTextFind);
 
         CorePage corePageByTextInElement =
-                waitUntilBlockWhereTextEquals(blockListContext, elementNameSearch, resolvedExpectedText);
+                waitUntilBlockWhereTextEquals(
+                        blockListContext,
+                        elementNameSearch,
+                        resolvedExpectedText,
+                        block -> shouldHaveTextMatches(block, elementNameFind, resolvedExpectedTextFind)
+                );
 
-        shouldHaveTextMatches(corePageByTextInElement, elementNameFind, resolvedExpectedTextFind);
         return new BlockListStepResult(corePageByTextInElement, elementNameSearch, elementNameFind);
     }
 
@@ -1624,11 +1388,15 @@ public class BlocksCollectionCheckSteps {
         String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedTextSearch);
         String resolvedExpectedTextFind = getPropertyOrStringVariableOrValue(expectedTextFind);
 
-        CorePage corePageByTextInElement =
-                findCorePageByRegExpInElement(blockListContext.getBlocks(), elementNameSearch, resolvedExpectedText);
-
-        SelenideElement element = corePageByTextInElement.getElement(elementNameFind);
-        element.shouldHave(Condition.matchText(resolvedExpectedTextFind), Duration.ZERO);
+        CorePage corePageByTextInElement = BlockSearchExecutor.findInContext(
+                blockListContext,
+                elementNameSearch,
+                BlockConditions.textMatches(resolvedExpectedText),
+                block -> block.getElement(elementNameFind)
+                        .shouldHave(Condition.matchText(resolvedExpectedTextFind), Duration.ZERO),
+                "Во всех блоках в элементах " + elementNameSearch +
+                        " не найден текст по выражению:" + resolvedExpectedText
+        );
 
         return new BlockListStepResult(corePageByTextInElement, elementNameSearch, elementNameFind);
     }
@@ -1641,14 +1409,16 @@ public class BlocksCollectionCheckSteps {
                                            String cssName,
                                            String cssValue) {
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
-        CorePage block =
-                waitUntilBlockWhereTextEquals(blockListContext, elementNameSearch, resolvedExpectedText);
-
         String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
         String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
 
-        SelenideElement element = block.getElement(elementNameFind);
-        element.shouldHave(Condition.cssValue(resolvedCssName, resolvedCssValue));
+        CorePage block = waitUntilBlockWhereTextEquals(
+                blockListContext,
+                elementNameSearch,
+                resolvedExpectedText,
+                matchedBlock -> matchedBlock.getElement(elementNameFind)
+                        .shouldHave(Condition.cssValue(resolvedCssName, resolvedCssValue))
+        );
         return new BlockListStepResult(block, elementNameSearch, elementNameFind);
     }
 
@@ -1660,9 +1430,13 @@ public class BlocksCollectionCheckSteps {
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
 
         CorePage corePageByTextInElement =
-                waitUntilBlockWhereTextEquals(blockListContext, elementNameSearch, resolvedExpectedText);
+                waitUntilBlockWhereTextEquals(
+                        blockListContext,
+                        elementNameSearch,
+                        resolvedExpectedText,
+                        block -> inBounds(block.getSelf(), boundsCondition)
+                );
 
-        inBounds(corePageByTextInElement.getSelf(), boundsCondition);
         return new BlockListStepResult(corePageByTextInElement, elementNameSearch);
     }
 
@@ -1675,10 +1449,16 @@ public class BlocksCollectionCheckSteps {
         String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
 
         CorePage corePageByTextInElement =
-                waitUntilBlockWhereTextEquals(blockListContext, elementToCheckText, resolvedExpectedText);
+                waitUntilBlockWhereTextEquals(
+                        blockListContext,
+                        elementToCheckText,
+                        resolvedExpectedText,
+                        block -> {
+                            String text = block.getElement(elementToSaveText).getText();
+                            CoreScenario.getInstance().getEnvironment().setVar(varName, text);
+                        }
+                );
 
-        SelenideElement element = corePageByTextInElement.getElement(elementToSaveText);
-        CoreScenario.getInstance().getEnvironment().setVar(varName, element.getText());
         return new BlockListStepResult(corePageByTextInElement, elementToCheckText, elementToSaveText);
     }
 
