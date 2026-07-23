@@ -499,15 +499,11 @@ public class SelenideElementActionSteps {
     }
 
     /**
-     * Скроллит страницу вниз до появления элемента каждую секунду.
-     * Если достигнут футер страницы и элемент не найден - выбрасывается exception.
+     * Прокручивает страницу к указанному элементу.
+     * Selenide ожидает появления элемента в пределах настроенного timeout.
      */
     public void scrollWhileElemNotFoundOnPage(SelenideElement element) {
-        do {
-            element.scrollTo();
-            executeJavaScript("return window.scrollBy(0, 250);");
-            sleep(1000);
-        } while (!atBottom());
+        element.scrollTo();
     }
 
     /**

@@ -45,12 +45,18 @@ public class BlocksCollection<T extends CorePage> implements List<T> {
     }
 
     /**
-     * Строит снимок текущего списка блоков по DOM.
+     * Строит снимок текущего состава списка блоков.
+     *
+     * Важно: корни блоков берутся через {@link ElementsCollection#get(int)}.
+     * В отличие от обычного iterator {@link ElementsCollection}, это оставляет
+     * ленивый Selenide-прокси, который повторно находит элемент по индексу после
+     * перерисовки DOM и не хранит фиксированный WebElement.
      */
     private List<T> snapshot() {
-        List<T> result = new ArrayList<>();
-        for (SelenideElement root : roots) {
-            result.add(createBlock(root));
+        int currentSize = roots.size();
+        List<T> result = new ArrayList<>(currentSize);
+        for (int index = 0; index < currentSize; index++) {
+            result.add(createBlock(roots.get(index)));
         }
         return result;
     }

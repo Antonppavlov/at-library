@@ -40,10 +40,7 @@ public class OtherSteps {
     @И("^перемещение файла из \"([^\"]*)\" в \"([^\"]*)\"$")
     public static void localMoveFiles(String pathFile, String pathMoveFile) throws IOException {
         pathFile = loadValueFromFileOrPropertyOrVariableOrDefault(pathFile);
-        pathFile = loadValueFromFileOrVariableOrDefault(pathFile);
-
         pathMoveFile = loadValueFromFileOrPropertyOrVariableOrDefault(pathMoveFile);
-        pathMoveFile = loadValueFromFileOrVariableOrDefault(pathMoveFile);
 
         Path temp = Files.move(Paths.get(pathFile), Paths.get(pathMoveFile));
 
