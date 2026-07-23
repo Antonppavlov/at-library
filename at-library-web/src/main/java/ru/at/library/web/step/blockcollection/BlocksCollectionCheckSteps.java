@@ -286,25 +286,19 @@ public class BlocksCollectionCheckSteps {
      */
 
     @И("^в списке блоков \"([^\"]*)\" в каждом блоке в элементе \"([^\"]*)\" текст не равен \"([^\"]*)\"$")
-    public IStepResult checkNotTextInBlockListMatches(String blockListName, String elementName, String regExp) {
-        String resolvedRegExp = OtherSteps.getPropertyOrStringVariableOrValue(regExp);
+    public IStepResult checkNotTextInBlockListMatches(String blockListName, String elementName, String expectedText) {
+        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
         return forEachBlock(createBlockListContextFromList(blockListName), elementName,
-                block -> block.getElement(elementName).shouldNot(Condition.and("Проверка что TextMatches элемента",
-                        Condition.attribute("value", resolvedRegExp),
-                        Condition.attribute("title", resolvedRegExp),
-                        Condition.text(resolvedRegExp)
-                )));
+                block -> block.getElement(elementName)
+                        .shouldNotHave(BlockConditions.textEquals(resolvedExpectedText)));
     }
 
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в каждом блоке в элементе \"([^\"]*)\" текст не равен \"([^\"]*)\"$")
-    public IStepResult checkNotTextInBlockListMatches(String blockName, String blockListName, String elementName, String regExp) {
-        String resolvedRegExp = OtherSteps.getPropertyOrStringVariableOrValue(regExp);
+    public IStepResult checkNotTextInBlockListMatches(String blockName, String blockListName, String elementName, String expectedText) {
+        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
         return forEachBlock(createBlockListContextFromBlock(blockName, blockListName), elementName,
-                block -> block.getElement(elementName).shouldNot(Condition.and("Проверка что TextMatches элемента",
-                        Condition.attribute("value", resolvedRegExp),
-                        Condition.attribute("title", resolvedRegExp),
-                        Condition.text(resolvedRegExp)
-                )));
+                block -> block.getElement(elementName)
+                        .shouldNotHave(BlockConditions.textEquals(resolvedExpectedText)));
     }
 
 

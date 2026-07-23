@@ -22,14 +22,31 @@ public class BlockPollingDeadlineTest {
 
     @Test
     public void attemptCountIsBoundedEvenWithoutPauses() {
-        BlockPollingDeadline deadline = BlockPollingDeadline.of(180L, 50L);
+        BlockPollingDeadline deadline = BlockPollingDeadline.of(60_000L, 1L);
 
         while (deadline.tryNextAttempt()) {
             // Имитируем ошибочный polling без пауз: защита по числу попыток
             // всё равно должна завершить цикл.
         }
 
-        assertEquals(deadline.attempts(), 5);
+        assertEquals(deadline.attempts(), 1_202);
+    }
+
+    @Test
+    public void negativeTimeoutIsNormalizedToZero() {
+        BlockPollingDeadline deadline = BlockPollingDeadline.of(-1L, 50L);
+
+        assertTrue(deadline.tryNextAttempt());
+        assertFalse(deadline.tryNextAttempt());
+        assertEquals(deadline.timeoutMs(), 0L);
+    }
+
+    @Test
+    public void hugeTimeoutDoesNotOverflowNanoseconds() {
+        BlockPollingDeadline deadline = BlockPollingDeadline.of(Long.MAX_VALUE, 50L);
+
+        assertTrue(deadline.tryNextAttempt());
+        assertEquals(deadline.timeoutMs(), Long.MAX_VALUE);
     }
 
     @Test

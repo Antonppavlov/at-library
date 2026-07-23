@@ -1,7 +1,6 @@
 package ru.at.library.core.steps;
 
 import io.cucumber.java.ru.И;
-import org.apache.commons.lang3.RandomStringUtils;
 import lombok.extern.log4j.Log4j2;
 import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.core.utils.helpers.PropertyLoader;
@@ -17,6 +16,7 @@ import java.util.UUID;
 import static org.apache.commons.lang3.RandomUtils.nextBoolean;
 import static ru.at.library.core.steps.OtherSteps.getPropertyOrStringVariableOrValue;
 import static ru.at.library.core.steps.OtherSteps.getRandCharSequence;
+import static ru.at.library.core.steps.OtherSteps.getRandNumSequence;
 
 /**
  * Шаги генерации тестовых данных
@@ -53,7 +53,7 @@ public class DataGenerationSteps {
      */
     @И("^генерация случайного числа из (\\d+) (?:цифр|цифры) и сохранение в переменную \"([^\"]*)\"$")
     public void randomNumSequence(int seqLength, String varName) {
-        String numSeq = RandomStringUtils.randomNumeric(seqLength);
+        String numSeq = getRandNumSequence(seqLength);
         coreScenario.setVar(varName, numSeq);
         log.trace("Случайное число равно: " + numSeq);
     }

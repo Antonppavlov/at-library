@@ -289,6 +289,67 @@ public class DynamicBlocksTestSteps {
         }
     }
 
+    @И("^проверка \"текст не равен\" дожидается изменения равного текста$")
+    public void notEqualCheckWaitsForEqualTextToChange() {
+        long originalTimeout = Configuration.timeout;
+        Boolean textChanged;
+
+        try {
+            Configuration.timeout = 2_000L;
+            Selenide.executeJavaScript("""
+                    document.body.dataset.notEqualReady = 'false';
+                    window.setTimeout(() => {
+                      const name = document.querySelectorAll(
+                        '#blocks > .dynamic-block .block-name'
+                      )[1];
+                      name.textContent = 'Изменённый второй блок';
+                      name.title = 'Префикс Изменённый второй блок суффикс';
+                      document.body.dataset.notEqualReady = 'true';
+                    }, 800);
+                    """);
+
+            new BlocksCollectionCheckSteps().checkNotTextInBlockListMatches(
+                    "Динамические блоки",
+                    "Название динамического блока",
+                    "Второй блок"
+            );
+
+            textChanged = Selenide.executeJavaScript(
+                    "return document.body.dataset.notEqualReady === 'true';"
+            );
+        } finally {
+            Configuration.timeout = originalTimeout;
+        }
+
+        if (!Boolean.TRUE.equals(textChanged)) {
+            throw new AssertionError(
+                    "Проверка завершилась до того, как равный текст действительно изменился"
+            );
+        }
+    }
+
+    @И("^условие \"текст не содержит\" учитывает подстроку в атрибуте title$")
+    public void notContainsCheckUsesTitleSubstring(DataTable conditions) {
+        List<CorePage> matches = getBlockListWithComplexCondition(
+                BlockListContext.live("Динамические блоки"),
+                conditions
+        );
+
+        if (matches.size() != 2) {
+            throw new AssertionError(
+                    "Условие должно исключить только блок с title-token-1, найдено: " +
+                            matches.size()
+            );
+        }
+        for (CorePage match : matches) {
+            String title = match.getElement("Описание динамического блока")
+                    .getAttribute("title");
+            if (title != null && title.contains("title-token-1")) {
+                throw new AssertionError("В результат попал блок с запрещённой подстрокой: " + title);
+            }
+        }
+    }
+
     @И("^поиск отсутствующего динамического блока завершается по общему таймауту$")
     public void missingDynamicBlockSearchStopsAtDeadline() {
         long originalTimeout = Configuration.timeout;

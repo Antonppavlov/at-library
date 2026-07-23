@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -77,6 +78,27 @@ public class OtherSteps {
      */
     public static int getRandom(int maxValueInRange) {
         return (int) (Math.random() * maxValueInRange);
+    }
+
+    /**
+     * Возвращает последовательность случайных цифр без блокирующего
+     * криптографического генератора. Метод предназначен для тестовых данных.
+     *
+     * @param length длина последовательности
+     */
+    public static String getRandNumSequence(int length) {
+        if (length < 0) {
+            throw new IllegalArgumentException(
+                    "Длина последовательности не может быть отрицательной: " + length
+            );
+        }
+
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        char[] result = new char[length];
+        for (int index = 0; index < length; index++) {
+            result[index] = (char) ('0' + random.nextInt(10));
+        }
+        return new String(result);
     }
 
     /**

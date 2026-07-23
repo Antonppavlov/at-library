@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 import static ru.at.library.core.steps.OtherSteps.getPropertyOrStringVariableOrValue;
 import static ru.at.library.core.utils.helpers.ScopedVariables.resolveVars;
@@ -290,7 +291,10 @@ public class BlocksCollectionOtherMethod {
                 condition = Condition.not(Condition.or("текст элемента не содержит",
                         Condition.text(expectedValue),
                         Condition.value(expectedValue),
-                        Condition.attributeMatching("title", expectedValue)));
+                        Condition.attributeMatching(
+                                "title",
+                                ".*" + Pattern.quote(expectedValue) + ".*"
+                        )));
                 break;
             }
             case "содержит css": {

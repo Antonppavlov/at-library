@@ -7,7 +7,6 @@ import com.codeborne.selenide.WebDriverRunner;
 import io.cucumber.java.ru.А;
 import io.cucumber.java.ru.И;
 import io.qameta.allure.Step;
-import org.apache.commons.lang3.RandomStringUtils;
 import lombok.extern.log4j.Log4j2;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -429,7 +428,7 @@ public class SelenideElementActionSteps {
     @Step("Генерация случайного числа из '{seqLengthString}' цифр")
     public String randomNumSequence(String seqLengthString) {
         int seqLength = Integer.parseInt(seqLengthString);
-        return RandomStringUtils.randomNumeric(seqLength);
+        return getRandNumSequence(seqLength);
     }
 
     /**

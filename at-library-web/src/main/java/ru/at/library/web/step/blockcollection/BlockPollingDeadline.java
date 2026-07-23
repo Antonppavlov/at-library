@@ -3,7 +3,6 @@ package ru.at.library.web.step.blockcollection;
 import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.Selenide;
 
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -28,7 +27,7 @@ final class BlockPollingDeadline {
         this.timeoutMs = Math.max(0L, timeoutMs);
         this.pollingMs = Math.max(MIN_POLLING_MS, pollingMs);
         this.startedNanos = System.nanoTime();
-        this.timeoutNanos = Duration.ofMillis(this.timeoutMs).toNanos();
+        this.timeoutNanos = TimeUnit.MILLISECONDS.toNanos(this.timeoutMs);
 
         long calculatedAttempts = this.timeoutMs / this.pollingMs + 2L;
         this.maxAttempts = calculatedAttempts >= Integer.MAX_VALUE
