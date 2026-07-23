@@ -4,6 +4,7 @@ import io.cucumber.datatable.DataTable;
 import io.cucumber.java.PendingException;
 import io.cucumber.java.ru.И;
 import io.cucumber.java.ru.То;
+import io.qameta.allure.Step;
 import lombok.extern.log4j.Log4j2;
 import ru.at.library.core.cucumber.api.CoreScenario;
 
@@ -151,6 +152,7 @@ public class OtherSteps {
      * @return Возвращает значение из property файла, если отсутствует, то из пользовательских переменных,
      * если и оно отсутствует, то возвращает значение переданной на вход переменной
      */
+    @Step("Попытка получить значение из property файла, если отсутствует, то из пользовательских переменных, если и оно отсутствует, то возвращает переданное значение '{propertyNameOrVariableNameOrValue}'")
     public synchronized static String getPropertyOrStringVariableOrValue(String propertyNameOrVariableNameOrValue) {
         String propertyValue = tryLoadProperty(propertyNameOrVariableNameOrValue);
         String variableValue = null;
