@@ -3,13 +3,22 @@ package ru.at.library.web.step.blockcollection;
 import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.Selenide;
+import com.codeborne.selenide.logevents.LogEvent;
+import com.codeborne.selenide.logevents.LogEventListener;
+import com.codeborne.selenide.logevents.SelenideLogger;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.ru.И;
+import io.qameta.allure.Allure;
+import io.qameta.allure.model.Status;
+import io.qameta.allure.model.StepResult;
 import ru.at.library.web.scenario.CorePage;
 import ru.at.library.web.scenario.WebScenario;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 import static com.codeborne.selenide.Selenide.$;
 import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.findCorePageByRegExpInElement;
@@ -172,6 +181,35 @@ public class DynamicBlocksTestSteps {
                         '</div>'
                     );
                 }, 300);
+                """);
+    }
+
+    @И("^открыта тестовая страница с добавлением второго блока после первой проверки$")
+    public void openPageWithSecondBlockAddedAfterFirstCheck() {
+        openStableBlocksPage();
+        Selenide.executeJavaScript("""
+                const blocks = document.getElementById('blocks');
+                blocks.querySelectorAll('.dynamic-block:not(:first-child)')
+                  .forEach(element => element.remove());
+
+                const originalScrollIntoView = Element.prototype.scrollIntoView;
+                window.__appendSecondBlockOnScroll = true;
+                Element.prototype.scrollIntoView = function(options) {
+                  if (window.__appendSecondBlockOnScroll && this.closest('#blocks')) {
+                    window.__appendSecondBlockOnScroll = false;
+                    blocks.insertAdjacentHTML(
+                      'beforeend',
+                      window.__dynamicBlockMarkup(
+                        'dynamic-block',
+                        2,
+                        'Второй блок'
+                      )
+                    );
+                  }
+                  if (originalScrollIntoView) {
+                    originalScrollIntoView.call(this, options);
+                  }
+                };
                 """);
     }
 
@@ -385,9 +423,240 @@ public class DynamicBlocksTestSteps {
         }
     }
 
+    @И("^поиск блока с повторными попытками не создаёт технических Selenide-шагов$")
+    public void retrySearchDoesNotEmitTechnicalSelenideSteps() {
+        assertNoTechnicalSelenideEvents(() ->
+                new BlocksCollectionActionSteps().clickButtonInBlockListWhereTextEquals(
+                        "Динамические блоки",
+                        "Название динамического блока",
+                        "Второй блок",
+                        "Кнопка динамического блока"
+                )
+        );
+        assertSearchReportStructure(false);
+    }
+
+    @И("^поиск блока при перерисовке DOM не создаёт технических Selenide-шагов$")
+    public void staleRetryDoesNotEmitTechnicalSelenideSteps() {
+        assertNoTechnicalSelenideEvents(() ->
+                new BlocksCollectionActionSteps().clickButtonInBlockListWhereTextEquals(
+                        "Динамические блоки",
+                        "Название динамического блока",
+                        "Второй блок",
+                        "Кнопка динамического блока"
+                )
+        );
+        assertSearchReportStructure(true);
+    }
+
+    @И("^проверка каждого блока не создаёт технических Selenide-шагов$")
+    public void everyBlockCheckDoesNotEmitTechnicalSelenideSteps() {
+        assertNoTechnicalSelenideEvents(() ->
+                new BlocksCollectionCheckSteps().checkNotTextInBlockListMatches(
+                        "Динамические блоки",
+                        "Название динамического блока",
+                        "Отсутствующий текст"
+                )
+        );
+        assertEveryBlockReportStructure();
+    }
+
+    private void assertNoTechnicalSelenideEvents(Runnable blockOperation) {
+        String listenerName = "AllureSelenide";
+        LogEventListener previousListener =
+                SelenideLogger.removeListener(listenerName);
+        RecordingListener listener = new RecordingListener();
+        SelenideLogger.addListener(listenerName, listener);
+        try {
+            blockOperation.run();
+            if (listener.events() != 0) {
+                throw new AssertionError(
+                        "Внутри blockcollection зарегистрировано технических Selenide-событий: " +
+                                listener.events()
+                );
+            }
+
+            SelenideLogger.run("control", "после blockcollection", () -> {
+            });
+            if (listener.events() != 2) {
+                throw new AssertionError(
+                        "Selenide listener не восстановлен после blockcollection"
+                );
+            }
+        } finally {
+            SelenideLogger.removeListener(listenerName);
+            if (previousListener != null) {
+                SelenideLogger.addListener(listenerName, previousListener);
+            }
+        }
+    }
+
+    private void assertSearchReportStructure(boolean requireDomUpdated) {
+        List<StepResult> roots = currentAllureSteps();
+        List<StepResult> attempts = findSteps(
+                roots,
+                step -> step.getName().startsWith("Попытка №")
+        );
+        if (attempts.size() < 2) {
+            throw new AssertionError(
+                    "Ожидалось минимум две попытки поиска, фактически: " +
+                            attempts.size() + "\nAllure-шаги: " + stepNames(roots)
+            );
+        }
+
+        List<StepResult> reportedBlocks = new ArrayList<>();
+        for (StepResult attempt : attempts) {
+            List<StepResult> blocks = attempt.getSteps().stream()
+                    .filter(step -> step.getName().startsWith("Блок №"))
+                    .toList();
+            boolean listUpdatedBeforeCheck =
+                    attempt.getName().contains("список обновился до проверки");
+            if ((!listUpdatedBeforeCheck && blocks.isEmpty())
+                    || blocks.stream().anyMatch(step ->
+                    step.getStatus() != Status.PASSED
+                            || !hasParameter(step, "Ожидается")
+                            || !hasParameter(step, "Фактически"))) {
+                throw new AssertionError(
+                    "Каждая попытка должна содержать успешные детальные шаги блоков" +
+                                "\nПопытка: " + attempt.getName() +
+                                "\nAllure-шаги: " + stepNames(roots)
+                );
+            }
+            reportedBlocks.addAll(blocks);
+        }
+
+        List<StepResult> actions = findSteps(
+                reportedBlocks,
+                step -> step.getName().startsWith("Действие с найденным блоком №")
+                        && step.getName().endsWith("— ВЫПОЛНЕНО")
+        );
+        if (actions.isEmpty()) {
+            throw new AssertionError(
+                    "В успешном блоке отсутствует вложенное действие" +
+                            "\nAllure-шаги: " + stepNames(roots)
+            );
+        }
+        if (requireDomUpdated && findSteps(
+                attempts,
+                step -> step.getName().startsWith("Блок №")
+                        && step.getName().contains("DOM обновился")
+        ).isEmpty()) {
+            throw new AssertionError(
+                    "В отчёте отсутствует повтор после обновления DOM" +
+                            "\nAllure-шаги: " + stepNames(roots)
+            );
+        }
+        assertNoFailedAllureSteps(roots);
+    }
+
+    private void assertEveryBlockReportStructure() {
+        List<StepResult> roots = currentAllureSteps();
+        List<StepResult> blockSteps = findSteps(
+                roots,
+                step -> step.getName().startsWith("Блок №")
+        );
+        if (blockSteps.size() != 3
+                || blockSteps.stream().anyMatch(step ->
+                step.getStatus() != Status.PASSED
+                        || !hasParameter(step, "Ожидается")
+                        || !hasParameter(step, "Фактически")
+                        || !step.getName().endsWith("— ВЫПОЛНЕНО"))) {
+            throw new AssertionError(
+                    "Ожидались три детальных Allure-шага по блокам: " +
+                            stepNames(blockSteps)
+            );
+        }
+        assertNoFailedAllureSteps(roots);
+    }
+
+    private boolean hasParameter(StepResult step, String parameterName) {
+        return step.getParameters().stream()
+                .anyMatch(parameter -> parameterName.equals(parameter.getName())
+                        && parameter.getValue() != null
+                        && !parameter.getValue().isBlank());
+    }
+
+    private List<StepResult> currentAllureSteps() {
+        String currentStep = Allure.getLifecycle()
+                .getCurrentTestCaseOrStep()
+                .orElseThrow(() -> new AssertionError(
+                        "Не найден текущий Allure-шаг"
+                ));
+        List<StepResult> steps = new ArrayList<>();
+        Allure.getLifecycle().updateStep(
+                currentStep,
+                result -> steps.addAll(result.getSteps())
+        );
+        return steps;
+    }
+
+    private List<StepResult> findSteps(List<StepResult> roots,
+                                       Predicate<StepResult> predicate) {
+        List<StepResult> result = new ArrayList<>();
+        collectSteps(roots, predicate, result);
+        return result;
+    }
+
+    private void collectSteps(List<StepResult> steps,
+                              Predicate<StepResult> predicate,
+                              List<StepResult> result) {
+        for (StepResult step : steps) {
+            if (predicate.test(step)) {
+                result.add(step);
+            }
+            collectSteps(step.getSteps(), predicate, result);
+        }
+    }
+
+    private List<String> stepNames(List<StepResult> steps) {
+        List<String> names = new ArrayList<>();
+        collectStepNames(steps, names);
+        return names;
+    }
+
+    private void assertNoFailedAllureSteps(List<StepResult> roots) {
+        List<StepResult> failed = findSteps(
+                roots,
+                step -> step.getStatus() == Status.FAILED
+                        || step.getStatus() == Status.BROKEN
+        );
+        if (!failed.isEmpty()) {
+            throw new AssertionError(
+                    "В успешном цикле есть failed/broken Allure-шаги: " +
+                            stepNames(failed)
+            );
+        }
+    }
+
+    private void collectStepNames(List<StepResult> steps, List<String> names) {
+        for (StepResult step : steps) {
+            names.add(step.getName());
+            collectStepNames(step.getSteps(), names);
+        }
+    }
+
     private void assertFound(CorePage block, String operation) {
         if (block == null) {
             throw new AssertionError(operation + " не вернул блок");
+        }
+    }
+
+    private static class RecordingListener implements LogEventListener {
+
+        private final AtomicInteger events = new AtomicInteger();
+
+        @Override
+        public void afterEvent(LogEvent currentLog) {
+            events.incrementAndGet();
+        }
+
+        @Override
+        public void beforeEvent(LogEvent currentLog) {
+            events.incrementAndGet();
+        }
+
+        private int events() {
+            return events.get();
         }
     }
 }

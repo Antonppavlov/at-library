@@ -1,18 +1,17 @@
 package ru.at.library.web.step.blockcollection;
 
 import com.codeborne.selenide.*;
-import com.codeborne.selenide.ex.ElementNotFound;
 import io.cucumber.datatable.DataTable;
 import io.qameta.allure.Allure;
 import io.qameta.allure.Step;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.StaleElementReferenceException;
+import org.openqa.selenium.WebElement;
 import ru.at.library.core.steps.OtherSteps;
 import ru.at.library.web.scenario.BlocksCollection;
 import ru.at.library.web.scenario.CorePage;
 import ru.at.library.web.scenario.CustomCondition;
 import ru.at.library.web.scenario.WebScenario;
-import ru.at.library.web.step.browser.BrowserSteps;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,24 +32,14 @@ public class BlocksCollectionOtherMethod {
     /**
      * Скроллит указанный элемент в центр видимой области окна с помощью JS.
      * Используется всеми методами поиска/проверки в списках блоков, чтобы избежать дублирования строки
-     * с вызовом {@code Selenide.executeJavaScript("arguments[0].scrollIntoView({block: 'center', inline: 'center'});", element)}.
+     * с вызовом {@code scrollIntoView}. Передаётся уже найденный {@link WebElement}, чтобы обновление DOM
+     * не могло быть скрыто повторным поиском Selenide-прокси.
      */
-    static boolean scrollToElementCenter(SelenideElement element) {
-        try {
-            // Проверка намеренно быстрая: общим временем управляет внешний polling deadline.
-            if (!element.exists()) {
-                return false;
-            }
-            Selenide.executeJavaScript(
-                    "arguments[0].scrollIntoView({block: \"center\", inline: \"center\"});",
-                    element
-            );
-            return true;
-        } catch (StaleElementReferenceException | ElementNotFound e) {
-            // Фронт перерисовал DOM между exists() и executeJavaScript().
-            // Внешний polling-проход заново получит актуальный список блоков.
-            return false;
-        }
+    static void scrollToElementCenter(WebElement element) {
+        WebDriverRunner.driver().executeJavaScript(
+                "arguments[0].scrollIntoView({block: \"center\", inline: \"center\"});",
+                element
+        );
     }
 
     private static CorePage findCorePageByCondition(List<CorePage> blocksList,
@@ -156,12 +145,18 @@ public class BlocksCollectionOtherMethod {
                                                      CustomCondition.Comparison comparison,
                                                      int count) {
         try {
-            collection.getRoots().shouldHave(
-                    CustomCondition.getElementsCollectionSizeCondition(comparison, count)
+            BlockAllureReport.withoutSelenideSteps(
+                    () -> {
+                        collection.getRoots().shouldHave(
+                                CustomCondition.getElementsCollectionSizeCondition(comparison, count)
+                        );
+                    }
             );
         } catch (AssertionError e) {
-            int actualSize = collection.getRoots().size();
-            BrowserSteps.takeScreenshot();
+            int actualSize = BlockAllureReport.withoutSelenideSteps(
+                    () -> collection.getRoots().size()
+            );
+            BlockAllureReport.attachFailureScreenshot();
             throw new AssertionError(
                     BlockListContext.describe(listName, containerName) +
                             "\nУсловие по количеству блоков: " + comparison +
@@ -172,7 +167,9 @@ public class BlocksCollectionOtherMethod {
         }
 
         List<CorePage> result = new ArrayList<>();
-        collection.forEach(result::add);
+        BlockAllureReport.withoutSelenideSteps(
+                () -> collection.forEach(result::add)
+        );
         return result;
     }
 
@@ -194,19 +191,17 @@ public class BlocksCollectionOtherMethod {
                 context,
                 block -> matchesAllConditions(block, conditions),
                 onMatched,
-                "В списке блоков не найден ни один блок, удовлетворяющий всем условиям" +
-                        "\n" + context.describe() +
-                        "\nУсловия:\n" + conditionsToString(conditions)
+                complexConditionNotFoundMessage(context, conditions)
         );
     }
 
     static List<CorePage> getBlockListWithComplexCondition(BlockListContext context,
                                                            DataTable conditionsTable) {
-        return getBlockListWithComplexCondition(
+        List<ComplexCondition> conditions = resolveConditions(conditionsTable);
+        return BlockSearchExecutor.filterInContext(
                 context,
-                conditionsTable,
-                matchedBlocks -> {
-                }
+                block -> matchesAllConditions(block, conditions),
+                complexConditionNotFoundMessage(context, conditions)
         );
     }
 
@@ -215,21 +210,46 @@ public class BlocksCollectionOtherMethod {
         for (int index = 0; index < conditions.size(); index++) {
             int conditionNumber = index + 1;
             ComplexCondition condition = conditions.get(index);
-            boolean matched = Allure.step(
-                    "Условие №" + conditionNumber + ": " + condition.description(),
-                    step -> {
-                        SelenideElement element = block.getElement(condition.elementName());
-                        if (condition.requiresExistingElement() && !scrollToElementCenter(element)) {
-                            step.name("Условие №" + conditionNumber + " — элемент пока недоступен");
-                            return false;
-                        }
+            String stepTitle = "Условие №" + conditionNumber + " из " + conditions.size() +
+                    " — элемент '" + condition.elementName() + "'";
+            Boolean matched = Allure.step(
+                    stepTitle,
+                    (Allure.ThrowableContextRunnable<Boolean, Allure.StepContext>) step ->
+                            {
+                                BlockSearchExecutor.TargetCheck result =
+                                        BlockSearchExecutor.evaluateElement(
+                                                () -> block.getElement(condition.elementName()),
+                                                condition.condition(),
+                                                condition.requiresExistingElement()
+                                        );
+                                if (result.needsRetry()) {
+                                    BlockAllureReport.finishStep(
+                                            step,
+                                            stepTitle,
+                                            "DOM ОБНОВИЛСЯ, повторяем попытку",
+                                            condition.expectation(),
+                                            result.actualState()
+                                    );
+                                    return null;
+                                }
 
-                        boolean conditionMatched = element.is(condition.condition());
-                        step.name("Условие №" + conditionNumber +
-                                (conditionMatched ? " — выполнено" : " — не выполнено"));
-                        return conditionMatched;
-                    }
+                                BlockAllureReport.finishStep(
+                                        step,
+                                        stepTitle,
+                                        result.matched()
+                                                ? "ВЫПОЛНЕНО"
+                                                : "НЕ ВЫПОЛНЕНО",
+                                        condition.expectation(),
+                                        result.actualState()
+                                );
+                                return result.matched();
+                            }
             );
+            if (matched == null) {
+                throw new StaleElementReferenceException(
+                        "DOM обновился при проверке сложного условия"
+                );
+            }
             if (!matched) {
                 return false;
             }
@@ -259,6 +279,13 @@ public class BlocksCollectionOtherMethod {
         return "В списке блоков не найден ни один блок, удовлетворяющий всем условиям" +
                 "\nУсловия:\n" + conditionsToString(conditions) +
                 "\nРазмер списка блоков: " + blockList.size();
+    }
+
+    private static String complexConditionNotFoundMessage(BlockListContext context,
+                                                          List<ComplexCondition> conditions) {
+        return "В списке блоков не найден ни один блок, удовлетворяющий всем условиям" +
+                "\n" + context.describe() +
+                "\nУсловия:\n" + conditionsToString(conditions);
     }
 
     private static String conditionsToString(List<ComplexCondition> conditions) {
@@ -407,6 +434,10 @@ public class BlocksCollectionOtherMethod {
 
         private String description() {
             return "элемент '" + elementName + "' " + sourceCondition + " '" + expectedValue + "'";
+        }
+
+        private String expectation() {
+            return sourceCondition + " '" + expectedValue + "'";
         }
     }
 
