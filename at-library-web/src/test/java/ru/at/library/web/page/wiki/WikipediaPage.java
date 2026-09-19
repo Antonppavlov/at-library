@@ -16,13 +16,24 @@ public class WikipediaPage extends CorePage {
     @FindBy(css = "[class=\"main-top-left\"] h1")
     public SelenideElement pageHeader;
 
+    // Намеренно НЕ "#mw-panel li": внутри #mw-panel есть портлет #p-lang (список
+    // интервики-языков) с ~350 li, из которых видимо только ~10 — остальные скрыты
+    // в свёрнутом vector-menu-content и их набор/размер меняется асинхронно после
+    // первой отрисовки (сворачивание происходит через JS уже после загрузки DOM).
+    // Из-за этого случайный индекс, посчитанный по .size() ДО сворачивания, переставал
+    // совпадать с фактическим списком на момент клика — "выполнено нажатие на случайный
+    // элемент" падал с IndexOutOfBounds. Берём только портлеты, где все li гарантированно
+    // видимы и стабильны.
     @Name("Список ссылок")
-    @FindBy(css = "[id=\"mw-panel\"] li")
+    @FindBy(css = "#p-navigation li, #p-participation li, #p-coll-print_export li, #p-wikibase-otherprojects li")
     public ElementsCollection linkList;
 
-    // Тестовый список блоков для ListCorePage* шагов (каждый li оборачивается в WikiNavItem)
+    // Тестовый список блоков для ListCorePage* шагов (каждый li оборачивается в WikiNavItem).
+    // См. комментарий у "Список ссылок" выше: та же причина избегать "#mw-panel li" —
+    // скрытые/асинхронно сворачиваемые li портлета #p-lang вызывали и многоминутное
+    // зависание PRIMARY-проверки видимости (checkPrimary), и нестабильные индексы.
     @Name("Список блоков навигации")
-    @FindBy(css = "#mw-panel li")
+    @FindBy(css = "#p-navigation li, #p-participation li, #p-coll-print_export li, #p-wikibase-otherprojects li")
     public java.util.List<WikiNavItem> navBlocks;
 
     @Name("Сведения о странице")

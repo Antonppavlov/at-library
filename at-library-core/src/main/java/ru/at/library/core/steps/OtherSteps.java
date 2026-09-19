@@ -157,7 +157,7 @@ public class OtherSteps {
      */
     public static String getTranslateNormalizeSpaceText(String expectedText) {
         StringBuilder text = new StringBuilder();
-        text.append("//*[contains(translate(normalize-space(text()), ");
+        text.append("//*[not(self::script or self::style) and contains(translate(normalize-space(text()), ");
         text.append("'ABCDEFGHIJKLMNOPQRSTUVWXYZАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ', ");
         text.append("'abcdefghijklmnopqrstuvwxyzабвгдеёжзийклмнопрстуфхчшщъыьэюя'), '");
         text.append(expectedText.toLowerCase());

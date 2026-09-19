@@ -5,13 +5,14 @@ import io.cucumber.testng.CucumberOptions;
 import org.testng.annotations.DataProvider;
 
 /**
- * Проверяет, что примеры использования публичных Cucumber-шагов web-модуля
- * однозначно сопоставляются со step-definition. Браузер и hooks не запускаются.
+ * Проверяет, что все шаги в @unit-сценариях web-модуля однозначно сопоставляются
+ * со step-definition (нет неоднозначных/непокрытых формулировок). Браузер и hooks
+ * не запускаются — быстрая проверка регулярок без реального прогона.
  */
 @CucumberOptions(
         dryRun = true,
         monochrome = true,
-        tags = "@unit or @manual",
+        tags = "@unit",
         features = "src/test/resources/features",
         glue = {"ru"}
 )

@@ -5,9 +5,11 @@ import io.cucumber.java.ru.И;
 import lombok.extern.log4j.Log4j2;
 import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.web.entities.CommonStepResult;
+import ru.at.library.web.scenario.CorePage;
 import ru.at.library.web.scenario.CustomCondition;
 import ru.at.library.web.scenario.IStepResult;
 import ru.at.library.web.scenario.WebScenario;
+import org.openqa.selenium.StaleElementReferenceException;
 
 import java.util.List;
 
@@ -17,71 +19,42 @@ import static ru.at.library.core.steps.OtherSteps.getRandom;
 
 
 /**
- * Проверки ElementsCollection
+ * Проверки ElementsCollection.
+ *
+ * Шаги "в блоке ..." и без него объединены в один метод на каждую проверку: короткий
+ * вариант шага получает фиктивную пустую захватывающую группу {@code ()} в начале
+ * regex, чтобы количество групп совпадало с "блочным" вариантом.
  */
 @Log4j2
 public class ElementsCollectionCheckSteps {
 
-    @И("^список элементов \"([^\"]*)\" отображается на странице$")
-    public IStepResult shouldVisible(String listName) {
-        return shouldVisible(WebScenario.getCurrentPage().getElementsList(listName));
-    }
-
-    @И("^в блоке \"([^\"]*)\" список элементов \"([^\"]*)\" отображается на странице$")
-    public IStepResult shouldVisible(String blockName, String listName) {
-        return shouldVisible(WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName));
-    }
-
     /**
      * Проверка отображения списка на странице
      */
-    public IStepResult shouldVisible(ElementsCollection elements) {
-        elements.first().shouldHave(visible);
-        return new CommonStepResult(elements.first());
-    }
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^список элементов \"([^\"]*)\" не отображается на странице$")
-    public IStepResult isHidden(String listName) {
-        return isHidden(WebScenario.getCurrentPage().getElementsList(listName));
-    }
-
-    @И("^в блоке \"([^\"]*)\" список элементов \"([^\"]*)\" не отображается на странице$")
-    public IStepResult isHidden(String blockName, String listName) {
-        return isHidden(WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName));
+    @И("^()список элементов \"([^\"]*)\" отображается на странице$")
+    @И("^в блоке \"([^\"]*)\" список элементов \"([^\"]*)\" отображается на странице$")
+    public IStepResult shouldVisible(String blockName, String listName) {
+        SelenideElement first = resolveOwner(blockName).getElementsList(listName).first();
+        first.shouldHave(visible);
+        return new CommonStepResult(first);
     }
 
     /**
      * Проверка не отображения списка на странице
      */
-    public IStepResult isHidden(ElementsCollection elements) {
-        elements.first().shouldHave(not(visible));
-        return new CommonStepResult(elements.first());
+    @И("^()список элементов \"([^\"]*)\" не отображается на странице$")
+    @И("^в блоке \"([^\"]*)\" список элементов \"([^\"]*)\" не отображается на странице$")
+    public IStepResult isHidden(String blockName, String listName) {
+        SelenideElement first = resolveOwner(blockName).getElementsList(listName).first();
+        first.shouldHave(not(visible));
+        return new CommonStepResult(first);
     }
 
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^список элементов \"([^\"]*)\" включает в себя список из таблицы$")
-    public IStepResult containsList(String listName, List<String> textTable) {
-        return containsList(
-                WebScenario.getCurrentPage().getElementsList(listName),
-                textTable);
-    }
-
+    @И("^()список элементов \"([^\"]*)\" включает в себя список из таблицы$")
     @И("^в блоке \"([^\"]*)\" список элементов \"([^\"]*)\" включает в себя список из таблицы$")
     public IStepResult containsList(String blockName, String listName, List<String> textTable) {
-        return containsList(
-                WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
-                textTable);
-    }
-
-    public IStepResult containsList(ElementsCollection elements, List<String> textTable) {
         textTable = getPropertyOrStringVariableOrValue(textTable);
+        ElementsCollection elements = resolveOwner(blockName).getElementsList(listName);
         for (String expectedText : textTable) {
             elements.find(text(expectedText)).shouldHave(text(expectedText));
         }
@@ -89,57 +62,25 @@ public class ElementsCollectionCheckSteps {
     }
 
     /**
-     * ######################################################################################################################
-     */
-
-    @И("^список элементов \"([^\"]*)\" равен списку из таблицы$")
-    public IStepResult equalsToList(String listName, List<String> textTable) {
-        return equalsToList(
-                WebScenario.getCurrentPage().getElementsList(listName),
-                textTable);
-    }
-
-    @И("^в блоке \"([^\"]*)\" список элементов \"([^\"]*)\" равен списку из таблицы$")
-    public IStepResult equalsToList(String blockName, String listName, List<String> textTable) {
-        return equalsToList(
-                WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
-                textTable);
-    }
-
-    /**
      * Проверка, что список со страницы состоит только из элементов,
      * перечисленных в таблице
      */
-    public IStepResult equalsToList(ElementsCollection elements, List<String> textTable) {
+    @И("^()список элементов \"([^\"]*)\" равен списку из таблицы$")
+    @И("^в блоке \"([^\"]*)\" список элементов \"([^\"]*)\" равен списку из таблицы$")
+    public IStepResult equalsToList(String blockName, String listName, List<String> textTable) {
         textTable = getPropertyOrStringVariableOrValue(textTable);
+        ElementsCollection elements = resolveOwner(blockName).getElementsList(listName);
         elements.shouldHave(CollectionCondition.exactTexts(textTable));
         return new CommonStepResult(elements);
     }
 
     /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке элементов \"([^\"]*)\" текст любого из элементов сохранен в переменную \"([^\"]*)\"$")
-    public IStepResult saveRandomListElementTextToVar(String listName, String varName) {
-        return saveRandomListElementTextToVar(
-                WebScenario.getCurrentPage().getElementsList(listName),
-                varName
-        );
-    }
-
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" текст любого из элементов сохранен в переменную \"([^\"]*)\"$")
-    public IStepResult saveRandomListElementTextToVar(String blockName, String listName, String varName) {
-        return saveRandomListElementTextToVar(
-                WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
-                varName
-        );
-    }
-
-    /**
      * Выбор из списка со страницы любого случайного элемента и сохранение его значения в переменную
      */
-    public IStepResult saveRandomListElementTextToVar(ElementsCollection elements, String varName) {
+    @И("^()в списке элементов \"([^\"]*)\" текст любого из элементов сохранен в переменную \"([^\"]*)\"$")
+    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" текст любого из элементов сохранен в переменную \"([^\"]*)\"$")
+    public IStepResult saveRandomListElementTextToVar(String blockName, String listName, String varName) {
+        ElementsCollection elements = resolveOwner(blockName).getElementsList(listName);
         SelenideElement element = getRandomElementFromCollection(elements.filter(visible));
         String text = element.getText();
         CoreScenario.getInstance().setVar(varName, text);
@@ -147,145 +88,60 @@ public class ElementsCollectionCheckSteps {
     }
 
     /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке элементов \"([^\"]*)\" текст в элементе \"(\\d+)\" равен \"([^\"]*)\"$")
-    public IStepResult listElementWithIndexHasExactText(String listName, int number, String expectedValue) {
-        return listElementWithIndexHasExactText(
-                WebScenario.getCurrentPage().getElementsList(listName),
-                number,
-                expectedValue
-        );
-    }
-
-
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" текст в элементе \"(\\d+)\" равен \"([^\"]*)\"$")
-    public IStepResult listElementWithIndexHasExactText(String blockName, String listName, int number, String expectedValue) {
-        return listElementWithIndexHasExactText(
-                WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
-                number,
-                expectedValue
-        );
-    }
-
-    /**
      * Проверка текста в элементе списка
      */
-    public IStepResult listElementWithIndexHasExactText(ElementsCollection elements, int number, String expectedValue) {
+    @И("^()в списке элементов \"([^\"]*)\" текст в элементе \"(\\d+)\" равен \"([^\"]*)\"$")
+    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" текст в элементе \"(\\d+)\" равен \"([^\"]*)\"$")
+    public IStepResult listElementWithIndexHasExactText(String blockName, String listName, int number, String expectedValue) {
         expectedValue = getPropertyOrStringVariableOrValue(expectedValue);
-        SelenideElement selenideElement = elements.get(number - 1);
+        SelenideElement selenideElement = resolveOwner(blockName).getElementsList(listName).get(number - 1);
         SelenideElement element = selenideElement.shouldHave(text(expectedValue));
         return new CommonStepResult(element);
     }
 
     /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке элементов \"([^\"]*)\" элемент c текстом \"([^\"]*)\" выбран$")
-    public IStepResult listElementWithIndexHasSelected(String listName, String elementText) {
-        return listElementWithIndexHasSelected(
-                WebScenario.getCurrentPage().getElementsList(listName),
-                elementText
-        );
-    }
-
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" элемент c текстом \"([^\"]*)\" выбран$")
-    public IStepResult listElementWithIndexHasSelected(String blockName, String listName, String elementText) {
-        return listElementWithIndexHasSelected(
-                WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
-                elementText
-        );
-    }
-
-    /**
      * Проверка что элемент c текстом выбран
      */
-    public IStepResult listElementWithIndexHasSelected(ElementsCollection elements, String elementText) {
-        SelenideElement selenideElement = elements.find(Condition.text(elementText));
+    @И("^()в списке элементов \"([^\"]*)\" элемент c текстом \"([^\"]*)\" выбран$")
+    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" элемент c текстом \"([^\"]*)\" выбран$")
+    public IStepResult listElementWithIndexHasSelected(String blockName, String listName, String elementText) {
+        SelenideElement selenideElement = resolveOwner(blockName).getElementsList(listName).find(Condition.text(elementText));
         SelenideElement element = selenideElement.shouldHave(selected);
         return new CommonStepResult(element);
     }
 
     /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке элементов \"([^\"]*)\" содержится элемент с текстом \"([^\"]*)\"$")
-    public IStepResult containsElementWithText(String listName, String expectedValue) {
-        return containsElementWithText(
-                WebScenario.getCurrentPage().getElementsList(listName),
-                expectedValue);
-    }
-
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" содержится элемент с текстом \"([^\"]*)\"$")
-    public IStepResult containsElementWithText(String blockName, String listName, String expectedValue) {
-        return containsElementWithText(
-                WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
-                expectedValue);
-    }
-
-    /**
      * Проверка, что каждый элемент списка содержит ожидаемый текст
      */
-    public IStepResult containsElementWithText(ElementsCollection elements, String expectedValue) {
+    @И("^()в списке элементов \"([^\"]*)\" содержится элемент с текстом \"([^\"]*)\"$")
+    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" содержится элемент с текстом \"([^\"]*)\"$")
+    public IStepResult containsElementWithText(String blockName, String listName, String expectedValue) {
         expectedValue = getPropertyOrStringVariableOrValue(expectedValue);
-        SelenideElement element = elements.find(Condition.text(expectedValue))
+        SelenideElement element = resolveOwner(blockName).getElementsList(listName)
+                .find(Condition.text(expectedValue))
                 .shouldHave(text(expectedValue));
         return new CommonStepResult(element);
     }
 
     /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке элементов \"([^\"]*)\" не содержится элемент с текстом \"([^\"]*)\"$")
-    public void notContainsElementWithExactText(String listName, String expectedValue) {
-        notContainsElementWithExactText(
-                WebScenario.getCurrentPage().getElementsList(listName),
-                expectedValue);
-    }
-
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" не содержится элемент с текстом \"([^\"]*)\"$")
-    public void notContainsElementWithExactText(String blockName, String listName, String expectedValue) {
-        notContainsElementWithExactText(
-                WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
-                expectedValue);
-    }
-
-    /**
      * Проверка, что каждый элемент списка не содержит ожидаемый текст
      */
-    public void notContainsElementWithExactText(ElementsCollection elements, String expectedValue) {
+    @И("^()в списке элементов \"([^\"]*)\" не содержится элемент с текстом \"([^\"]*)\"$")
+    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" не содержится элемент с текстом \"([^\"]*)\"$")
+    public void notContainsElementWithExactText(String blockName, String listName, String expectedValue) {
         expectedValue = getPropertyOrStringVariableOrValue(expectedValue);
-        elements.filter(Condition.exactText(expectedValue)).shouldHave(CollectionCondition.size(0));
-    }
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке элементов \"([^\"]*)\" количество элементов (равно|не равно|больше|меньше|больше или равно|меньше или равно) (\\d+)$")
-    public IStepResult checkSize(String listName, String condition, String expectedSize) {
-        return checkSize(
-                WebScenario.getCurrentPage().getElementsList(listName),
-                condition,
-                expectedSize);
-    }
-
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" количество элементов (равно|не равно|больше|меньше|больше или равно|меньше или равно) (\\d+)")
-    public IStepResult checkSize(String blockName, String listName, String condition, String expectedSize) {
-        return checkSize(
-                WebScenario.getCurrentPage().getBlock(blockName).getElementsList(listName),
-                condition,
-                expectedSize);
+        resolveOwner(blockName).getElementsList(listName)
+                .filter(Condition.exactText(expectedValue))
+                .shouldHave(CollectionCondition.size(0));
     }
 
     /**
      * Производится проверка соответствия числа элементов списка условию и значению, указанному в шаге
      */
-    public IStepResult checkSize(ElementsCollection elements, String condition, String expectedSize) {
+    @И("^()в списке элементов \"([^\"]*)\" количество элементов (равно|не равно|больше|меньше|больше или равно|меньше или равно) (\\d+)$")
+    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" количество элементов (равно|не равно|больше|меньше|больше или равно|меньше или равно) (\\d+)$")
+    public IStepResult checkSize(String blockName, String listName, String condition, String expectedSize) {
+        ElementsCollection elements = resolveOwner(blockName).getElementsList(listName);
         WebElementsCondition webElementsCondition = CustomCondition.getElementsCollectionSizeCondition(
                 CustomCondition.Comparison.fromString(getPropertyOrStringVariableOrValue(condition)),
                 Integer.parseInt(getPropertyOrStringVariableOrValue(expectedSize))
@@ -294,12 +150,35 @@ public class ElementsCollectionCheckSteps {
         return new CommonStepResult(elements);
     }
 
-    /**
-     * ######################################################################################################################
-     */
-
     public static SelenideElement getRandomElementFromCollection(ElementsCollection elementsCollection) {
-        return elementsCollection.get(getRandom(elementsCollection.size())).shouldBe(visible);
+        // .snapshot() фиксирует коллекцию один раз: .size() и .get(index) — это два
+        // отдельных live-запроса к DOM, и если между ними список успевает измениться,
+        // индекс, посчитанный по старому размеру, перестаёт попадать в новый (IndexOutOfBounds).
+        // Часть портлетов сайдбара MediaWiki (например, "в других проектах") дорисовывается
+        // через JS уже после первичной загрузки страницы — поэтому сначала дожидаемся, пока
+        // коллекция станет непустой (со штатным Selenide-таймаутом), и только потом берём
+        // snapshot. Сам snapshot — это уже разрешённые WebElement-ссылки, а не live-локатор,
+        // поэтому если DOM всё равно переотрисовался ПОСЛЕ snapshot(), Selenide не может сам
+        // перелокатить протухший элемент — приходится заново брать snapshot целиком и повторить.
+        RuntimeException lastException = null;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            try {
+                ElementsCollection snapshot = elementsCollection.shouldHave(CollectionCondition.sizeGreaterThan(0)).snapshot();
+                return snapshot.get(getRandom(snapshot.size())).shouldBe(visible);
+            } catch (StaleElementReferenceException | IndexOutOfBoundsException e) {
+                lastException = e;
+            }
+        }
+        throw lastException;
     }
 
+    /**
+     * Возвращает текущую страницу, если имя блока не задано (пустая строка/null),
+     * иначе — блок с этим именем на текущей странице.
+     */
+    private CorePage resolveOwner(String blockName) {
+        return (blockName == null || blockName.isEmpty())
+                ? WebScenario.getCurrentPage()
+                : WebScenario.getCurrentPage().getBlock(blockName);
+    }
 }

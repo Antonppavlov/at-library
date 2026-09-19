@@ -37,47 +37,37 @@ import static ru.at.library.core.utils.helpers.ScopedVariables.resolveVars;
 import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.*;
 import static ru.at.library.web.step.selenideelement.SelenideElementCheckSteps.inBounds;
 
+/**
+ * Шаги-проверки для работы с коллекциями блоков (List&lt;CorePage&gt;),
+ * построенные поверх "живых" списков блоков (BlocksCollection) и {@link BlockListContext}.
+ *
+ * <ul>
+ *     <li>Шаги "в блоке ..." и без него объединены в один метод на каждую проверку: короткий
+ *     вариант шага получает фиктивную пустую захватывающую группу {@code ()} в начале regex,
+ *     чтобы количество групп совпадало с "блочным" вариантом — это сохраняет подсказки/навигацию
+ *     IntelliJ для обеих формулировок и не требует делегирования между двумя разными
+ *     Cucumber-шагами.</li>
+ *     <li>Все ожидания делаются через {@code should*}/{@code shouldHave} Selenide, что гарантирует использование
+ *     стандартного таймаута {@code Configuration.timeout}, как и для одиночных {@code SelenideElement}.</li>
+ *     <li>Получение списка блоков всегда делается через {@link BlockListContext}, чтобы использовать единый
+ *     механизм ожиданий размера коллекции.</li>
+ * </ul>
+ */
 @Log4j2
 public class BlocksCollectionCheckSteps {
 
     private final CoreScenario coreScenario = CoreScenario.getInstance();
 
-/**
- * Шаги-проверки для работы с коллекциями блоков (List<CorePage>),
- * построенные поверх "живых" списков блоков (BlocksCollection) и {@link BlockListContext}.
- *
- * Основные принципы:
- * <ul>
- *     <li>Все ожидания делаются через {@code should*}/{@code shouldHave} Selenide, что гарантирует использование
- *     стандартного таймаута {@code Configuration.timeout}, как и для одиночных {@code SelenideElement}.</li>
- *     <li>Для выборок "любой блок" / "в N блоках" логика вынесена в приватные helper-методы, а Cucumber-шаги
- *     являются тонкими обёртками над ними.</li>
- *     <li>Получение списка блоков всегда делается через {@link BlockListContext}, чтобы использовать единый
- *     механизм ожиданий размера коллекции.</li>
- * </ul>
- */
     /**
      * -----------------------------------------------------------------------------------------------------------------
      * ---------------------------------------------Проверки списка блоков----------------------------------------------
      * -----------------------------------------------------------------------------------------------------------------
      */
 
-
-    @И("^список блоков \"([^\"]*)\" отображается на странице$")
-    public IStepResult listBlockVisible(String blockListName) {
-        BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        forEachBlockWithoutResult(
-                blockListContext,
-                null,
-                "блок отображается на странице",
-                CorePage::isAppeared
-        );
-        return new BlockListStepResult(blockListContext.getBlocks());
-    }
-
+    @И("^()список блоков \"([^\"]*)\" отображается на странице$")
     @И("^в блоке \"([^\"]*)\" список блоков \"([^\"]*)\" отображается на странице$")
     public IStepResult listBlockVisible(String blockName, String blockListName) {
-        BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
         forEachBlockWithoutResult(
                 blockListContext,
                 null,
@@ -87,105 +77,56 @@ public class BlocksCollectionCheckSteps {
         return new BlockListStepResult(blockListContext.getBlocks());
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" количество блоков (равно|не равно|больше|меньше|больше или равно|меньше или равно) (\\d+)$")
-    public IStepResult checkBlockListSize(String blockListName, String condition, int expectedCountBlock) {
-        CustomCondition.Comparison comparison = CustomCondition.Comparison.fromString(condition);
-
-        List<CorePage> blocksList = getBlockListWithCheckingTheQuantity(blockListName, comparison, expectedCountBlock);
-
-        return new BlockListStepResult(blocksList);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" количество блоков (равно|не равно|больше|меньше|больше или равно|меньше или равно) (\\d+)$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" количество блоков (равно|не равно|больше|меньше|больше или равно|меньше или равно) (\\d+)$")
     public IStepResult checkBlockListSize(String blockName, String blockListName, String condition, int expectedCountBlock) {
         CustomCondition.Comparison comparison = CustomCondition.Comparison.fromString(condition);
 
-        List<CorePage> blocksList = getBlockListWithCheckingTheQuantity(blockName, blockListName, comparison, expectedCountBlock);
+        List<CorePage> blocksList = (blockName == null || blockName.isEmpty())
+                ? getBlockListWithCheckingTheQuantity(blockListName, comparison, expectedCountBlock)
+                : getBlockListWithCheckingTheQuantity(blockName, blockListName, comparison, expectedCountBlock);
 
         return new BlockListStepResult(blocksList);
     }
-
-
-
-    /**
-     * ######################################################################################################################
-     */
 
     /**
      * Строит детальное сообщение о несоответствии элементов ожиданиям, заданным в {@link DataTable}.
      * <p>
      * Для каждой строки таблицы ожидается формат:
      * | индекс блока | имя элемента | текстовое условие | ожидаемое значение/регулярка |
+     * <p>
+     * NB: в исходном коде до-рефакторинга варианты "без блока"/"с блоком" отличались не только
+     * контекстом, но и способом сообщения об ошибке (без блока — через hamcrestAssert с пустой
+     * строкой, с блоком — через прямой throw). Сохраняем оба поведения как есть, привязав их
+     * к наличию имени блока.
      */
-
     @SuppressWarnings("deprecation")
-    @И("^список блоков \"([^\"]*)\" соответствует списку$")
-    public void blockListMatchesList(String blockListName, DataTable conditionsTable) {
-        BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        String resultMessage = buildBlockListMatchesListMessage(blockListContext, conditionsTable, true);
+    @И("^()список блоков \"([^\"]*)\" соответствует списку$")
+    @И("^в блоке \"([^\"]*)\" список блоков \"([^\"]*)\" соответствует списку$")
+    public void blockListMatchesList(String blockName, String blockListName, DataTable conditionsTable) {
+        boolean noBlockGiven = blockName == null || blockName.isEmpty();
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
+        String resultMessage = buildBlockListMatchesListMessage(blockListContext, conditionsTable, noBlockGiven);
         if (!resultMessage.isEmpty()) {
             BlockAllureReport.attachFailureScreenshot();
         }
-        this.coreScenario.getAssertionHelper().hamcrestAssert(resultMessage, resultMessage, isEmptyString());
-    }
-
-    @SuppressWarnings("deprecation")
-    @И("^в блоке \"([^\"]*)\" список блоков \"([^\"]*)\" соответствует списку$")
-    public void blockListMatchesList(String blockName, String blockListName, DataTable conditionsTable) {
-        BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
-        String resultMessage = buildBlockListMatchesListMessage(blockListContext, conditionsTable, false);
-        if (!resultMessage.isEmpty()) {
-            BlockAllureReport.attachFailureScreenshot();
+        if (noBlockGiven) {
+            this.coreScenario.getAssertionHelper().hamcrestAssert(resultMessage, resultMessage, isEmptyString());
+        } else if (!resultMessage.isEmpty()) {
             throw new AssertionError(resultMessage);
         }
     }
 
-
-
-    /**
-     * ######################################################################################################################
-     */
-
     @SuppressWarnings("deprecation")
-    @И("^список блоков \"([^\"]*)\" блоки расположены по (\\d+) в ряд$")
-    public IStepResult checkBlockListRowsFormat(String blockListName, int elementsInRow) {
-        BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        return checkBlockListRowsFormat(blockListContext, elementsInRow);
-    }
-
-    @SuppressWarnings("deprecation")
+    @И("^()список блоков \"([^\"]*)\" блоки расположены по (\\d+) в ряд$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" блоки расположены по (\\d+) в ряд$")
     public IStepResult checkBlockListRowsFormat(String blockName, String blockListName, int elementsInRow) {
-        BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
         return checkBlockListRowsFormat(blockListContext, elementsInRow);
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
     @SuppressWarnings("deprecation")
-    @И("^в списке блоков \"([^\"]*)\" (\\d+) блок содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
-    public IStepResult checkBlockListForBlockWithCss(String blockListName, int blockIndex, String cssName, String cssValue) {
-        String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
-        String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
-
-        WebElementCondition condition = Condition.cssValue(resolvedCssName, resolvedCssValue);
-        CorePage block = waitUntilBlockByNumberSelfMeetsCondition(
-                BlockListContext.live(blockListName),
-                blockIndex,
-                condition
-        );
-        return new BlockListStepResult(block);
-    }
-
-    @SuppressWarnings("deprecation")
+    @И("^()в списке блоков \"([^\"]*)\" (\\d+) блок содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" (\\d+) блок содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
     public IStepResult checkBlockListForBlockWithCss(String blockName, String blockListName, int blockIndex, String cssName, String cssValue) {
         String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
@@ -193,32 +134,19 @@ public class BlocksCollectionCheckSteps {
 
         WebElementCondition condition = Condition.cssValue(resolvedCssName, resolvedCssValue);
         CorePage block = waitUntilBlockByNumberSelfMeetsCondition(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 blockIndex,
                 condition
         );
         return new BlockListStepResult(block);
     }
 
-
-
-    /**
-     * ######################################################################################################################
-     */
-
     @SuppressWarnings("deprecation")
-    @И("^список блоков \"([^\"]*)\" расположен по ширине элемента \"([^\"]*)\"$")
-    public void checkBlockListElementsInWidthOfElement(String blockListName, String elementOuter) {
-        List<CorePage> blocksList = createBlockListContextFromList(blockListName).getBlocks();
-        SelenideElement outerElement = WebScenario.getCurrentPage().getElement(elementOuter);
-        checkBlockListElementsInWidthOfElement(blocksList, outerElement, elementOuter);
-    }
-
-    @SuppressWarnings("deprecation")
+    @И("^()список блоков \"([^\"]*)\" расположен по ширине элемента \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" список блоков \"([^\"]*)\" расположен по ширине элемента \"([^\"]*)\"$")
     public void checkBlockListElementsInWidthOfElement(String blockName, String blockListName, String elementOuter) {
-        List<CorePage> blocksList = createBlockListContextFromBlock(blockName, blockListName).getBlocks();
-        SelenideElement outerElement = WebScenario.getCurrentPage().getBlock(blockName).getElement(elementOuter);
+        List<CorePage> blocksList = createBlockListContext(blockName, blockListName).getBlocks();
+        SelenideElement outerElement = resolveOwner(blockName).getElement(elementOuter);
         checkBlockListElementsInWidthOfElement(blocksList, outerElement, elementOuter);
     }
 
@@ -226,67 +154,31 @@ public class BlocksCollectionCheckSteps {
      * -----------------------------------------------В КАЖДОМ------------------------------------------------
      */
 
-    @И("^в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" отображается на странице$")
-    public IStepResult elementVisibleInBlockList(String blockListName, String elementVisible) {
-        return forEachBlock(
-                createBlockListContextFromList(blockListName),
-                elementVisible,
-                "элемент '" + elementVisible + "' отображается на странице",
-                block -> block.getElement(elementVisible).shouldHave(Condition.visible));
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" отображается на странице$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" отображается на странице$")
     public IStepResult elementVisibleInBlockList(String blockName, String blockListName, String elementVisible) {
         return forEachBlock(
-                createBlockListContextFromBlock(blockName, blockListName),
+                createBlockListContext(blockName, blockListName),
                 elementVisible,
                 "элемент '" + elementVisible + "' отображается на странице",
                 block -> block.getElement(elementVisible).shouldHave(Condition.visible));
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" не отображается на странице$")
-    public IStepResult elementNotVisibleInBlockList(String blockListName, String elementHidden) {
-        return forEachBlock(
-                createBlockListContextFromList(blockListName),
-                elementHidden,
-                "элемент '" + elementHidden + "' не отображается на странице",
-                block -> block.getElement(elementHidden).shouldNot(Condition.visible));
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" не отображается на странице$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" не отображается на странице$")
     public IStepResult elementNotVisibleInBlockList(String blockName, String blockListName, String elementHidden) {
         return forEachBlock(
-                createBlockListContextFromBlock(blockName, blockListName),
+                createBlockListContext(blockName, blockListName),
                 elementHidden,
                 "элемент '" + elementHidden + "' не отображается на странице",
                 block -> block.getElement(elementHidden).shouldNot(Condition.visible));
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" является изображением и отображается на странице$")
-    public void checkImageInBlockList(String blockListName, String elementImageLoaded) {
-        forEachBlockWithoutResult(
-                createBlockListContextFromList(blockListName),
-                elementImageLoaded,
-                "элемент '" + elementImageLoaded + "' является загруженным видимым изображением",
-                block -> block.getElement(elementImageLoaded)
-                        .shouldHave(Condition.image)
-                        .shouldHave(Condition.visible));
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" является изображением и отображается на странице$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" является изображением и отображается на странице$")
     public void checkImageInBlockList(String blockName, String blockListName, String elementImageLoaded) {
         forEachBlockWithoutResult(
-                createBlockListContextFromBlock(blockName, blockListName),
+                createBlockListContext(blockName, blockListName),
                 elementImageLoaded,
                 "элемент '" + elementImageLoaded + "' является загруженным видимым изображением",
                 block -> block.getElement(elementImageLoaded)
@@ -294,86 +186,36 @@ public class BlocksCollectionCheckSteps {
                         .shouldHave(Condition.visible));
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
-    public IStepResult checkTextInBlockListMatches(String blockListName, String elementName, String regExp) {
-        String resolvedRegExp = OtherSteps.getPropertyOrStringVariableOrValue(regExp);
-        return forEachBlock(
-                createBlockListContextFromList(blockListName),
-                elementName,
-                "текст элемента '" + elementName + "' соответствует '" + resolvedRegExp + "'",
-                block -> shouldHaveTextMatches(block, elementName, resolvedRegExp));
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
     public IStepResult checkTextInBlockListMatches(String blockName, String blockListName, String elementName, String regExp) {
         String resolvedRegExp = OtherSteps.getPropertyOrStringVariableOrValue(regExp);
         return forEachBlock(
-                createBlockListContextFromBlock(blockName, blockListName),
+                createBlockListContext(blockName, blockListName),
                 elementName,
                 "текст элемента '" + elementName + "' соответствует '" + resolvedRegExp + "'",
                 block -> shouldHaveTextMatches(block, elementName, resolvedRegExp));
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" в каждом блоке в элементе \"([^\"]*)\" текст не равен \"([^\"]*)\"$")
-    public IStepResult checkNotTextInBlockListMatches(String blockListName, String elementName, String expectedText) {
-        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
-        return forEachBlock(
-                createBlockListContextFromList(blockListName),
-                elementName,
-                "текст элемента '" + elementName + "' не равен '" + resolvedExpectedText + "'",
-                block -> block.getElement(elementName)
-                        .shouldNotHave(BlockConditions.textEquals(resolvedExpectedText)));
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в каждом блоке в элементе \"([^\"]*)\" текст не равен \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в каждом блоке в элементе \"([^\"]*)\" текст не равен \"([^\"]*)\"$")
     public IStepResult checkNotTextInBlockListMatches(String blockName, String blockListName, String elementName, String expectedText) {
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
         return forEachBlock(
-                createBlockListContextFromBlock(blockName, blockListName),
+                createBlockListContext(blockName, blockListName),
                 elementName,
                 "текст элемента '" + elementName + "' не равен '" + resolvedExpectedText + "'",
                 block -> block.getElement(elementName)
                         .shouldNotHave(BlockConditions.textEquals(resolvedExpectedText)));
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
-    public IStepResult checkCssInBlockList(String blockListName, String elementName, String cssName, String cssValue) {
-        String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
-        String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
-        return forEachBlock(
-                createBlockListContextFromList(blockListName),
-                elementName,
-                "элемент '" + elementName + "' содержит css '" +
-                        resolvedCssName + "=" + resolvedCssValue + "'",
-                block -> methodCheckHasCssInBlockList(
-                        block,
-                        elementName,
-                        cssName,
-                        resolvedCssValue
-                ));
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
     public IStepResult checkCssInBlockList(String blockName, String blockListName, String elementName, String cssName, String cssValue) {
         String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
         String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
         return forEachBlock(
-                createBlockListContextFromBlock(blockName, blockListName),
+                createBlockListContext(blockName, blockListName),
                 elementName,
                 "элемент '" + elementName + "' содержит css '" +
                         resolvedCssName + "=" + resolvedCssValue + "'",
@@ -385,35 +227,13 @@ public class BlocksCollectionCheckSteps {
                 ));
     }
 
-
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" не содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
-    public IStepResult checkHasNotCssInBlockList(String blockListName, String elementName, String cssName, String cssValue) {
-        String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
-        String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
-        return forEachBlock(
-                createBlockListContextFromList(blockListName),
-                elementName,
-                "элемент '" + elementName + "' не содержит css '" +
-                        resolvedCssName + "=" + resolvedCssValue + "'",
-                block -> methodCheckNotHasCssInBlockList(
-                        block,
-                        elementName,
-                        cssName,
-                        resolvedCssValue
-                ));
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" не содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" не содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
     public IStepResult checkHasNotCssInBlockList(String blockName, String blockListName, String elementName, String cssName, String cssValue) {
         String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
         String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
         return forEachBlock(
-                createBlockListContextFromBlock(blockName, blockListName),
+                createBlockListContext(blockName, blockListName),
                 elementName,
                 "элемент '" + elementName + "' не содержит css '" +
                         resolvedCssName + "=" + resolvedCssValue + "'",
@@ -425,53 +245,20 @@ public class BlocksCollectionCheckSteps {
                 ));
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
     /**
      * Проверка, что каждый блок списка удовлетворяет всем условиям из таблицы.
      * Для каждого блока и строки таблицы выполняется полноценное ожидание через {@code shouldHave}.
      */
-
-    @И("^в списке блоков \"([^\"]*)\" каждый из блоков соответствует условиям$")
-    public IStepResult everyBlockInBlockListMatchesComplexCondition(String blockListName, DataTable conditionsTable) {
-        BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        return everyBlockInBlockListMatchesComplexCondition(blockListContext, conditionsTable);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" каждый из блоков соответствует условиям$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" каждый из блоков соответствует условиям$")
     public IStepResult everyBlockInBlockListMatchesComplexCondition(String blockName, String blockListName, DataTable conditionsTable) {
-        BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
         return everyBlockInBlockListMatchesComplexCondition(blockListContext, conditionsTable);
     }
 
     /**
      * -----------------------------------------------В ЛЮБОМ ИЗ БЛОКОВ------------------------------------------------
      */
-
-
-    /**
-     * ######################################################################################################################
-     */
-
-    /**
-     * Метод проверяет что в списке блоков есть блок, текст элемента(ов) которого соответствует условию conditionsTable
-     *
-     * @param blockListName Название списка блоков
-     * @param conditionsTable  Список проверяемых условий в блоке
-     *                         пример:
-     *                         |<Название элемента 1>|(текст равен|текст содержит|текст в формате|отображается на странице|не отображается на странице|не существует на странице|изображение загрузилось)|<Имя переменной/Имя свойства/Ожидаемый текст/Регулярное выражение>|
-     *                         ...
-     *                         |<Название элемента N>|(текст равен|текст содержит|текст в формате|отображается на странице|не отображается на странице|не существует на странице|изображение загрузилось)|<Имя переменной/Имя свойства/Ожидаемый текст/Регулярное выражение>|
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" любой из блоков соответствует условиям$")
-    public IStepResult checkBlockListForComplexCondition(String blockListName, DataTable conditionsTable) {
-        BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        return checkBlockListForComplexCondition(blockListContext, conditionsTable);
-    }
 
     /**
      * Метод проверяет что в списке блоков есть блок, текст элемента(ов) которого соответствует условию conditionsTable
@@ -483,94 +270,46 @@ public class BlocksCollectionCheckSteps {
      *                        ...
      *                        |<Название элемента N>|(текст равен|текст содержит|текст в формате|отображается на странице|не отображается на странице|не существует на странице|изображение загрузилось)|<Имя переменной/Имя свойства/Ожидаемый текст/Регулярное выражение>|
      */
+    @И("^()в списке блоков \"([^\"]*)\" любой из блоков соответствует условиям$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" любой из блоков соответствует условиям$")
     public IStepResult checkBlockListForComplexCondition(String blockName, String blockListName, DataTable conditionsTable) {
-        BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
         return checkBlockListForComplexCondition(blockListContext, conditionsTable);
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст равен \"([^\"]*)\"$")
-    public IStepResult checkTextInAnyBlock(String blockListName, String elementName, String expectedText) {
-        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
-
-        CorePage block = waitUntilAnyBlockElementMeetsCondition(
-                BlockListContext.live(blockListName),
-                elementName,
-                BlockConditions.textEquals(resolvedExpectedText)
-        );
-        return new BlockListStepResult(block, elementName);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст равен \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст равен \"([^\"]*)\"$")
     public IStepResult checkTextInAnyBlock(String blockName, String blockListName, String elementName, String expectedText) {
         String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
 
         CorePage block = waitUntilAnyBlockElementMeetsCondition(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 elementName,
                 BlockConditions.textEquals(resolvedExpectedText)
         );
         return new BlockListStepResult(block, elementName);
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\"$")
-    public IStepResult checkByRegExpInElementInAnyBlock(String blockListName, String elementName, String expectedText) {
-        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
-
-        CorePage block = waitUntilAnyBlockElementMeetsCondition(
-                BlockListContext.live(blockListName),
-                elementName,
-                BlockConditions.textMatches(resolvedExpectedText)
-        );
-        return new BlockListStepResult(block, elementName);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\"$")
     public IStepResult checkByRegExpInElementInAnyBlock(String blockName, String blockListName, String elementName, String expectedText) {
         String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
 
         CorePage block = waitUntilAnyBlockElementMeetsCondition(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 elementName,
                 BlockConditions.textMatches(resolvedExpectedText)
         );
         return new BlockListStepResult(block, elementName);
     }
 
-
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст содержит \"([^\"]*)\"$")
-    public IStepResult checkContainTextInAnyBlock(String blockListName, String elementName, String expectedText) {
-        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
-
-        CorePage block = waitUntilAnyBlockElementMeetsCondition(
-                BlockListContext.live(blockListName),
-                elementName,
-                BlockConditions.textContains(resolvedExpectedText)
-        );
-        return new BlockListStepResult(block, elementName);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст содержит \"([^\"]*)\"$")
     @То("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст содержит \"([^\"]*)\"$")
     public IStepResult checkContainTextInAnyBlock(String blockName, String blockListName, String elementName, String expectedText) {
         String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
 
         CorePage block = waitUntilAnyBlockElementMeetsCondition(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 elementName,
                 BlockConditions.textContains(resolvedExpectedText)
         );
@@ -581,34 +320,11 @@ public class BlocksCollectionCheckSteps {
      * -----------------------------------------------В КАКОМ-ТО КОЛИЧЕСТВЕ------------------------------------------------
      */
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" в (\\d+) блоках элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
-    public IStepResult checkTextInBlockListMatches(String blockListName, int blockNumber, String elementName, String regExp) {
-        String resolvedRegExp = getPropertyOrStringVariableOrValue(regExp);
-        BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        String failureHeader = "Условия поиска:" +
-                "\nЭлемент '" + elementName + "' содержит текст в формате : '" + regExp + "'";
-
-        return assertBlocksCountMatching(blockListContext, blockNumber, elementName,
-                block -> {
-                    try {
-                        shouldHaveTextMatches(block, elementName, resolvedRegExp);
-                        return true;
-                    } catch (AssertionError e) {
-                        return false;
-                    }
-                },
-                failureHeader);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в (\\d+) блоках элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в (\\d+) блоках элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
     public IStepResult checkTextInBlockListMatches(String blockName, String blockListName, int blockNumber, String elementName, String regExp) {
         String resolvedRegExp = getPropertyOrStringVariableOrValue(regExp);
-        BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
         String failureHeader = "Условия поиска:" +
                 "\nЭлемент '" + elementName + "' содержит текст в формате : '" + regExp + "'";
 
@@ -624,32 +340,10 @@ public class BlocksCollectionCheckSteps {
                 failureHeader);
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" в (\\d+) блоках элемент \"([^\"]*)\" отображается на странице$")
-    public IStepResult elementVisibleInBlockList(String blockListName, int blockNumber, String elementName) {
-        BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        String failureHeader = "Условия поиска:" +
-                "\nЭлемент '" + elementName + "' отображается в блоке";
-
-        return assertBlocksCountMatching(blockListContext, blockNumber, elementName,
-                block -> {
-                    try {
-                        block.getElement(elementName).shouldBe(Condition.visible);
-                        return true;
-                    } catch (AssertionError e) {
-                        return false;
-                    }
-                },
-                failureHeader);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в (\\d+) блоках элемент \"([^\"]*)\" отображается на странице$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в (\\d+) блоках элемент \"([^\"]*)\" отображается на странице$")
     public IStepResult elementVisibleInBlockList(String blockName, String blockListName, int blockNumber, String elementName) {
-        BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
         String failureHeader = "Условия поиска:" +
                 "\nЭлемент '" + elementName + "' отображается в блоке";
 
@@ -664,165 +358,69 @@ public class BlocksCollectionCheckSteps {
                 },
                 failureHeader);
     }
-
 
     /**
      * -----------------------------------------------В КОНКРЕТНОМ------------------------------------------------
      */
 
-
-    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" отображается$")
-    public IStepResult elementDisplayedInBlockWhereTextEquals(String blockListName, String elementNameSearch, String expectedTextSearch, String expectedElementVisible) {
-        BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        return elementDisplayedInBlockWhereTextEquals(blockListContext, elementNameSearch, expectedTextSearch, expectedElementVisible);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" отображается$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" отображается$")
     public IStepResult elementDisplayedInBlockWhereTextEquals(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String expectedElementVisible) {
-        BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
         return elementDisplayedInBlockWhereTextEquals(blockListContext, elementNameSearch, expectedTextSearch, expectedElementVisible);
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" не отображается$")
-    public IStepResult elementNotDisplayedInBlockWhereTextEquals(String blockListName, String elementNameSearch, String expectedTextSearch, String expectedElementVisible) {
-        BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        return elementNotDisplayedInBlockWhereTextEquals(blockListContext, elementNameSearch, expectedTextSearch, expectedElementVisible);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" не отображается$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" не отображается$")
     public IStepResult elementNotDisplayedInBlockWhereTextEquals(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String expectedElementVisible) {
-        BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
         return elementNotDisplayedInBlockWhereTextEquals(blockListContext, elementNameSearch, expectedTextSearch, expectedElementVisible);
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\" элемент \"([^\"]*)\" отображается$")
-    public IStepResult checkTextInAnyBlockMatches(String blockListName, String elementNameSearch, String expectedTextSearch, String expectedElementVisible) {
-        BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        return checkTextInAnyBlockMatches(blockListContext, elementNameSearch, expectedTextSearch, expectedElementVisible);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\" элемент \"([^\"]*)\" отображается$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\" элемент \"([^\"]*)\" отображается$")
     public IStepResult checkTextInAnyBlockMatches(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String expectedElementVisible) {
-        BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
         return checkTextInAnyBlockMatches(blockListContext, elementNameSearch, expectedTextSearch, expectedElementVisible);
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
-    public IStepResult checkTextInAnyBlock(String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameFind, String expectedTextFind) {
-        BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        return checkTextInAnyBlock(blockListContext, elementNameSearch, expectedTextSearch, elementNameFind, expectedTextFind);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
     public IStepResult checkTextInAnyBlock(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameFind, String expectedTextFind) {
-        BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
         return checkTextInAnyBlock(blockListContext, elementNameSearch, expectedTextSearch, elementNameFind, expectedTextFind);
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\" элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
-    public IStepResult checkTextInAnyBlockMatches1(String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameFind, String expectedTextFind) {
-        BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        return checkTextInAnyBlockMatches1(blockListContext, elementNameSearch, expectedTextSearch, elementNameFind, expectedTextFind);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\" элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\" элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
     public IStepResult checkTextInAnyBlockMatches1(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameFind, String expectedTextFind) {
-        BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
         return checkTextInAnyBlockMatches1(blockListContext, elementNameSearch, expectedTextSearch, elementNameFind, expectedTextFind);
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"")
-    public IStepResult checkCssInAnyBlock(String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameFind, String cssName, String cssValue) {
-        BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        return checkCssInAnyBlock(blockListContext, elementNameSearch, expectedTextSearch, elementNameFind, cssName, cssValue);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"")
     public IStepResult checkCssInAnyBlock(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameFind, String cssName, String cssValue) {
-        BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
         return checkCssInAnyBlock(blockListContext, elementNameSearch, expectedTextSearch, elementNameFind, cssName, cssValue);
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
     @SuppressWarnings("deprecation")
-    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" блок расположен (в|вне) видимой части браузера")
-    public IStepResult checkBlockWithTextInElementInBounds(String blockListName, String elementNameSearch, String expectedTextSearch, String boundsCondition) {
-        BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        return checkBlockWithTextInElementInBounds(blockListContext, elementNameSearch, expectedTextSearch, boundsCondition);
-    }
-
-    @SuppressWarnings("deprecation")
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" блок расположен (в|вне) видимой части браузера")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" блок расположен (в|вне) видимой части браузера")
     public IStepResult checkBlockWithTextInElementInBounds(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String boundsCondition) {
-        BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
         return checkBlockWithTextInElementInBounds(blockListContext, elementNameSearch, expectedTextSearch, boundsCondition);
     }
 
-
-
-    /**
-     * ######################################################################################################################
-     */
-
     @SuppressWarnings("deprecation")
-    @И("^в списке блоков \"([^\"]*)\" координаты (\\d+) блока соответствуют: x=(\\d+); y=(\\d+)$")
-    public IStepResult checkBlockListItemCoordinates(String blockListName, int blockIndex, int x, int y) {
-        Point expectedCoordinates = new Point(x, y);
-
-        CorePage block = waitForBlockByNumber(
-                BlockListContext.live(blockListName),
-                blockIndex
-        );
-        Point actualCoordinates = block.getSelf().getLocation();
-        this.coreScenario.getAssertionHelper().hamcrestAssert(
-                String.format("Координаты %d блока списка блоков %s не соответствуют ожидаемым\n" +
-                                "Фактические координаты: x=%d; y=%d\n" +
-                                "Ожидаемые координаты: x=%d; y=%d",
-                        blockIndex, blockListName,
-                        actualCoordinates.x, actualCoordinates.y,
-                        expectedCoordinates.x, expectedCoordinates.y),
-                actualCoordinates,
-                is(equalTo(expectedCoordinates))
-        );
-        return new BlockListStepResult(block);
-    }
-
-    @SuppressWarnings("deprecation")
+    @И("^()в списке блоков \"([^\"]*)\" координаты (\\d+) блока соответствуют: x=(\\d+); y=(\\d+)$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" координаты (\\d+) блока соответствуют: x=(\\d+); y=(\\d+)$")
     public IStepResult checkBlockListItemCoordinates(String blockName, String blockListName, int blockIndex, int x, int y) {
         Point expectedCoordinates = new Point(x, y);
 
         CorePage block = waitForBlockByNumber(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 blockIndex
         );
         Point actualCoordinates = block.getSelf().getLocation();
@@ -839,27 +437,11 @@ public class BlocksCollectionCheckSteps {
         return new BlockListStepResult(block);
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" в (\\d+) блоке текст элемента \"([^\"]*)\" сохранен в переменную \"([^\"]*)\"$")
-    public IStepResult saveElementTextForNthBlockFromBlockList(String blockListName, int blockIndex, String elementName, String varName) {
-        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(
-                BlockListContext.live(blockListName),
-                blockIndex,
-                elementName,
-                Condition.visible,
-                element -> this.coreScenario.getEnvironment().setVar(varName, element.getText())
-        );
-        return new BlockListStepResult(block, elementName);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в (\\d+) блоке текст элемента \"([^\"]*)\" сохранен в переменную \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в (\\d+) блоке текст элемента \"([^\"]*)\" сохранен в переменную \"([^\"]*)\"$")
     public IStepResult saveElementTextForNthBlockFromBlockList(String blockName, String blockListName, int blockIndex, String elementName, String varName) {
         CorePage block = waitUntilElementInBlockByNumberMeetsCondition(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 blockIndex,
                 elementName,
                 Condition.visible,
@@ -868,30 +450,13 @@ public class BlocksCollectionCheckSteps {
         return new BlockListStepResult(block, elementName);
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" в (\\d+) блоке в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\"$")
-    public IStepResult checkElementInBlockListMatchesText(String blockListName, int blockIndex, String elementName, String expectedText) {
-        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
-
-        CorePage block = waitUntilTextMatchesInBlockByNumber(
-                BlockListContext.live(blockListName),
-                blockIndex,
-                elementName,
-                resolvedExpectedText
-        );
-        return new BlockListStepResult(block, elementName);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в (\\d+) блоке в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в (\\d+) блоке в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\"$")
     public IStepResult checkElementInBlockListMatchesText(String blockName, String blockListName, int blockIndex, String elementName, String expectedText) {
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
 
         CorePage block = waitUntilTextMatchesInBlockByNumber(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 blockIndex,
                 elementName,
                 resolvedExpectedText
@@ -899,36 +464,7 @@ public class BlocksCollectionCheckSteps {
         return new BlockListStepResult(block, elementName);
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" в (\\d+) блоке в элементе \"([^\"]*)\" текст (равен|содержит) \"([^\"]*)\"$")
-    public IStepResult checkElementInBlockListForText(String blockListName, int blockIndex, String elementName, String conditionString, String expectedText) {
-        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
-
-        WebElementCondition condition;
-        switch (conditionString) {
-            case "равен":
-                condition = Condition.exactText(resolvedExpectedText);
-                break;
-            case "содержит":
-                condition = Condition.text(resolvedExpectedText);
-                break;
-            default:
-                throw new IllegalArgumentException("Неизвестное условие: " + conditionString);
-        }
-
-        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(
-                BlockListContext.live(blockListName),
-                blockIndex,
-                elementName,
-                condition
-        );
-        return new BlockListStepResult(block, elementName);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в (\\d+) блоке в элементе \"([^\"]*)\" текст (равен|содержит) \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в (\\d+) блоке в элементе \"([^\"]*)\" текст (равен|содержит) \"([^\"]*)\"$")
     public IStepResult checkElementInBlockListForText(String blockName, String blockListName, int blockIndex, String elementName, String conditionString, String expectedText) {
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
@@ -946,7 +482,7 @@ public class BlocksCollectionCheckSteps {
         }
 
         CorePage block = waitUntilElementInBlockByNumberMeetsCondition(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 blockIndex,
                 elementName,
                 condition
@@ -954,26 +490,7 @@ public class BlocksCollectionCheckSteps {
         return new BlockListStepResult(block, elementName);
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" в (\\d+) блоке элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
-    public IStepResult checkElementInBlockListForCss(String blockListName, int blockIndex, String elementName, String cssName, String cssValue) {
-        String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
-        String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
-
-        WebElementCondition condition = Condition.cssValue(resolvedCssName, resolvedCssValue);
-        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(
-                BlockListContext.live(blockListName),
-                blockIndex,
-                elementName,
-                condition
-        );
-        return new BlockListStepResult(block, elementName);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в (\\d+) блоке элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в (\\d+) блоке элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
     public IStepResult checkElementInBlockListForCss(String blockName, String blockListName, int blockIndex, String elementName, String cssName, String cssValue) {
         String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
@@ -981,7 +498,7 @@ public class BlocksCollectionCheckSteps {
 
         WebElementCondition condition = Condition.cssValue(resolvedCssName, resolvedCssValue);
         CorePage block = waitUntilElementInBlockByNumberMeetsCondition(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 blockIndex,
                 elementName,
                 condition
@@ -989,26 +506,7 @@ public class BlocksCollectionCheckSteps {
         return new BlockListStepResult(block, elementName);
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" в (\\d+) блоке элемент \"([^\"]*)\" содержит атрибут \"([^\"]*)\" со значением \"([^\"]*)\"$")
-    public IStepResult checkElementInBlockListForAttribute(String blockListName, int blockIndex, String elementName, String attributeName, String attributeValue) {
-        String resolvedAttributeName = OtherSteps.getPropertyOrStringVariableOrValue(attributeName);
-        String resolvedAttributeValue = OtherSteps.getPropertyOrStringVariableOrValue(attributeValue);
-
-        WebElementCondition condition = Condition.attributeMatching(resolvedAttributeName, resolvedAttributeValue);
-        CorePage block = waitUntilElementInBlockByNumberMeetsCondition(
-                BlockListContext.live(blockListName),
-                blockIndex,
-                elementName,
-                condition
-        );
-        return new BlockListStepResult(block, elementName);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в (\\d+) блоке элемент \"([^\"]*)\" содержит атрибут \"([^\"]*)\" со значением \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в (\\d+) блоке элемент \"([^\"]*)\" содержит атрибут \"([^\"]*)\" со значением \"([^\"]*)\"$")
     public IStepResult checkElementInBlockListForAttribute(String blockName, String blockListName, int blockIndex, String elementName, String attributeName, String attributeValue) {
         String resolvedAttributeName = OtherSteps.getPropertyOrStringVariableOrValue(attributeName);
@@ -1016,7 +514,7 @@ public class BlocksCollectionCheckSteps {
 
         WebElementCondition condition = Condition.attributeMatching(resolvedAttributeName, resolvedAttributeValue);
         CorePage block = waitUntilElementInBlockByNumberMeetsCondition(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 blockIndex,
                 elementName,
                 condition
@@ -1024,75 +522,45 @@ public class BlocksCollectionCheckSteps {
         return new BlockListStepResult(block, elementName);
     }
 
-
-
-
-    /**
-     * ######################################################################################################################
-     */
-
     @SuppressWarnings("deprecation")
-    @И("^в списке блоков \"([^\"]+)\" (\\d+) блок расположен (в|вне) видимой части браузера$")
-    public IStepResult checkBlockListItemInBounds(String blockListName, int blockIndex, String boundsCondition) {
-        CorePage block = waitForBlockByNumber(
-                BlockListContext.live(blockListName),
-                blockIndex
-        );
-        inBounds(block.getSelf(), boundsCondition);
-        return new BlockListStepResult(block);
-    }
-
-    @SuppressWarnings("deprecation")
+    @И("^()в списке блоков \"([^\"]+)\" (\\d+) блок расположен (в|вне) видимой части браузера$")
     @И("^в блоке \"([^\"]+)\" в списке блоков \"([^\"]+)\" (\\d+) блок расположен (в|вне) видимой части браузера$")
     public IStepResult checkBlockListItemInBounds(String blockName, String blockListName, int blockIndex, String boundsCondition) {
         CorePage block = waitForBlockByNumber(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 blockIndex
         );
         inBounds(block.getSelf(), boundsCondition);
         return new BlockListStepResult(block);
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
-    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено сохранение текста элемента \"([^\"]*)\" в переменную \"([^\"]*)\"$")
-    public IStepResult saveElementTextToVarInBlockListWhereTextEquals(String blockListName, String elementToCheckText, String expectedText, String elementToSaveText, String varName) {
-        BlockListContext blockListContext = createBlockListContextFromList(blockListName);
-        return saveElementTextToVarInBlockListWhereTextEquals(blockListContext, elementToCheckText, expectedText, elementToSaveText, varName);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено сохранение текста элемента \"([^\"]*)\" в переменную \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено сохранение текста элемента \"([^\"]*)\" в переменную \"([^\"]*)\"$")
     public IStepResult saveElementTextToVarInBlockListWhereTextEquals(String blockName, String blockListName, String elementToCheckText, String expectedText, String elementToSaveText, String varName) {
-        BlockListContext blockListContext = createBlockListContextFromBlock(blockName, blockListName);
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
         return saveElementTextToVarInBlockListWhereTextEquals(blockListContext, elementToCheckText, expectedText, elementToSaveText, varName);
     }
-
-
-    /**
-     * ######################################################################################################################
-     */
 
     // Вспомогательные методы для сокращения дублирования
 
     /**
-     * Создаёт контекст для списка блоков, объявленного на текущей странице (без родительского блока).
-     * Используется во всех шагах вида "в списке блоков <имя> ...".
+     * Создаёт контекст для списка блоков: на текущей странице, если {@code blockName} не задан
+     * (null или пустая строка — короткая форма шага даёт "" через фиктивную regex-группу),
+     * иначе — внутри блока-контейнера {@code blockName}.
      */
-    @Step("Создаём контекст списка блоков '{blockListName}' на текущей странице")
-    private BlockListContext createBlockListContextFromList(String blockListName) {
-        return BlockListContext.snapshot(blockListName);
+    @Step("Создаём контекст списка блоков '{blockListName}'")
+    private BlockListContext createBlockListContext(String blockName, String blockListName) {
+        return BlockListContext.snapshot(blockName, blockListName);
     }
 
     /**
-     * Создаёт контекст для списка блоков, который находится внутри родительского блока.
-     * Используется во всех шагах вида "в блоке <имя блока> в списке блоков <имя списка> ...".
+     * Возвращает текущую страницу, если имя блока не задано (null или пустая строка),
+     * иначе — блок с этим именем на текущей странице.
      */
-    @Step("Создаём контекст списка блоков '{blockListName}' внутри блока-контейнера '{blockName}'")
-    private BlockListContext createBlockListContextFromBlock(String blockName, String blockListName) {
-        return BlockListContext.snapshotInBlock(blockName, blockListName);
+    private CorePage resolveOwner(String blockName) {
+        return (blockName == null || blockName.isEmpty())
+                ? WebScenario.getCurrentPage()
+                : WebScenario.getCurrentPage().getBlock(blockName);
     }
 
     private IStepResult forEachBlock(BlockListContext blockListContext,

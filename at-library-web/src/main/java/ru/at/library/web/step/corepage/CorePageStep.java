@@ -133,14 +133,19 @@ public class CorePageStep {
     }
 
     /**
-     * Проверка отображения всех основных элементов блока (всех кроме Optional и Hidden)
+     * Проверка отображения всех основных элементов блока (всех кроме Optional и Hidden).
+     * Если указан родительский блок, дочерний блок ищется внутри него.
      *
-     * @param blockName имя блока для проверки
+     * @param parentBlockName имя родительского блока (может отсутствовать — фиктивная пустая группа)
+     * @param blockName       имя блока для проверки
      */
-    @И("^блок \"([^\"]*)\" отображается на странице$")
-    public void blockAppeared(String blockName) {
-        CorePage block = WebScenario.getCurrentPage().getBlock(blockName);
-        blockAppeared(block);
+    @И("^()блок \"([^\"]*)\" отображается на странице$")
+    @И("^в блоке \"([^\"]*)\" блок \"([^\"]*)\" отображается на странице$")
+    public void blockAppeared(String parentBlockName, String blockName) {
+        CorePage owner = (parentBlockName == null || parentBlockName.isEmpty())
+                ? WebScenario.getCurrentPage()
+                : WebScenario.getCurrentPage().getBlock(parentBlockName);
+        blockAppeared(owner.getBlock(blockName));
     }
 
     /**
@@ -163,18 +168,6 @@ public class CorePageStep {
     @И("^блок \"([^\"]*)\" не присутствует в DOM$")
     public void blockDoesntExist(String blockName) {
         WebScenario.getCurrentPage().getBlock(blockName).getSelf().shouldHave(Condition.not(Condition.exist));
-    }
-
-    /**
-     * Проверка отображения всех основных элементов дочернего блока (всех кроме Optional и Hidden) в родительском блоке
-     *
-     * @param parentBlockName имя родительского блока, в котором расположен дочерний блок
-     * @param childBlockName  имя дочернего блока для проверки
-     */
-    @И("^в блоке \"([^\"]*)\" блок \"([^\"]*)\" отображается на странице$")
-    public void blockAppeared(String parentBlockName, String childBlockName) {
-        CorePage block = WebScenario.getCurrentPage().getBlock(parentBlockName).getBlock(childBlockName);
-        blockAppeared(block);
     }
 
     /**

@@ -304,6 +304,7 @@ public class DynamicBlocksTestSteps {
 
         try {
             new BlocksCollectionActionSteps().clickOnElementBlockInBlockList(
+                    null,
                     "Динамические блоки",
                     0,
                     "Кнопка динамического блока"
@@ -347,6 +348,7 @@ public class DynamicBlocksTestSteps {
                     """);
 
             new BlocksCollectionCheckSteps().checkNotTextInBlockListMatches(
+                    null,
                     "Динамические блоки",
                     "Название динамического блока",
                     "Второй блок"
@@ -397,6 +399,7 @@ public class DynamicBlocksTestSteps {
         try {
             Configuration.timeout = 500L;
             new BlocksCollectionActionSteps().clickButtonInBlockListWhereTextEquals(
+                    null,
                     "Динамические блоки",
                     "Название динамического блока",
                     "Отсутствующий блок",
@@ -427,6 +430,7 @@ public class DynamicBlocksTestSteps {
     public void retrySearchDoesNotEmitTechnicalSelenideSteps() {
         assertNoTechnicalSelenideEvents(() ->
                 new BlocksCollectionActionSteps().clickButtonInBlockListWhereTextEquals(
+                        null,
                         "Динамические блоки",
                         "Название динамического блока",
                         "Второй блок",
@@ -440,6 +444,7 @@ public class DynamicBlocksTestSteps {
     public void staleRetryDoesNotEmitTechnicalSelenideSteps() {
         assertNoTechnicalSelenideEvents(() ->
                 new BlocksCollectionActionSteps().clickButtonInBlockListWhereTextEquals(
+                        null,
                         "Динамические блоки",
                         "Название динамического блока",
                         "Второй блок",
@@ -453,6 +458,7 @@ public class DynamicBlocksTestSteps {
     public void everyBlockCheckDoesNotEmitTechnicalSelenideSteps() {
         assertNoTechnicalSelenideEvents(() ->
                 new BlocksCollectionCheckSteps().checkNotTextInBlockListMatches(
+                        null,
                         "Динамические блоки",
                         "Название динамического блока",
                         "Отсутствующий текст"

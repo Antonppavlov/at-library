@@ -20,9 +20,12 @@ import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod
 /**
  * Шаги-действия для работы со списками блоков (List<CorePage>), построенные поверх {@link BlockListContext}.
  *
- * Все публичные Cucumber-методы остаются без изменений; общая логика выбора блока/элемента вынесена
- * во внутренние helper-методы с понятными именами (clickBlockWhere..., clickElementInBlockWhere..., и т.д.),
- * чтобы избежать дублирования и упростить сопровождение.
+ * Шаги "в блоке ..." и без него объединены в один метод на каждое действие: короткий
+ * вариант шага получает фиктивную пустую захватывающую группу {@code ()} в начале
+ * regex, чтобы количество групп совпадало с "блочным" вариантом — это сохраняет
+ * подсказки/навигацию IntelliJ для обеих формулировок и не требует делегирования
+ * между двумя разными Cucumber-шагами. Общая логика выбора блока/элемента вынесена
+ * во внутренние helper-методы (clickBlockWhere..., clickElementInBlockWhere..., и т.д.).
  */
 public class BlocksCollectionActionSteps {
 
@@ -51,30 +54,17 @@ public class BlocksCollectionActionSteps {
         return new BlockListStepResult(block, elementNameSearch);
     }
 
-    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено наведение и нажатие на блок$")
-    @То("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено нажатие на блок$")
-    public IStepResult clickBlockInBlockListWhereTextEquals(String blockListName, String elementNameSearch, String expectedTextSearch) {
-        return clickBlockWhereTextEquals(
-                BlockListContext.live(blockListName),
-                elementNameSearch,
-                expectedTextSearch
-        );
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено наведение и нажатие на блок$")
+    @То("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено нажатие на блок$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено наведение и нажатие на блок$")
     @То("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено нажатие на блок$")
     public IStepResult clickBlockInBlockListWhereTextEquals(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch) {
         return clickBlockWhereTextEquals(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 elementNameSearch,
                 expectedTextSearch
         );
     }
-
-
-    /**
-     * ######################################################################################################################
-     */
 
     private IStepResult clickElementInBlockWhereTextEquals(BlockListContext context,
                                                            String elementNameSearch,
@@ -96,33 +86,18 @@ public class BlocksCollectionActionSteps {
         return new BlockListStepResult(block, elementNameClick, elementNameSearch);
     }
 
-    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено наведение и нажатие на элемент \"([^\"]*)\"$")
-    @То("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено нажатие на элемент \"([^\"]*)\"$")
-    public IStepResult clickButtonInBlockListWhereTextEquals(String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameClick) {
-        return clickElementInBlockWhereTextEquals(
-                BlockListContext.live(blockListName),
-                elementNameSearch,
-                expectedTextSearch,
-                elementNameClick
-        );
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено наведение и нажатие на элемент \"([^\"]*)\"$")
+    @То("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено нажатие на элемент \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено наведение и нажатие на элемент \"([^\"]*)\"$")
     @То("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено нажатие на элемент \"([^\"]*)\"$")
     public IStepResult clickButtonInBlockListWhereTextEquals(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameClick) {
         return clickElementInBlockWhereTextEquals(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 elementNameSearch,
                 expectedTextSearch,
                 elementNameClick
         );
     }
-
-
-
-    /**
-     * ######################################################################################################################
-     */
 
     private IStepResult clickElementInBlockWhereElementVisible(BlockListContext context,
                                                                String elementNameSearch,
@@ -143,28 +118,15 @@ public class BlocksCollectionActionSteps {
         return new BlockListStepResult(block, elementNameClick, elementNameSearch);
     }
 
-    @То("^в списке блоков \"([^\"]*)\" где элемент \"([^\"]*)\" отображается выполнено нажатие на элемент \"([^\"]*)\"$")
-    public IStepResult clickButtonInBlockListWhereElementVisible(String blockListName, String elementNameSearch, String elementNameClick) {
-        return clickElementInBlockWhereElementVisible(
-                BlockListContext.live(blockListName),
-                elementNameSearch,
-                elementNameClick
-        );
-    }
-
+    @То("^()в списке блоков \"([^\"]*)\" где элемент \"([^\"]*)\" отображается выполнено нажатие на элемент \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где элемент \"([^\"]*)\" отображается выполнено нажатие на элемент \"([^\"]*)\"$")
     public IStepResult clickButtonInBlockListWhereElementVisible(String blockName, String blockListName, String elementNameSearch, String elementNameClick) {
         return clickElementInBlockWhereElementVisible(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 elementNameSearch,
                 elementNameClick
         );
     }
-
-
-    /**
-     * ######################################################################################################################
-     */
 
     private IStepResult hoverOnElementInBlockWhereTextEquals(BlockListContext context,
                                                              String elementNameSearch,
@@ -183,37 +145,29 @@ public class BlocksCollectionActionSteps {
         return new BlockListStepResult(block, elementNameClick, elementNameSearch);
     }
 
-    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено наведение на элемент \"([^\"]*)\"$")
-    public IStepResult hoverOnElementInBlockListWhereTextEquals(String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameClick) {
-        return hoverOnElementInBlockWhereTextEquals(
-                BlockListContext.live(blockListName),
-                elementNameSearch,
-                expectedTextSearch,
-                elementNameClick
-        );
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено наведение на элемент \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено наведение на элемент \"([^\"]*)\"$")
     public IStepResult hoverOnElementInBlockListWhereTextEquals(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameClick) {
         return hoverOnElementInBlockWhereTextEquals(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 elementNameSearch,
                 expectedTextSearch,
                 elementNameClick
         );
     }
 
-
-    /**
-     * ######################################################################################################################
-     */
-
+    // NB: в исходном коде до-рефакторинга вариант без блока чистил поле через
+    // clearField(element) (посимвольный Ctrl+A/Backspace), а блочный вариант —
+    // обычным element.clear(). Это выглядит как случайное расхождение, а не
+    // намеренное решение, но при слиянии в один метод сохраняем оба поведения
+    // как есть, привязав их к наличию имени блока, чтобы не менять поведение
+    // существующих сценариев незаметно.
     private IStepResult inputValueInBlockWhereTextEquals(BlockListContext context,
                                                          String elementNameSearch,
                                                          String expectedTextSearch,
                                                          String elementName,
                                                          String inputText,
-                                                         boolean useClearField) throws Exception {
+                                                         boolean useClearField) {
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
         String resolvedInputText = OtherSteps.getPropertyOrStringVariableOrValue(inputText);
 
@@ -236,34 +190,19 @@ public class BlocksCollectionActionSteps {
         return new BlockListStepResult(block, elementNameSearch, elementName);
     }
 
-    @И("^в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" в поле \"([^\"]*)\" введено значение \"([^\"]*)\"$")
-    public IStepResult inputValueInBlockListWhereTextEquals(String blockListName, String elementNameSearch, String expectedTextSearch, String elementName, String inputText) throws Exception {
-        return inputValueInBlockWhereTextEquals(
-                BlockListContext.live(blockListName),
-                elementNameSearch,
-                expectedTextSearch,
-                elementName,
-                inputText,
-                true
-        );
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" в поле \"([^\"]*)\" введено значение \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" в поле \"([^\"]*)\" введено значение \"([^\"]*)\"$")
-    public IStepResult inputValueInBlockListWhereTextEquals(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String elementName, String inputText) throws Exception {
+    public IStepResult inputValueInBlockListWhereTextEquals(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String elementName, String inputText) {
+        boolean noBlockGiven = blockName == null || blockName.isEmpty();
         return inputValueInBlockWhereTextEquals(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 elementNameSearch,
                 expectedTextSearch,
                 elementName,
                 inputText,
-                false
+                noBlockGiven
         );
     }
-
-
-    /**
-     * ######################################################################################################################
-     */
 
     private CorePage findBlock(BlockListContext context,
                                String elementName,
@@ -294,28 +233,15 @@ public class BlocksCollectionActionSteps {
         return new BlockListStepResult(block, elementNameClick);
     }
 
-    @И("^в списке блоков \"([^\"]*)\" в (\\d+) блоке выполнено нажатие на элемент \"([^\"]*)\"$")
-    public IStepResult clickOnElementBlockInBlockList(String blockListName, int blockNumber, String elementNameClick) {
-        return clickOnElementInBlockByNumber(
-                BlockListContext.live(blockListName),
-                blockNumber,
-                elementNameClick
-        );
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" в (\\d+) блоке выполнено нажатие на элемент \"([^\"]*)\"$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в (\\d+) блоке выполнено нажатие на элемент \"([^\"]*)\"$")
     public IStepResult clickOnElementBlockInBlockList(String blockName, String blockListName, int blockNumber, String elementNameClick) {
         return clickOnElementInBlockByNumber(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 blockNumber,
                 elementNameClick
         );
     }
-
-
-    /**
-     * ######################################################################################################################
-     */
 
     private IStepResult clickOnBlockByNumber(BlockListContext blockListContext, int blockNumber) {
         CorePage block = BlockSearchExecutor.awaitBlockRoot(
@@ -329,20 +255,11 @@ public class BlocksCollectionActionSteps {
         return new BlockListStepResult(block);
     }
 
-    @И("^в списке блоков \"([^\"]*)\" выполнено нажатие на (\\d+) блок$")
-    public IStepResult clickOnBlockInBlockList(String blockListName, int blockNumber) {
-        return clickOnBlockByNumber(BlockListContext.live(blockListName), blockNumber);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" выполнено нажатие на (\\d+) блок$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" выполнено нажатие на (\\d+) блок$")
     public IStepResult clickOnBlockInBlockList(String blockName, String blockListName, int blockNumber) {
-        return clickOnBlockByNumber(BlockListContext.liveInBlock(blockName, blockListName), blockNumber);
+        return clickOnBlockByNumber(BlockListContext.live(blockName, blockListName), blockNumber);
     }
-
-
-    /**
-     * ######################################################################################################################
-     */
 
     private IStepResult clickOnBlockWithComplexCondition(BlockListContext blockListContext, DataTable conditionsTable) {
         List<CorePage> resultList = getBlockListWithComplexCondition(
@@ -363,23 +280,14 @@ public class BlocksCollectionActionSteps {
                 conditionsTable.asLists().stream().map(conditionRow -> conditionRow.get(0)).collect(Collectors.toList()));
     }
 
-    @И("^в списке блоков \"([^\"]*)\" выполнено нажатие на блок элементы которого соответствуют списку$")
-    public IStepResult clickOnBlockInBlockListWIthComplexCondition(String blockListName, DataTable conditionsTable) {
-        return clickOnBlockWithComplexCondition(BlockListContext.live(blockListName), conditionsTable);
-    }
-
+    @И("^()в списке блоков \"([^\"]*)\" выполнено нажатие на блок элементы которого соответствуют списку$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" выполнено нажатие на блок элементы которого соответствуют списку$")
     public IStepResult clickOnBlockInBlockListWIthComplexCondition(String blockName, String blockListName, DataTable conditionsTable) {
         return clickOnBlockWithComplexCondition(
-                BlockListContext.liveInBlock(blockName, blockListName),
+                BlockListContext.live(blockName, blockListName),
                 conditionsTable
         );
     }
-
-
-    /**
-     * ######################################################################################################################
-     */
 
     @И("^в списке блоков \"([^\"]*)\" выполнено нажатие на элемент \"([^\"]*)\" блока который соответствуют условию")
     public IStepResult clickOnElementInBlockListWIthComplexCondition(String blockListName, String elementNameClick, DataTable conditionsTable) {

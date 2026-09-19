@@ -37,6 +37,15 @@ class BlockListContext {
     }
 
     /**
+     * Снимок списка блоков на текущей странице, если {@code blockName} не задан
+     * (null или пустая строка — короткая форма шага "в блоке ..." даёт "" через
+     * фиктивную regex-группу), иначе — снимок внутри блока-контейнера {@code blockName}.
+     */
+    static BlockListContext snapshot(String blockName, String listName) {
+        return isAbsent(blockName) ? snapshot(listName) : snapshotInBlock(blockName, listName);
+    }
+
+    /**
      * Создаёт только описание источника. Сам список впервые получается уже
      * внутри polling-попытки, поэтому ошибка перерисовки не выйдет за deadline.
      */
@@ -46,6 +55,18 @@ class BlockListContext {
 
     static BlockListContext liveInBlock(String blockName, String listName) {
         return new BlockListContext(List.of(), listName, blockName);
+    }
+
+    /**
+     * "Живой" источник списка блоков на текущей странице, если {@code blockName} не задан
+     * (null или пустая строка), иначе — внутри блока-контейнера {@code blockName}.
+     */
+    static BlockListContext live(String blockName, String listName) {
+        return isAbsent(blockName) ? live(listName) : liveInBlock(blockName, listName);
+    }
+
+    private static boolean isAbsent(String blockName) {
+        return blockName == null || blockName.isEmpty();
     }
 
     List<CorePage> getBlocks() {
