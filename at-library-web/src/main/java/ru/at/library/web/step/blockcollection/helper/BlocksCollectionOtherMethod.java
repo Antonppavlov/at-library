@@ -1,4 +1,4 @@
-package ru.at.library.web.step.blockcollection;
+package ru.at.library.web.step.blockcollection.helper;
 
 import com.codeborne.selenide.*;
 import io.cucumber.datatable.DataTable;
@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 
 import static ru.at.library.core.steps.OtherSteps.getPropertyOrStringVariableOrValue;
 import static ru.at.library.core.utils.helpers.ScopedVariables.resolveVars;
@@ -28,6 +27,8 @@ import static ru.at.library.core.utils.helpers.ScopedVariables.resolveVars;
  * -----------------------------------------------------------------------------------------------------------------
  */
 public class BlocksCollectionOtherMethod {
+
+    private static final String PSEUDO_DISABLED_BACKGROUND_COLOR = "rgba(240, 242, 245, 1)";
 
     /**
      * Скроллит указанный элемент в центр видимой области окна с помощью JS.
@@ -179,13 +180,16 @@ public class BlocksCollectionOtherMethod {
         return BlockSearchExecutor.filterInSnapshot(
                 blockList,
                 block -> matchesAllConditions(block, conditions),
-                complexConditionNotFoundMessage(blockList, conditions)
+                "В списке блоков не найден ни один блок, удовлетворяющий всем условиям" +
+                        "\nУсловия:\n" + conditionsToString(conditions) +
+                        "\nРазмер списка блоков: " + blockList.size()
         );
     }
 
-    static List<CorePage> getBlockListWithComplexCondition(BlockListContext context,
-                                                           DataTable conditionsTable,
-                                                           Consumer<List<CorePage>> onMatched) {
+    @Step("Поиск блока соответствующего условиям")
+    public static List<CorePage> getBlockListWithComplexCondition(BlockListContext context,
+                                                                   DataTable conditionsTable,
+                                                                   Consumer<List<CorePage>> onMatched) {
         List<ComplexCondition> conditions = resolveConditions(conditionsTable);
         return BlockSearchExecutor.filterInContext(
                 context,
@@ -195,8 +199,9 @@ public class BlocksCollectionOtherMethod {
         );
     }
 
-    static List<CorePage> getBlockListWithComplexCondition(BlockListContext context,
-                                                           DataTable conditionsTable) {
+    @Step("Поиск блока соответствующего условиям")
+    public static List<CorePage> getBlockListWithComplexCondition(BlockListContext context,
+                                                                   DataTable conditionsTable) {
         List<ComplexCondition> conditions = resolveConditions(conditionsTable);
         return BlockSearchExecutor.filterInContext(
                 context,
@@ -220,7 +225,8 @@ public class BlocksCollectionOtherMethod {
                                         BlockSearchExecutor.evaluateElement(
                                                 () -> block.getElement(condition.elementName()),
                                                 condition.condition(),
-                                                condition.requiresExistingElement()
+                                                !"не существует на странице".equals(condition.sourceCondition())
+                                                        && !"не отображается на странице".equals(condition.sourceCondition())
                                         );
                                 if (result.needsRetry()) {
                                     BlockAllureReport.finishStep(
@@ -257,8 +263,21 @@ public class BlocksCollectionOtherMethod {
         return true;
     }
 
+    @Step("Разбор таблицы условий")
     private static List<ComplexCondition> resolveConditions(DataTable conditionsTable) {
-        validationConditionsTable(conditionsTable);
+        List<List<String>> conditionsRows = conditionsTable.asLists();
+        if (conditionsRows.isEmpty()) {
+            throw new IllegalArgumentException("Таблица conditionsTable не должна быть пустой!");
+        }
+        for (int index = 0; index < conditionsRows.size(); index++) {
+            if (conditionsRows.get(index).size() != 3) {
+                throw new IllegalArgumentException(
+                        "Неверный формат условия в строке " + (index + 1) +
+                                ". Требуемый формат: |<Название элемента>|<Условие>|<Ожидаемое значение>|"
+                );
+            }
+        }
+
         List<ComplexCondition> conditions = new ArrayList<>();
 
         for (List<String> row : conditionsTable.asLists()) {
@@ -274,13 +293,6 @@ public class BlocksCollectionOtherMethod {
         return conditions;
     }
 
-    private static String complexConditionNotFoundMessage(List<CorePage> blockList,
-                                                          List<ComplexCondition> conditions) {
-        return "В списке блоков не найден ни один блок, удовлетворяющий всем условиям" +
-                "\nУсловия:\n" + conditionsToString(conditions) +
-                "\nРазмер списка блоков: " + blockList.size();
-    }
-
     private static String complexConditionNotFoundMessage(BlockListContext context,
                                                           List<ComplexCondition> conditions) {
         return "В списке блоков не найден ни один блок, удовлетворяющий всем условиям" +
@@ -291,9 +303,12 @@ public class BlocksCollectionOtherMethod {
     private static String conditionsToString(List<ComplexCondition> conditions) {
         StringBuilder result = new StringBuilder();
         for (int index = 0; index < conditions.size(); index++) {
+            ComplexCondition condition = conditions.get(index);
             result.append(index + 1)
                     .append(". ")
-                    .append(conditions.get(index).description())
+                    .append("элемент '").append(condition.elementName()).append("' ")
+                    .append(condition.sourceCondition())
+                    .append(" '").append(condition.expectedValue()).append("'")
                     .append('\n');
         }
         return result.toString();
@@ -315,13 +330,7 @@ public class BlocksCollectionOtherMethod {
                 break;
             }
             case "текст не содержит": {
-                condition = Condition.not(Condition.or("текст элемента не содержит",
-                        Condition.text(expectedValue),
-                        Condition.value(expectedValue),
-                        Condition.attributeMatching(
-                                "title",
-                                ".*" + Pattern.quote(expectedValue) + ".*"
-                        )));
+                condition = Condition.not(BlockConditions.textContains(expectedValue));
                 break;
             }
             case "содержит css": {
@@ -361,11 +370,11 @@ public class BlocksCollectionOtherMethod {
                 break;
             }
             case "псевдо-недоступен": {
-                condition = Condition.cssValue("background-color", "rgba(240, 242, 245, 1)");
+                condition = Condition.cssValue("background-color", PSEUDO_DISABLED_BACKGROUND_COLOR);
                 break;
             }
             case "не псевдо-недоступен": {
-                condition = Condition.not(Condition.cssValue("background-color", "rgba(240, 242, 245, 1)"));
+                condition = Condition.not(Condition.cssValue("background-color", PSEUDO_DISABLED_BACKGROUND_COLOR));
                 break;
             }
             case "поле пусто": {
@@ -405,36 +414,10 @@ public class BlocksCollectionOtherMethod {
         return sb.toString();
     }
 
-    private static void validationConditionsTable(DataTable conditionsTable) {
-        List<List<String>> conditionsRows = conditionsTable.asLists();
-
-        if (conditionsRows.isEmpty()) {
-            throw new IllegalArgumentException("Таблица conditionsTable не должна быть пустой!");
-        }
-
-        for (int index = 0; index < conditionsRows.size(); index++) {
-            if (conditionsRows.get(index).size() != 3) {
-                throw new IllegalArgumentException(
-                        "Неверный формат условия в строке " + (index + 1) +
-                                ". Требуемый формат: |<Название элемента>|<Условие>|<Ожидаемое значение>|"
-                );
-            }
-        }
-    }
-
     private record ComplexCondition(String elementName,
                                     String sourceCondition,
                                     String expectedValue,
                                     WebElementCondition condition) {
-
-        private boolean requiresExistingElement() {
-            return !"не существует на странице".equals(sourceCondition)
-                    && !"не отображается на странице".equals(sourceCondition);
-        }
-
-        private String description() {
-            return "элемент '" + elementName + "' " + sourceCondition + " '" + expectedValue + "'";
-        }
 
         private String expectation() {
             return sourceCondition + " '" + expectedValue + "'";

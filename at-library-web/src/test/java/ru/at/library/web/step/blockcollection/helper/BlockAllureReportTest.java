@@ -1,4 +1,4 @@
-package ru.at.library.web.step.blockcollection;
+package ru.at.library.web.step.blockcollection.helper;
 
 import com.codeborne.selenide.logevents.LogEvent;
 import com.codeborne.selenide.logevents.LogEventListener;

@@ -1,4 +1,4 @@
-package ru.at.library.web.step.blockcollection;
+package ru.at.library.web.step.blockcollection.helper;
 
 import ru.at.library.web.scenario.CorePage;
 import ru.at.library.web.scenario.CustomCondition;
@@ -6,13 +6,13 @@ import ru.at.library.web.scenario.WebScenario;
 
 import java.util.List;
 
-import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.getBlockListWithCheckingTheQuantity;
+import static ru.at.library.web.step.blockcollection.helper.BlocksCollectionOtherMethod.getBlockListWithCheckingTheQuantity;
 
 /**
  * Источник списка блоков: сохранённый снимок для обычных проверок
  * и координаты списка для повторного чтения DOM во время retry.
  */
-class BlockListContext {
+public class BlockListContext {
 
     private final List<CorePage> snapshot;
     private final String listName;
@@ -30,54 +30,59 @@ class BlockListContext {
         return new BlockListContext(blocks, listName, null);
     }
 
-    static BlockListContext snapshotInBlock(String blockName, String listName) {
+    /**
+     * Снимок списка блоков на текущей странице, если {@code blockName} не задан
+     * (null или пустая строка — короткая форма шага "в блоке ..." даёт "" через
+     * фиктивную regex-группу), иначе — снимок внутри блока-контейнера {@code blockName}.
+     */
+    public static BlockListContext snapshot(String blockName, String listName) {
+        if (isAbsent(blockName)) {
+            return snapshot(listName);
+        }
         List<CorePage> blocks =
                 getBlockListWithCheckingTheQuantity(blockName, listName, CustomCondition.Comparison.more, 0);
         return new BlockListContext(blocks, listName, blockName);
     }
 
     /**
-     * Снимок списка блоков на текущей странице, если {@code blockName} не задан
-     * (null или пустая строка — короткая форма шага "в блоке ..." даёт "" через
-     * фиктивную regex-группу), иначе — снимок внутри блока-контейнера {@code blockName}.
-     */
-    static BlockListContext snapshot(String blockName, String listName) {
-        return isAbsent(blockName) ? snapshot(listName) : snapshotInBlock(blockName, listName);
-    }
-
-    /**
      * Создаёт только описание источника. Сам список впервые получается уже
      * внутри polling-попытки, поэтому ошибка перерисовки не выйдет за deadline.
      */
-    static BlockListContext live(String listName) {
+    public static BlockListContext live(String listName) {
         return new BlockListContext(List.of(), listName, null);
-    }
-
-    static BlockListContext liveInBlock(String blockName, String listName) {
-        return new BlockListContext(List.of(), listName, blockName);
     }
 
     /**
      * "Живой" источник списка блоков на текущей странице, если {@code blockName} не задан
      * (null или пустая строка), иначе — внутри блока-контейнера {@code blockName}.
      */
-    static BlockListContext live(String blockName, String listName) {
-        return isAbsent(blockName) ? live(listName) : liveInBlock(blockName, listName);
+    public static BlockListContext live(String blockName, String listName) {
+        return isAbsent(blockName)
+                ? live(listName)
+                : new BlockListContext(List.of(), listName, blockName);
     }
 
-    private static boolean isAbsent(String blockName) {
+    /**
+     * Единственное место, где решается, задано ли имя блока-контейнера
+     * (короткая форма шага "в блоке ..." даёт пустую строку через фиктивную regex-группу).
+     * Используется также напрямую из step-классов пакета, чтобы не дублировать эту проверку.
+     */
+    public static boolean isAbsent(String blockName) {
         return blockName == null || blockName.isEmpty();
     }
 
-    List<CorePage> getBlocks() {
+    public List<CorePage> getBlocks() {
         return snapshot;
     }
 
     List<CorePage> freshBlocks() {
-        return loadBlocks(listName, containerName);
+        CorePage owner = containerName == null
+                ? WebScenario.getCurrentPage()
+                : WebScenario.getCurrentPage().getBlock(containerName);
+        return owner.getBlocksList(listName);
     }
 
-    String describe() {
+    public String describe() {
         return describe(listName, containerName);
     }
 
@@ -97,12 +102,5 @@ class BlockListContext {
                 .append(listName)
                 .append("'")
                 .toString();
-    }
-
-    private static List<CorePage> loadBlocks(String listName, String containerName) {
-        CorePage owner = containerName == null
-                ? WebScenario.getCurrentPage()
-                : WebScenario.getCurrentPage().getBlock(containerName);
-        return owner.getBlocksList(listName);
     }
 }

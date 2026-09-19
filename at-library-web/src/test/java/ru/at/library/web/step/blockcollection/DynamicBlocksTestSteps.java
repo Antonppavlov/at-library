@@ -13,6 +13,7 @@ import io.qameta.allure.model.Status;
 import io.qameta.allure.model.StepResult;
 import ru.at.library.web.scenario.CorePage;
 import ru.at.library.web.scenario.WebScenario;
+import ru.at.library.web.step.blockcollection.helper.BlockListContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,11 +22,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
 import static com.codeborne.selenide.Selenide.$;
-import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.findCorePageByRegExpInElement;
-import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.findCorePageByTextContainInElement;
-import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.findCorePageByTextInElement;
-import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.findCorePageByVisibleElement;
-import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.getBlockListWithComplexCondition;
+import static ru.at.library.web.step.blockcollection.helper.BlocksCollectionOtherMethod.findCorePageByRegExpInElement;
+import static ru.at.library.web.step.blockcollection.helper.BlocksCollectionOtherMethod.findCorePageByTextContainInElement;
+import static ru.at.library.web.step.blockcollection.helper.BlocksCollectionOtherMethod.findCorePageByTextInElement;
+import static ru.at.library.web.step.blockcollection.helper.BlocksCollectionOtherMethod.findCorePageByVisibleElement;
+import static ru.at.library.web.step.blockcollection.helper.BlocksCollectionOtherMethod.getBlockListWithComplexCondition;
 
 /**
  * Локальная страница для воспроизведения перерисовки DOM без внешних сервисов.

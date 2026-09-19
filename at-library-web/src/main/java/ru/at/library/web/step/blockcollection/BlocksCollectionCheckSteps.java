@@ -8,7 +8,6 @@ import io.cucumber.java.ru.И;
 import io.cucumber.java.ru.То;
 import io.qameta.allure.Allure;
 import io.qameta.allure.Step;
-import lombok.extern.log4j.Log4j2;
 import org.openqa.selenium.Point;
 import org.openqa.selenium.Rectangle;
 import org.testng.Assert;
@@ -19,6 +18,11 @@ import ru.at.library.web.scenario.CorePage;
 import ru.at.library.web.scenario.CustomCondition;
 import ru.at.library.web.scenario.IStepResult;
 import ru.at.library.web.scenario.WebScenario;
+import ru.at.library.web.step.blockcollection.helper.BlockAllureReport;
+import ru.at.library.web.step.blockcollection.helper.BlockCheckSupport;
+import ru.at.library.web.step.blockcollection.helper.BlockConditions;
+import ru.at.library.web.step.blockcollection.helper.BlockListContext;
+import ru.at.library.web.step.blockcollection.helper.BlockSearchExecutor;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -34,34 +38,47 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 import static ru.at.library.core.steps.OtherSteps.getPropertyOrStringVariableOrValue;
 import static ru.at.library.core.utils.helpers.ScopedVariables.resolveVars;
-import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.*;
+import static ru.at.library.web.step.blockcollection.helper.BlockCheckSupport.createBlockListContext;
+import static ru.at.library.web.step.blockcollection.helper.BlockCheckSupport.describeBlockTargetState;
+import static ru.at.library.web.step.blockcollection.helper.BlockCheckSupport.forEachBlock;
+import static ru.at.library.web.step.blockcollection.helper.BlockCheckSupport.forEachBlockWithoutResult;
+import static ru.at.library.web.step.blockcollection.helper.BlocksCollectionOtherMethod.getBlockListWithCheckingTheQuantity;
+import static ru.at.library.web.step.blockcollection.helper.BlocksCollectionOtherMethod.getBlockListWithComplexCondition;
+import static ru.at.library.web.step.blockcollection.helper.BlocksCollectionOtherMethod.getSelenideCondition;
+import static ru.at.library.web.step.blockcollection.helper.BlocksCollectionOtherMethod.methodCheckHasCssInBlockList;
+import static ru.at.library.web.step.blockcollection.helper.BlocksCollectionOtherMethod.methodCheckNotHasCssInBlockList;
+import static ru.at.library.web.step.blockcollection.helper.BlocksCollectionOtherMethod.shouldHaveTextMatches;
 import static ru.at.library.web.step.selenideelement.SelenideElementCheckSteps.inBounds;
 
 /**
- * Шаги-проверки для работы с коллекциями блоков (List&lt;CorePage&gt;),
- * построенные поверх "живых" списков блоков (BlocksCollection) и {@link BlockListContext}.
- *
- * <ul>
- *     <li>Шаги "в блоке ..." и без него объединены в один метод на каждую проверку: короткий
- *     вариант шага получает фиктивную пустую захватывающую группу {@code ()} в начале regex,
- *     чтобы количество групп совпадало с "блочным" вариантом — это сохраняет подсказки/навигацию
- *     IntelliJ для обеих формулировок и не требует делегирования между двумя разными
- *     Cucumber-шагами.</li>
- *     <li>Все ожидания делаются через {@code should*}/{@code shouldHave} Selenide, что гарантирует использование
- *     стандартного таймаута {@code Configuration.timeout}, как и для одиночных {@code SelenideElement}.</li>
- *     <li>Получение списка блоков всегда делается через {@link BlockListContext}, чтобы использовать единый
- *     механизм ожиданий размера коллекции.</li>
- * </ul>
+ * Все шаги-проверки для работы со списками блоков (List&lt;CorePage&gt;), построенные поверх
+ * {@link BlockListContext} и общего движка поиска/ожидания в пакете
+ * {@code ru.at.library.web.step.blockcollection.helper}.
+ * <p>
+ * Раньше этот класс был разбит на пять по "области действия" (весь список / каждый блок / любой
+ * блок / N блоков / конкретный блок), но границы между ними на практике оказались нечёткими —
+ * например, методы с "AnyBlock" в имени жили в классе "SpecificBlock". Поэтому шаги снова в одном
+ * файле, но сгруппированы по разделам (см. комментарии-баннеры ниже) в порядке от простого к
+ * сложному:
+ * <ol>
+ *     <li>Список блоков в целом (виден ли, сколько блоков, совпадает ли с таблицей);</li>
+ *     <li>Расположение списка (ряды, ширина контейнера);</li>
+ *     <li>Поиск одного блока по условию — "любой из блоков" / "где ... текст равен ...";</li>
+ *     <li>Проверка каждого блока по очереди;</li>
+ *     <li>Проверка, что ровно N блоков удовлетворяют условию;</li>
+ *     <li>Проверка конкретного блока по номеру.</li>
+ * </ol>
+ * Шаги "в блоке ..." и без него объединены в один метод на каждую проверку (см. пакетный
+ * Javadoc/CLAUDE.md — "Technique A"): короткий вариант шага получает фиктивную пустую
+ * захватывающую группу {@code ()} в начале regex, чтобы число групп совпадало с "блочным"
+ * вариантом — это сохраняет автодополнение IntelliJ для обеих формулировок.
  */
-@Log4j2
 public class BlocksCollectionCheckSteps {
 
-    private final CoreScenario coreScenario = CoreScenario.getInstance();
-
-    /**
-     * -----------------------------------------------------------------------------------------------------------------
-     * ---------------------------------------------Проверки списка блоков----------------------------------------------
-     * -----------------------------------------------------------------------------------------------------------------
+    /*
+     * =================================================================================================
+     * 1. СПИСОК БЛОКОВ В ЦЕЛОМ — виден ли список, сколько в нём блоков, совпадает ли с таблицей
+     * =================================================================================================
      */
 
     @И("^()список блоков \"([^\"]*)\" отображается на странице$")
@@ -82,7 +99,7 @@ public class BlocksCollectionCheckSteps {
     public IStepResult checkBlockListSize(String blockName, String blockListName, String condition, int expectedCountBlock) {
         CustomCondition.Comparison comparison = CustomCondition.Comparison.fromString(condition);
 
-        List<CorePage> blocksList = (blockName == null || blockName.isEmpty())
+        List<CorePage> blocksList = BlockListContext.isAbsent(blockName)
                 ? getBlockListWithCheckingTheQuantity(blockListName, comparison, expectedCountBlock)
                 : getBlockListWithCheckingTheQuantity(blockName, blockListName, comparison, expectedCountBlock);
 
@@ -90,55 +107,193 @@ public class BlocksCollectionCheckSteps {
     }
 
     /**
-     * Строит детальное сообщение о несоответствии элементов ожиданиям, заданным в {@link DataTable}.
-     * <p>
-     * Для каждой строки таблицы ожидается формат:
-     * | индекс блока | имя элемента | текстовое условие | ожидаемое значение/регулярка |
-     * <p>
      * NB: в исходном коде до-рефакторинга варианты "без блока"/"с блоком" отличались не только
      * контекстом, но и способом сообщения об ошибке (без блока — через hamcrestAssert с пустой
      * строкой, с блоком — через прямой throw). Сохраняем оба поведения как есть, привязав их
      * к наличию имени блока.
+     * <p>
+     * Для каждой строки {@code conditionsTable} ожидается формат:
+     * | индекс блока | имя элемента | текстовое условие | ожидаемое значение/регулярка |
      */
     @SuppressWarnings("deprecation")
     @И("^()список блоков \"([^\"]*)\" соответствует списку$")
     @И("^в блоке \"([^\"]*)\" список блоков \"([^\"]*)\" соответствует списку$")
     public void blockListMatchesList(String blockName, String blockListName, DataTable conditionsTable) {
-        boolean noBlockGiven = blockName == null || blockName.isEmpty();
+        boolean noBlockGiven = BlockListContext.isAbsent(blockName);
         BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
-        String resultMessage = buildBlockListMatchesListMessage(blockListContext, conditionsTable, noBlockGiven);
+
+        List<List<String>> conditionsRows = conditionsTable.asLists();
+        List<CorePage> blocksList = blockListContext.getBlocks();
+        String contextDescription = blockListContext.describe();
+        String resultMessageTemplate = "%s\nБлок с индексом %d: элемент '%s' не соответствует условию: %s '%s'\nФактический web-элемент: %s\n";
+        StringBuilder resultMessageBuilder = new StringBuilder();
+
+        for (int rowIndex = 0; rowIndex < conditionsRows.size(); rowIndex++) {
+            List<String> conditionRow = conditionsRows.get(rowIndex);
+            int blockNumber = Integer.parseInt(conditionRow.get(0));
+            int blockIndex = blockNumber - 1;
+            if (blockIndex < 0 || blockIndex >= blocksList.size()) {
+                throw new IllegalArgumentException(
+                        "Некорректный номер блока в таблице условий: " + blockNumber +
+                                " (строка №" + (rowIndex + 1) + ")" +
+                                "\nНомер блока должен быть от 1 до " + blocksList.size() +
+                                "\n" + contextDescription
+                );
+            }
+            String elementName = conditionRow.get(1);
+            String textCondition = conditionRow.get(2);
+            String expectedText = resolveVars(getPropertyOrStringVariableOrValue(conditionRow.get(3)));
+
+            SelenideElement element = blocksList.get(blockIndex).getElement(elementName);
+            String stepTitle = "Проверка №" + (rowIndex + 1) + " из " + conditionsRows.size() +
+                    " — блок №" + (blockIndex + 1) +
+                    " — элемент '" + elementName + "'";
+            String expectation = textCondition + " '" + expectedText + "'";
+            boolean matched = Allure.step(stepTitle, step -> {
+                try {
+                    BlockAllureReport.withoutSelenideSteps(
+                            () -> {
+                                element.shouldHave(
+                                        getSelenideCondition(textCondition, expectedText)
+                                );
+                            }
+                    );
+                    BlockAllureReport.finishStep(
+                            step,
+                            stepTitle,
+                            "ВЫПОЛНЕНО",
+                            expectation,
+                            BlockAllureReport.elementState(element)
+                    );
+                    return true;
+                } catch (AssertionError error) {
+                    BlockAllureReport.finishStep(
+                            step,
+                            stepTitle,
+                            "НЕ ВЫПОЛНЕНО",
+                            expectation,
+                            BlockAllureReport.elementState(element)
+                    );
+                    BlockAllureReport.addError(step, error);
+                    return false;
+                }
+            });
+
+            if (!matched) {
+                int indexForMessage = noBlockGiven ? blockIndex + 1 : blockIndex;
+                resultMessageBuilder
+                        .append(String.format(resultMessageTemplate,
+                                contextDescription,
+                                indexForMessage,
+                                elementName,
+                                textCondition,
+                                expectedText,
+                                blocksList.get(blockIndex).getSelf().toString()));
+            }
+        }
+
+        String resultMessage = resultMessageBuilder.toString();
         if (!resultMessage.isEmpty()) {
             BlockAllureReport.attachFailureScreenshot();
         }
         if (noBlockGiven) {
-            this.coreScenario.getAssertionHelper().hamcrestAssert(resultMessage, resultMessage, isEmptyString());
+            CoreScenario.getInstance().getAssertionHelper().hamcrestAssert(resultMessage, resultMessage, isEmptyString());
         } else if (!resultMessage.isEmpty()) {
             throw new AssertionError(resultMessage);
         }
     }
 
+    /*
+     * =================================================================================================
+     * 2. РАСПОЛОЖЕНИЕ СПИСКА — раскладка по рядам, ширина контейнера
+     * =================================================================================================
+     */
+
     @SuppressWarnings("deprecation")
     @И("^()список блоков \"([^\"]*)\" блоки расположены по (\\d+) в ряд$")
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" блоки расположены по (\\d+) в ряд$")
     public IStepResult checkBlockListRowsFormat(String blockName, String blockListName, int elementsInRow) {
-        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
-        return checkBlockListRowsFormat(blockListContext, elementsInRow);
-    }
+        if (elementsInRow < 1) {
+            throw new IllegalArgumentException(
+                    "Количество блоков в ряду должно быть больше нуля"
+            );
+        }
 
-    @SuppressWarnings("deprecation")
-    @И("^()в списке блоков \"([^\"]*)\" (\\d+) блок содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" (\\d+) блок содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
-    public IStepResult checkBlockListForBlockWithCss(String blockName, String blockListName, int blockIndex, String cssName, String cssValue) {
-        String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
-        String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
+        List<CorePage> blocksList = createBlockListContext(blockName, blockListName).getBlocks();
+        Point previousElementLocation = null;
+        Point currentRowStart = null;
 
-        WebElementCondition condition = Condition.cssValue(resolvedCssName, resolvedCssValue);
-        CorePage block = waitUntilBlockByNumberSelfMeetsCondition(
-                BlockListContext.live(blockName, blockListName),
-                blockIndex,
-                condition
-        );
-        return new BlockListStepResult(block);
+        for (int index = 0; index < blocksList.size(); index++) {
+            int blockNumber = index + 1;
+            int rowNumber = index / elementsInRow + 1;
+            boolean startsRow = index % elementsInRow == 0;
+
+            Point previousLocation = previousElementLocation;
+            Point rowStart = currentRowStart;
+            String expectation = startsRow
+                    ? (rowStart == null
+                    ? "начинает строку №" + rowNumber
+                    : "начинает строку №" + rowNumber + " ниже предыдущей строки")
+                    : "находится правее блока №" + (blockNumber - 1) +
+                    " в строке №" + rowNumber;
+            String stepTitle = "Блок №" + blockNumber + " из " + blocksList.size();
+
+            Point location = Allure.step(stepTitle, step -> {
+                Point actualLocation = null;
+                try {
+                    actualLocation = BlockAllureReport.withoutSelenideSteps(
+                            () -> blocksList.get(blockNumber - 1)
+                                    .getSelf()
+                                    .getRect()
+                                    .getPoint()
+                    );
+                    if (startsRow && rowStart != null) {
+                        assertTrue(
+                                actualLocation.y > rowStart.y,
+                                blockNumber + " блок должен начинать новую строку"
+                        );
+                    } else if (!startsRow) {
+                        assertTrue(
+                                actualLocation.x > previousLocation.x,
+                                blockNumber + " блок должен быть правее блока №" +
+                                        (blockNumber - 1)
+                        );
+                        assertEquals(
+                                actualLocation.y,
+                                rowStart.y,
+                                blockNumber + " блок должен находиться в строке №" + rowNumber
+                        );
+                    }
+                    BlockAllureReport.finishStep(
+                            step,
+                            stepTitle,
+                            "ВЫПОЛНЕНО",
+                            expectation,
+                            coordinates(actualLocation)
+                    );
+                    return actualLocation;
+                } catch (RuntimeException | AssertionError error) {
+                    BlockAllureReport.finishStep(
+                            step,
+                            stepTitle,
+                            "НЕ ВЫПОЛНЕНО",
+                            expectation,
+                            actualLocation == null
+                                    ? "координаты недоступны"
+                                    : coordinates(actualLocation)
+                    );
+                    BlockAllureReport.addError(step, error);
+                    BlockAllureReport.attachFailureScreenshot();
+                    throw error;
+                }
+            });
+
+            if (startsRow) {
+                currentRowStart = location;
+            }
+            previousElementLocation = location;
+        }
+        return new BlockListStepResult(blocksList);
     }
 
     @SuppressWarnings("deprecation")
@@ -146,12 +301,304 @@ public class BlocksCollectionCheckSteps {
     @И("^в блоке \"([^\"]*)\" список блоков \"([^\"]*)\" расположен по ширине элемента \"([^\"]*)\"$")
     public void checkBlockListElementsInWidthOfElement(String blockName, String blockListName, String elementOuter) {
         List<CorePage> blocksList = createBlockListContext(blockName, blockListName).getBlocks();
-        SelenideElement outerElement = resolveOwner(blockName).getElement(elementOuter);
-        checkBlockListElementsInWidthOfElement(blocksList, outerElement, elementOuter);
+        CorePage owner = BlockListContext.isAbsent(blockName)
+                ? WebScenario.getCurrentPage()
+                : WebScenario.getCurrentPage().getBlock(blockName);
+        SelenideElement outerElement = owner.getElement(elementOuter);
+
+        String outerStepTitle = "Границы элемента '" + elementOuter + "'";
+        Rectangle outerRect = Allure.step(outerStepTitle, step -> {
+            try {
+                Rectangle rect = BlockAllureReport.withoutSelenideSteps(
+                        outerElement::getRect
+                );
+                BlockAllureReport.finishStep(
+                        step,
+                        outerStepTitle,
+                        "ПОЛУЧЕНЫ",
+                        "элемент доступен",
+                        "x=" + rect.x + ", y=" + rect.y + ", width=" + rect.width + ", height=" + rect.height
+                );
+                return rect;
+            } catch (RuntimeException | AssertionError error) {
+                BlockAllureReport.finishStep(
+                        step,
+                        outerStepTitle,
+                        "НЕДОСТУПНЫ",
+                        "элемент доступен",
+                        "границы недоступны"
+                );
+                BlockAllureReport.addError(step, error);
+                BlockAllureReport.attachFailureScreenshot();
+                throw error;
+            }
+        });
+        int elementLeftBound = outerRect.x;
+        int elementRightBound = elementLeftBound + outerRect.width;
+
+        for (int index = 0; index < blocksList.size(); index++) {
+            int blockNumber = index + 1;
+            CorePage block = blocksList.get(index);
+            String expectation = "границы находятся внутри элемента '" +
+                    elementOuter + "' [" + elementLeftBound + ", " +
+                    elementRightBound + "]";
+            String stepTitle = "Блок №" + blockNumber + " из " + blocksList.size();
+
+            Allure.step(stepTitle, step -> {
+                String actualState = "границы недоступны";
+                try {
+                    Rectangle blockRect = BlockAllureReport.withoutSelenideSteps(
+                            () -> block.getSelf().getRect()
+                    );
+                    int blockLeftBound = blockRect.x;
+                    int blockRightBound = blockLeftBound + blockRect.width;
+                    actualState = "границы [" + blockLeftBound + ", " +
+                            blockRightBound + "]";
+
+                    assertTrue(
+                            blockLeftBound >= elementLeftBound
+                                    && blockRightBound <= elementRightBound,
+                            blockNumber + " блок расположен не по ширине элемента '" +
+                                    elementOuter + "'"
+                    );
+                    BlockAllureReport.finishStep(
+                            step,
+                            stepTitle,
+                            "ВЫПОЛНЕНО",
+                            expectation,
+                            actualState
+                    );
+                } catch (RuntimeException | AssertionError error) {
+                    BlockAllureReport.finishStep(
+                            step,
+                            stepTitle,
+                            "НЕ ВЫПОЛНЕНО",
+                            expectation,
+                            actualState
+                    );
+                    BlockAllureReport.addError(step, error);
+                    BlockAllureReport.attachFailureScreenshot();
+                    throw error;
+                }
+            });
+        }
     }
 
+    /*
+     * =================================================================================================
+     * 3. ПОИСК ОДНОГО БЛОКА ПО УСЛОВИЮ — "любой из блоков ..." / "где в элементе ... текст равен ..."
+     *    Обе формулировки в итоге делают одно и то же: ищут среди блоков список первый подходящий
+     *    и либо проверяют его же, либо проверяют/используют другой элемент внутри него.
+     * =================================================================================================
+     */
+
     /**
-     * -----------------------------------------------В КАЖДОМ------------------------------------------------
+     * Метод проверяет что в списке блоков есть блок, текст элемента(ов) которого соответствует условию conditionsTable
+     *
+     * @param blockListName   Название списка блоков
+     * @param conditionsTable Список проверяемых условий в блоке
+     *                        пример:
+     *                        |<Название элемента 1>|(текст равен|текст содержит|текст в формате|отображается на странице|не отображается на странице|не существует на странице|изображение загрузилось)|<Имя переменной/Имя свойства/Ожидаемый текст/Регулярное выражение>|
+     *                        ...
+     *                        |<Название элемента N>|(текст равен|текст содержит|текст в формате|отображается на странице|не отображается на странице|не существует на странице|изображение загрузилось)|<Имя переменной/Имя свойства/Ожидаемый текст/Регулярное выражение>|
+     */
+    @И("^()в списке блоков \"([^\"]*)\" любой из блоков соответствует условиям$")
+    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" любой из блоков соответствует условиям$")
+    public IStepResult checkBlockListForComplexCondition(String blockName, String blockListName, DataTable conditionsTable) {
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
+        List<CorePage> resultList =
+                getBlockListWithComplexCondition(blockListContext, conditionsTable);
+
+        return new BlockListStepResult(resultList,
+                conditionsTable.asLists().stream().map(conditionRow -> conditionRow.get(0)).collect(Collectors.toList()));
+    }
+
+    @И("^()в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст равен \"([^\"]*)\"$")
+    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст равен \"([^\"]*)\"$")
+    public IStepResult checkTextInAnyBlock(String blockName, String blockListName, String elementName, String expectedText) {
+        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
+
+        CorePage block = waitUntilAnyBlockElementMeetsCondition(
+                BlockListContext.live(blockName, blockListName),
+                elementName,
+                BlockConditions.textEquals(resolvedExpectedText)
+        );
+        return new BlockListStepResult(block, elementName);
+    }
+
+    @И("^()в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\"$")
+    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\"$")
+    public IStepResult checkByRegExpInElementInAnyBlock(String blockName, String blockListName, String elementName, String expectedText) {
+        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
+
+        CorePage block = waitUntilAnyBlockElementMeetsCondition(
+                BlockListContext.live(blockName, blockListName),
+                elementName,
+                BlockConditions.textMatches(resolvedExpectedText)
+        );
+        return new BlockListStepResult(block, elementName);
+    }
+
+    @И("^()в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст содержит \"([^\"]*)\"$")
+    @То("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст содержит \"([^\"]*)\"$")
+    public IStepResult checkContainTextInAnyBlock(String blockName, String blockListName, String elementName, String expectedText) {
+        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
+
+        CorePage block = waitUntilAnyBlockElementMeetsCondition(
+                BlockListContext.live(blockName, blockListName),
+                elementName,
+                BlockConditions.textContains(resolvedExpectedText)
+        );
+        return new BlockListStepResult(block, elementName);
+    }
+
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" отображается$")
+    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" отображается$")
+    public IStepResult elementDisplayedInBlockWhereTextEquals(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String expectedElementVisible) {
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
+        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
+        CorePage corePageByTextInElement =
+                waitUntilBlockWhereTextEquals(
+                        blockListContext,
+                        elementNameSearch,
+                        resolvedExpectedText,
+                        block -> block.getElement(expectedElementVisible).shouldBe(Condition.visible)
+                );
+
+        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, expectedElementVisible);
+    }
+
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" не отображается$")
+    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" не отображается$")
+    public IStepResult elementNotDisplayedInBlockWhereTextEquals(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String expectedElementVisible) {
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
+        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
+        CorePage corePageByTextInElement =
+                waitUntilBlockWhereTextEquals(
+                        blockListContext,
+                        elementNameSearch,
+                        resolvedExpectedText,
+                        block -> block.getElement(expectedElementVisible).shouldNot(Condition.visible)
+                );
+
+        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, expectedElementVisible);
+    }
+
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\" элемент \"([^\"]*)\" отображается$")
+    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\" элемент \"([^\"]*)\" отображается$")
+    public IStepResult checkTextInAnyBlockMatches(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String expectedElementVisible) {
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
+        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedTextSearch);
+        CorePage corePageByTextInElement = BlockSearchExecutor.findInContext(
+                blockListContext,
+                elementNameSearch,
+                BlockConditions.textMatches(resolvedExpectedText),
+                block -> block.getElement(expectedElementVisible).shouldBe(Condition.visible),
+                "Во всех блоках в элементах " + elementNameSearch +
+                        " не найден текст по выражению:" + resolvedExpectedText
+        );
+
+        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, expectedElementVisible);
+    }
+
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
+    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
+    public IStepResult checkTextInAnyBlock(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameFind, String expectedTextFind) {
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
+        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedTextSearch);
+        String resolvedExpectedTextFind = getPropertyOrStringVariableOrValue(expectedTextFind);
+
+        CorePage corePageByTextInElement =
+                waitUntilBlockWhereTextEquals(
+                        blockListContext,
+                        elementNameSearch,
+                        resolvedExpectedText,
+                        block -> shouldHaveTextMatches(block, elementNameFind, resolvedExpectedTextFind)
+                );
+
+        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, elementNameFind);
+    }
+
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\" элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
+    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\" элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
+    public IStepResult checkTextFormatInAnyBlockFoundByRegExp(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameFind, String expectedTextFind) {
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
+        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedTextSearch);
+        String resolvedExpectedTextFind = getPropertyOrStringVariableOrValue(expectedTextFind);
+
+        CorePage corePageByTextInElement = BlockSearchExecutor.findInContext(
+                blockListContext,
+                elementNameSearch,
+                BlockConditions.textMatches(resolvedExpectedText),
+                block -> block.getElement(elementNameFind)
+                        .shouldHave(Condition.matchText(resolvedExpectedTextFind), Duration.ZERO),
+                "Во всех блоках в элементах " + elementNameSearch +
+                        " не найден текст по выражению:" + resolvedExpectedText
+        );
+
+        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, elementNameFind);
+    }
+
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"")
+    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"")
+    public IStepResult checkCssInAnyBlock(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameFind, String cssName, String cssValue) {
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
+        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
+        String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
+        String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
+
+        CorePage block = waitUntilBlockWhereTextEquals(
+                blockListContext,
+                elementNameSearch,
+                resolvedExpectedText,
+                matchedBlock -> matchedBlock.getElement(elementNameFind)
+                        .shouldHave(Condition.cssValue(resolvedCssName, resolvedCssValue))
+        );
+        return new BlockListStepResult(block, elementNameSearch, elementNameFind);
+    }
+
+    @SuppressWarnings("deprecation")
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" блок расположен (в|вне) видимой части браузера")
+    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" блок расположен (в|вне) видимой части браузера")
+    public IStepResult checkBlockWithTextInElementInBounds(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String boundsCondition) {
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
+        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
+
+        CorePage corePageByTextInElement =
+                waitUntilBlockWhereTextEquals(
+                        blockListContext,
+                        elementNameSearch,
+                        resolvedExpectedText,
+                        block -> inBounds(block.getSelf(), boundsCondition)
+                );
+
+        return new BlockListStepResult(corePageByTextInElement, elementNameSearch);
+    }
+
+    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено сохранение текста элемента \"([^\"]*)\" в переменную \"([^\"]*)\"$")
+    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено сохранение текста элемента \"([^\"]*)\" в переменную \"([^\"]*)\"$")
+    public IStepResult saveElementTextToVarInBlockListWhereTextEquals(String blockName, String blockListName, String elementToCheckText, String expectedText, String elementToSaveText, String varName) {
+        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
+        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
+
+        CorePage corePageByTextInElement =
+                waitUntilBlockWhereTextEquals(
+                        blockListContext,
+                        elementToCheckText,
+                        resolvedExpectedText,
+                        block -> {
+                            String text = block.getElement(elementToSaveText).getText();
+                            CoreScenario.getInstance().getEnvironment().setVar(varName, text);
+                        }
+                );
+
+        return new BlockListStepResult(corePageByTextInElement, elementToCheckText, elementToSaveText);
+    }
+
+    /*
+     * =================================================================================================
+     * 4. КАЖДЫЙ БЛОК — одно и то же условие проверяется по очереди на всех блоках списка
+     * =================================================================================================
      */
 
     @И("^()в списке блоков \"([^\"]*)\" в каждом блоке элемент \"([^\"]*)\" отображается на странице$")
@@ -253,71 +700,64 @@ public class BlocksCollectionCheckSteps {
     @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" каждый из блоков соответствует условиям$")
     public IStepResult everyBlockInBlockListMatchesComplexCondition(String blockName, String blockListName, DataTable conditionsTable) {
         BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
-        return everyBlockInBlockListMatchesComplexCondition(blockListContext, conditionsTable);
-    }
+        List<CorePage> blocksList = blockListContext.getBlocks();
+        List<List<String>> conditionsRows = conditionsTable.asLists();
 
-    /**
-     * -----------------------------------------------В ЛЮБОМ ИЗ БЛОКОВ------------------------------------------------
-     */
+        forEachBlockWithoutResult(
+                blockListContext,
+                null,
+                "каждый элемент блока удовлетворяет условиям из таблицы",
+                block -> {
+                    for (int index = 0; index < conditionsRows.size(); index++) {
+                        int conditionNumber = index + 1;
+                        List<String> conditionsRow = conditionsRows.get(index);
+                        String elementName = conditionsRow.get(0);
+                        String textCondition = conditionsRow.get(1);
+                        String expectedText = resolveVars(
+                                getPropertyOrStringVariableOrValue(conditionsRow.get(2))
+                        );
+                        SelenideElement element = block.getElement(elementName);
+                        String stepTitle = "Условие №" + conditionNumber + " из " +
+                                conditionsRows.size() + " — элемент '" + elementName + "'";
+                        String expectation = textCondition + " '" + expectedText + "'";
 
-    /**
-     * Метод проверяет что в списке блоков есть блок, текст элемента(ов) которого соответствует условию conditionsTable
-     *
-     * @param blockListName   Название списка блоков
-     * @param conditionsTable Список проверяемых условий в блоке
-     *                        пример:
-     *                        |<Название элемента 1>|(текст равен|текст содержит|текст в формате|отображается на странице|не отображается на странице|не существует на странице|изображение загрузилось)|<Имя переменной/Имя свойства/Ожидаемый текст/Регулярное выражение>|
-     *                        ...
-     *                        |<Название элемента N>|(текст равен|текст содержит|текст в формате|отображается на странице|не отображается на странице|не существует на странице|изображение загрузилось)|<Имя переменной/Имя свойства/Ожидаемый текст/Регулярное выражение>|
-     */
-    @И("^()в списке блоков \"([^\"]*)\" любой из блоков соответствует условиям$")
-    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" любой из блоков соответствует условиям$")
-    public IStepResult checkBlockListForComplexCondition(String blockName, String blockListName, DataTable conditionsTable) {
-        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
-        return checkBlockListForComplexCondition(blockListContext, conditionsTable);
-    }
-
-    @И("^()в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст равен \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст равен \"([^\"]*)\"$")
-    public IStepResult checkTextInAnyBlock(String blockName, String blockListName, String elementName, String expectedText) {
-        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
-
-        CorePage block = waitUntilAnyBlockElementMeetsCondition(
-                BlockListContext.live(blockName, blockListName),
-                elementName,
-                BlockConditions.textEquals(resolvedExpectedText)
+                        Allure.step(stepTitle, step -> {
+                            try {
+                                element.shouldHave(
+                                        getSelenideCondition(textCondition, expectedText)
+                                );
+                                BlockAllureReport.finishStep(
+                                        step,
+                                        stepTitle,
+                                        "ВЫПОЛНЕНО",
+                                        expectation,
+                                        BlockAllureReport.elementState(element)
+                                );
+                            } catch (RuntimeException | AssertionError error) {
+                                BlockAllureReport.finishStep(
+                                        step,
+                                        stepTitle,
+                                        "НЕ ВЫПОЛНЕНО",
+                                        expectation,
+                                        BlockAllureReport.elementState(element)
+                                );
+                                BlockAllureReport.addError(step, error);
+                                throw error;
+                            }
+                        });
+                    }
+                }
         );
-        return new BlockListStepResult(block, elementName);
+
+        return new BlockListStepResult(blocksList,
+                conditionsRows.stream().map(conditionsRow -> conditionsRow.get(0)).collect(Collectors.toList()));
     }
 
-    @И("^()в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\"$")
-    public IStepResult checkByRegExpInElementInAnyBlock(String blockName, String blockListName, String elementName, String expectedText) {
-        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
-
-        CorePage block = waitUntilAnyBlockElementMeetsCondition(
-                BlockListContext.live(blockName, blockListName),
-                elementName,
-                BlockConditions.textMatches(resolvedExpectedText)
-        );
-        return new BlockListStepResult(block, elementName);
-    }
-
-    @И("^()в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст содержит \"([^\"]*)\"$")
-    @То("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" в любом из блоков в элементе \"([^\"]*)\" текст содержит \"([^\"]*)\"$")
-    public IStepResult checkContainTextInAnyBlock(String blockName, String blockListName, String elementName, String expectedText) {
-        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
-
-        CorePage block = waitUntilAnyBlockElementMeetsCondition(
-                BlockListContext.live(blockName, blockListName),
-                elementName,
-                BlockConditions.textContains(resolvedExpectedText)
-        );
-        return new BlockListStepResult(block, elementName);
-    }
-
-    /**
-     * -----------------------------------------------В КАКОМ-ТО КОЛИЧЕСТВЕ------------------------------------------------
+    /*
+     * =================================================================================================
+     * 5. РОВНО N БЛОКОВ — в отличие от раздела "каждый блок", здесь допускаются блоки,
+     *    не удовлетворяющие условию, лишь бы ровно N блоков ему соответствовали
+     * =================================================================================================
      */
 
     @И("^()в списке блоков \"([^\"]*)\" в (\\d+) блоках элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
@@ -359,58 +799,29 @@ public class BlocksCollectionCheckSteps {
                 failureHeader);
     }
 
-    /**
-     * -----------------------------------------------В КОНКРЕТНОМ------------------------------------------------
+    /*
+     * =================================================================================================
+     * 6. КОНКРЕТНЫЙ БЛОК ПО НОМЕРУ — "N блок ...", "в N блоке ...", "координаты N блока ..."
+     * =================================================================================================
      */
 
-    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" отображается$")
-    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" отображается$")
-    public IStepResult elementDisplayedInBlockWhereTextEquals(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String expectedElementVisible) {
-        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
-        return elementDisplayedInBlockWhereTextEquals(blockListContext, elementNameSearch, expectedTextSearch, expectedElementVisible);
-    }
-
-    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" не отображается$")
-    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" не отображается$")
-    public IStepResult elementNotDisplayedInBlockWhereTextEquals(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String expectedElementVisible) {
-        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
-        return elementNotDisplayedInBlockWhereTextEquals(blockListContext, elementNameSearch, expectedTextSearch, expectedElementVisible);
-    }
-
-    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\" элемент \"([^\"]*)\" отображается$")
-    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\" элемент \"([^\"]*)\" отображается$")
-    public IStepResult checkTextInAnyBlockMatches(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String expectedElementVisible) {
-        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
-        return checkTextInAnyBlockMatches(blockListContext, elementNameSearch, expectedTextSearch, expectedElementVisible);
-    }
-
-    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
-    public IStepResult checkTextInAnyBlock(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameFind, String expectedTextFind) {
-        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
-        return checkTextInAnyBlock(blockListContext, elementNameSearch, expectedTextSearch, elementNameFind, expectedTextFind);
-    }
-
-    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\" элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст соответствует регулярному выражению \"([^\"]*)\" элемент \"([^\"]*)\" содержит текст в формате \"([^\"]*)\"$")
-    public IStepResult checkTextInAnyBlockMatches1(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameFind, String expectedTextFind) {
-        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
-        return checkTextInAnyBlockMatches1(blockListContext, elementNameSearch, expectedTextSearch, elementNameFind, expectedTextFind);
-    }
-
-    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"")
-    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" элемент \"([^\"]*)\" содержит css \"([^\"]*)\" со значением \"([^\"]*)\"")
-    public IStepResult checkCssInAnyBlock(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String elementNameFind, String cssName, String cssValue) {
-        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
-        return checkCssInAnyBlock(blockListContext, elementNameSearch, expectedTextSearch, elementNameFind, cssName, cssValue);
-    }
-
     @SuppressWarnings("deprecation")
-    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" блок расположен (в|вне) видимой части браузера")
-    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" блок расположен (в|вне) видимой части браузера")
-    public IStepResult checkBlockWithTextInElementInBounds(String blockName, String blockListName, String elementNameSearch, String expectedTextSearch, String boundsCondition) {
-        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
-        return checkBlockWithTextInElementInBounds(blockListContext, elementNameSearch, expectedTextSearch, boundsCondition);
+    @И("^()в списке блоков \"([^\"]*)\" (\\d+) блок содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
+    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" (\\d+) блок содержит css \"([^\"]*)\" со значением \"([^\"]*)\"$")
+    public IStepResult checkBlockListForBlockWithCss(String blockName, String blockListName, int blockIndex, String cssName, String cssValue) {
+        String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
+        String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
+
+        WebElementCondition condition = Condition.cssValue(resolvedCssName, resolvedCssValue);
+        BlockListContext context = BlockListContext.live(blockName, blockListName);
+        CorePage block = BlockSearchExecutor.awaitBlockRoot(
+                context,
+                blockIndex,
+                condition,
+                "Блок №" + blockIndex + " не удовлетворил условию '" + condition +
+                        "'\n" + context.describe()
+        );
+        return new BlockListStepResult(block);
     }
 
     @SuppressWarnings("deprecation")
@@ -424,7 +835,7 @@ public class BlocksCollectionCheckSteps {
                 blockIndex
         );
         Point actualCoordinates = block.getSelf().getLocation();
-        this.coreScenario.getAssertionHelper().hamcrestAssert(
+        CoreScenario.getInstance().getAssertionHelper().hamcrestAssert(
                 String.format("Координаты %d блока списка блоков %s не соответствуют ожидаемым\n" +
                                 "Фактические координаты: x=%d; y=%d\n" +
                                 "Ожидаемые координаты: x=%d; y=%d",
@@ -445,7 +856,7 @@ public class BlocksCollectionCheckSteps {
                 blockIndex,
                 elementName,
                 Condition.visible,
-                element -> this.coreScenario.getEnvironment().setVar(varName, element.getText())
+                element -> CoreScenario.getInstance().getEnvironment().setVar(varName, element.getText())
         );
         return new BlockListStepResult(block, elementName);
     }
@@ -455,11 +866,14 @@ public class BlocksCollectionCheckSteps {
     public IStepResult checkElementInBlockListMatchesText(String blockName, String blockListName, int blockIndex, String elementName, String expectedText) {
         String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedText);
 
-        CorePage block = waitUntilTextMatchesInBlockByNumber(
-                BlockListContext.live(blockName, blockListName),
+        BlockListContext context = BlockListContext.live(blockName, blockListName);
+        CorePage block = BlockSearchExecutor.awaitElementInBlock(
+                context,
                 blockIndex,
                 elementName,
-                resolvedExpectedText
+                BlockConditions.textMatches(resolvedExpectedText),
+                "Текст элемента '" + elementName + "' в блоке №" + blockIndex +
+                        " не соответствует выражению '" + resolvedExpectedText + "'\n" + context.describe()
         );
         return new BlockListStepResult(block, elementName);
     }
@@ -534,100 +948,41 @@ public class BlocksCollectionCheckSteps {
         return new BlockListStepResult(block);
     }
 
-    @И("^()в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено сохранение текста элемента \"([^\"]*)\" в переменную \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" в списке блоков \"([^\"]*)\" где в элементе \"([^\"]*)\" текст равен \"([^\"]*)\" выполнено сохранение текста элемента \"([^\"]*)\" в переменную \"([^\"]*)\"$")
-    public IStepResult saveElementTextToVarInBlockListWhereTextEquals(String blockName, String blockListName, String elementToCheckText, String expectedText, String elementToSaveText, String varName) {
-        BlockListContext blockListContext = createBlockListContext(blockName, blockListName);
-        return saveElementTextToVarInBlockListWhereTextEquals(blockListContext, elementToCheckText, expectedText, elementToSaveText, varName);
-    }
-
-    // Вспомогательные методы для сокращения дублирования
-
-    /**
-     * Создаёт контекст для списка блоков: на текущей странице, если {@code blockName} не задан
-     * (null или пустая строка — короткая форма шага даёт "" через фиктивную regex-группу),
-     * иначе — внутри блока-контейнера {@code blockName}.
+    /*
+     * =================================================================================================
+     * Вспомогательные методы, общие для нескольких шагов выше
+     * =================================================================================================
      */
-    @Step("Создаём контекст списка блоков '{blockListName}'")
-    private BlockListContext createBlockListContext(String blockName, String blockListName) {
-        return BlockListContext.snapshot(blockName, blockListName);
+
+    private String coordinates(Point point) {
+        return "x=" + point.x + ", y=" + point.y;
     }
 
-    /**
-     * Возвращает текущую страницу, если имя блока не задано (null или пустая строка),
-     * иначе — блок с этим именем на текущей странице.
-     */
-    private CorePage resolveOwner(String blockName) {
-        return (blockName == null || blockName.isEmpty())
-                ? WebScenario.getCurrentPage()
-                : WebScenario.getCurrentPage().getBlock(blockName);
-    }
-
-    private IStepResult forEachBlock(BlockListContext blockListContext,
-                                     String key,
-                                     String expectation,
-                                     Consumer<CorePage> checker) {
-        List<CorePage> blocks = blockListContext.getBlocks();
-        forEachBlockWithReport(blocks, key, expectation, checker);
-        return new BlockListStepResult(blocks, key);
-    }
-
-    private void forEachBlockWithoutResult(BlockListContext blockListContext,
-                                           String elementName,
-                                           String expectation,
-                                           Consumer<CorePage> checker) {
-        forEachBlockWithReport(
-                blockListContext.getBlocks(),
+    @Step("Ожидаем блок, в котором элемент '{elementName}' удовлетворяет условию")
+    private CorePage waitUntilAnyBlockElementMeetsCondition(BlockListContext context,
+                                                            String elementName,
+                                                            WebElementCondition condition) {
+        return BlockSearchExecutor.findInContext(
+                context,
                 elementName,
-                expectation,
-                checker
+                condition,
+                "Не найден блок, в котором элемент '" + elementName +
+                        "' удовлетворяет условию '" + condition + "'\n" + context.describe()
         );
     }
 
-    private void forEachBlockWithReport(List<CorePage> blocks,
-                                        String elementName,
-                                        String expectation,
-                                        Consumer<CorePage> checker) {
-        for (int index = 0; index < blocks.size(); index++) {
-            int blockNumber = index + 1;
-            CorePage block = blocks.get(index);
-            String stepTitle = "Блок №" + blockNumber + " из " + blocks.size() +
-                    (elementName == null ? "" : " — элемент '" + elementName + "'");
-            Allure.step(stepTitle, step -> {
-                try {
-                    BlockAllureReport.withoutSelenideSteps(() -> checker.accept(block));
-                    BlockAllureReport.finishStep(
-                            step,
-                            stepTitle,
-                            "ВЫПОЛНЕНО",
-                            expectation,
-                            describeBlockTargetState(block, elementName)
-                    );
-                } catch (RuntimeException | AssertionError error) {
-                    BlockAllureReport.finishStep(
-                            step,
-                            stepTitle,
-                            "НЕ ВЫПОЛНЕНО",
-                            expectation,
-                            describeBlockTargetState(block, elementName)
-                    );
-                    BlockAllureReport.addError(step, error);
-                    BlockAllureReport.attachFailureScreenshot();
-                    throw error;
-                }
-            });
-        }
-    }
-
-    private String describeBlockTargetState(CorePage block, String elementName) {
-        try {
-            SelenideElement target = elementName == null
-                    ? block.getSelf()
-                    : block.getElement(elementName);
-            return BlockAllureReport.elementState(target);
-        } catch (RuntimeException | AssertionError error) {
-            return "состояние недоступно: " + error.getClass().getSimpleName();
-        }
+    private CorePage waitUntilBlockWhereTextEquals(BlockListContext initialContext,
+                                                   String elementNameSearch,
+                                                   String resolvedExpectedText,
+                                                   Consumer<CorePage> onMatched) {
+        return BlockSearchExecutor.findInContext(
+                initialContext,
+                elementNameSearch,
+                BlockConditions.textEquals(resolvedExpectedText),
+                onMatched,
+                "Во всех блоках в элементах " + elementNameSearch +
+                        " не найден текст:" + resolvedExpectedText
+        );
     }
 
     /**
@@ -744,545 +1099,4 @@ public class BlocksCollectionCheckSteps {
                         " не удовлетворил условию '" + condition + "'\n" + context.describe()
         );
     }
-
-    @Step("Ожидаем, пока корневой элемент блока №{blockIndex} удовлетворит условию")
-    private CorePage waitUntilBlockByNumberSelfMeetsCondition(BlockListContext context,
-                                                              int blockIndex,
-                                                              WebElementCondition condition) {
-        return BlockSearchExecutor.awaitBlockRoot(
-                context,
-                blockIndex,
-                condition,
-                "Блок №" + blockIndex + " не удовлетворил условию '" + condition +
-                        "'\n" + context.describe()
-        );
-    }
-
-    @Step("Ожидаем соответствия текста элемента '{elementName}' регулярному выражению в блоке №{blockIndex}")
-    private CorePage waitUntilTextMatchesInBlockByNumber(BlockListContext context,
-                                                         int blockIndex,
-                                                         String elementName,
-                                                         String regExp) {
-        return BlockSearchExecutor.awaitElementInBlock(
-                context,
-                blockIndex,
-                elementName,
-                BlockConditions.textMatches(regExp),
-                "Текст элемента '" + elementName + "' в блоке №" + blockIndex +
-                        " не соответствует выражению '" + regExp + "'\n" + context.describe()
-        );
-    }
-
-    @Step("Ожидаем блок, в котором элемент '{elementName}' удовлетворяет условию")
-    private CorePage waitUntilAnyBlockElementMeetsCondition(BlockListContext context,
-                                                            String elementName,
-                                                            WebElementCondition condition) {
-        return BlockSearchExecutor.findInContext(
-                context,
-                elementName,
-                condition,
-                "Не найден блок, в котором элемент '" + elementName +
-                        "' удовлетворяет условию '" + condition + "'\n" + context.describe()
-        );
-    }
-
-    /**
-     * Строит детальное сообщение о несоответствии элементов ожиданиям, заданным в {@link DataTable}.
-     * <p>
-     * Для каждой строки таблицы ожидается формат:
-     * | индекс блока | имя элемента | текстовое условие | ожидаемое значение/регулярка |
-     */
-    @Step("Формируем сообщение о несоответствии списка блоков ожидаемым условиям из таблицы")
-    private String buildBlockListMatchesListMessage(BlockListContext blockListContext,
-                                                    DataTable conditionsTable,
-                                                    boolean useOneBasedIndexInMessage) {
-        List<List<String>> conditionsRows = conditionsTable.asLists();
-        List<CorePage> blocksList = blockListContext.getBlocks();
-        String contextDescription = blockListContext.describe();
-        String resultMessageTemplate = "%s\nБлок с индексом %d: элемент '%s' не соответствует условию: %s '%s'\\nФактический web-элемент: %s\\n";
-        StringBuilder resultMessage = new StringBuilder();
-
-        for (int rowIndex = 0; rowIndex < conditionsRows.size(); rowIndex++) {
-            List<String> conditionRow = conditionsRows.get(rowIndex);
-            int blockIndex = Integer.parseInt(conditionRow.get(0)) - 1;
-            String elementName = conditionRow.get(1);
-            String textCondition = conditionRow.get(2);
-            String expectedText = resolveVars(getPropertyOrStringVariableOrValue(conditionRow.get(3)));
-
-            SelenideElement element = blocksList.get(blockIndex).getElement(elementName);
-            String stepTitle = "Проверка №" + (rowIndex + 1) + " из " + conditionsRows.size() +
-                    " — блок №" + (blockIndex + 1) +
-                    " — элемент '" + elementName + "'";
-            String expectation = textCondition + " '" + expectedText + "'";
-            boolean matched = Allure.step(stepTitle, step -> {
-                try {
-                    BlockAllureReport.withoutSelenideSteps(
-                            () -> {
-                                element.shouldHave(
-                                        getSelenideCondition(textCondition, expectedText)
-                                );
-                            }
-                    );
-                    BlockAllureReport.finishStep(
-                            step,
-                            stepTitle,
-                            "ВЫПОЛНЕНО",
-                            expectation,
-                            BlockAllureReport.elementState(element)
-                    );
-                    return true;
-                } catch (AssertionError error) {
-                    BlockAllureReport.finishStep(
-                            step,
-                            stepTitle,
-                            "НЕ ВЫПОЛНЕНО",
-                            expectation,
-                            BlockAllureReport.elementState(element)
-                    );
-                    BlockAllureReport.addError(step, error);
-                    return false;
-                }
-            });
-
-            if (!matched) {
-                int indexForMessage = useOneBasedIndexInMessage ? blockIndex + 1 : blockIndex;
-                resultMessage
-                        .append(String.format(resultMessageTemplate,
-                                contextDescription,
-                                indexForMessage,
-                                elementName,
-                                textCondition,
-                                expectedText,
-                                blocksList.get(blockIndex).getSelf().toString()))
-                        .append("\\n");
-            }
-        }
-        return resultMessage.toString();
-    }
-
-    @Step("Проверяем, что блоки списка расположены по {elementsInRow} в ряд")
-    private IStepResult checkBlockListRowsFormat(BlockListContext blockListContext, int elementsInRow) {
-        if (elementsInRow < 1) {
-            throw new IllegalArgumentException(
-                    "Количество блоков в ряду должно быть больше нуля"
-            );
-        }
-
-        List<CorePage> blocksList = blockListContext.getBlocks();
-        Point previousElementLocation = null;
-        Point currentRowStart = null;
-
-        for (int index = 0; index < blocksList.size(); index++) {
-            int blockNumber = index + 1;
-            int rowNumber = index / elementsInRow + 1;
-            boolean startsRow = index % elementsInRow == 0;
-
-            Point previousLocation = previousElementLocation;
-            Point rowStart = currentRowStart;
-            String expectation = startsRow
-                    ? (rowStart == null
-                    ? "начинает строку №" + rowNumber
-                    : "начинает строку №" + rowNumber + " ниже предыдущей строки")
-                    : "находится правее блока №" + (blockNumber - 1) +
-                    " в строке №" + rowNumber;
-            String stepTitle = "Блок №" + blockNumber + " из " + blocksList.size();
-
-            Point location = Allure.step(stepTitle, step -> {
-                Point actualLocation = null;
-                try {
-                    actualLocation = BlockAllureReport.withoutSelenideSteps(
-                            () -> blocksList.get(blockNumber - 1)
-                                    .getSelf()
-                                    .getRect()
-                                    .getPoint()
-                    );
-                    if (startsRow && rowStart != null) {
-                        assertTrue(
-                                actualLocation.y > rowStart.y,
-                                blockNumber + " блок должен начинать новую строку"
-                        );
-                    } else if (!startsRow) {
-                        assertTrue(
-                                actualLocation.x > previousLocation.x,
-                                blockNumber + " блок должен быть правее блока №" +
-                                        (blockNumber - 1)
-                        );
-                        assertEquals(
-                                actualLocation.y,
-                                rowStart.y,
-                                blockNumber + " блок должен находиться в строке №" + rowNumber
-                        );
-                    }
-                    BlockAllureReport.finishStep(
-                            step,
-                            stepTitle,
-                            "ВЫПОЛНЕНО",
-                            expectation,
-                            coordinates(actualLocation)
-                    );
-                    return actualLocation;
-                } catch (RuntimeException | AssertionError error) {
-                    BlockAllureReport.finishStep(
-                            step,
-                            stepTitle,
-                            "НЕ ВЫПОЛНЕНО",
-                            expectation,
-                            actualLocation == null
-                                    ? "координаты недоступны"
-                                    : coordinates(actualLocation)
-                    );
-                    BlockAllureReport.addError(step, error);
-                    BlockAllureReport.attachFailureScreenshot();
-                    throw error;
-                }
-            });
-
-            if (startsRow) {
-                currentRowStart = location;
-            }
-            previousElementLocation = location;
-        }
-        return new BlockListStepResult(blocksList);
-    }
-
-    @Step("Проверяем, что все блоки списка расположены по ширине элемента '{elementOuterName}'")
-    private void checkBlockListElementsInWidthOfElement(List<CorePage> blocksList, SelenideElement outerElement, String elementOuterName) {
-        String outerStepTitle = "Границы элемента '" + elementOuterName + "'";
-        Rectangle outerRect = Allure.step(outerStepTitle, step -> {
-            try {
-                Rectangle rect = BlockAllureReport.withoutSelenideSteps(
-                        outerElement::getRect
-                );
-                BlockAllureReport.finishStep(
-                        step,
-                        outerStepTitle,
-                        "ПОЛУЧЕНЫ",
-                        "элемент доступен",
-                        bounds(rect)
-                );
-                return rect;
-            } catch (RuntimeException | AssertionError error) {
-                BlockAllureReport.finishStep(
-                        step,
-                        outerStepTitle,
-                        "НЕДОСТУПНЫ",
-                        "элемент доступен",
-                        "границы недоступны"
-                );
-                BlockAllureReport.addError(step, error);
-                BlockAllureReport.attachFailureScreenshot();
-                throw error;
-            }
-        });
-        int elementLeftBound = outerRect.x;
-        int elementRightBound = elementLeftBound + outerRect.width;
-
-        for (int index = 0; index < blocksList.size(); index++) {
-            int blockNumber = index + 1;
-            CorePage block = blocksList.get(index);
-            String expectation = "границы находятся внутри элемента '" +
-                    elementOuterName + "' [" + elementLeftBound + ", " +
-                    elementRightBound + "]";
-            String stepTitle = "Блок №" + blockNumber + " из " + blocksList.size();
-
-            Allure.step(stepTitle, step -> {
-                String actualState = "границы недоступны";
-                try {
-                    Rectangle blockRect = BlockAllureReport.withoutSelenideSteps(
-                            () -> block.getSelf().getRect()
-                    );
-                    int blockLeftBound = blockRect.x;
-                    int blockRightBound = blockLeftBound + blockRect.width;
-                    actualState = "границы [" + blockLeftBound + ", " +
-                            blockRightBound + "]";
-
-                    assertTrue(
-                            blockLeftBound >= elementLeftBound
-                                    && blockRightBound <= elementRightBound,
-                            blockNumber + " блок расположен не по ширине элемента '" +
-                                    elementOuterName + "'"
-                    );
-                    BlockAllureReport.finishStep(
-                            step,
-                            stepTitle,
-                            "ВЫПОЛНЕНО",
-                            expectation,
-                            actualState
-                    );
-                } catch (RuntimeException | AssertionError error) {
-                    BlockAllureReport.finishStep(
-                            step,
-                            stepTitle,
-                            "НЕ ВЫПОЛНЕНО",
-                            expectation,
-                            actualState
-                    );
-                    BlockAllureReport.addError(step, error);
-                    BlockAllureReport.attachFailureScreenshot();
-                    throw error;
-                }
-            });
-        }
-    }
-
-    /**
-     * Проверка, что каждый блок списка удовлетворяет всем условиям из таблицы.
-     * Для каждого блока и строки таблицы выполняется полноценное ожидание через {@code shouldHave}.
-     */
-    @Step("Проверяем, что каждый блок списка удовлетворяет сложным условиям из таблицы")
-    private IStepResult everyBlockInBlockListMatchesComplexCondition(BlockListContext blockListContext,
-                                                                     DataTable conditionsTable) {
-        List<CorePage> blocksList = blockListContext.getBlocks();
-        List<List<String>> conditionsRows = conditionsTable.asLists();
-
-        forEachBlockWithoutResult(
-                blockListContext,
-                null,
-                "каждый элемент блока удовлетворяет условиям из таблицы",
-                block -> {
-                    for (int index = 0; index < conditionsRows.size(); index++) {
-                        int conditionNumber = index + 1;
-                        List<String> conditionsRow = conditionsRows.get(index);
-                        String elementName = conditionsRow.get(0);
-                        String textCondition = conditionsRow.get(1);
-                        String expectedText = resolveVars(
-                                getPropertyOrStringVariableOrValue(conditionsRow.get(2))
-                        );
-                        SelenideElement element = block.getElement(elementName);
-                        String stepTitle = "Условие №" + conditionNumber + " из " +
-                                conditionsRows.size() + " — элемент '" + elementName + "'";
-                        String expectation = textCondition + " '" + expectedText + "'";
-
-                        Allure.step(stepTitle, step -> {
-                            try {
-                                element.shouldHave(
-                                        getSelenideCondition(textCondition, expectedText)
-                                );
-                                BlockAllureReport.finishStep(
-                                        step,
-                                        stepTitle,
-                                        "ВЫПОЛНЕНО",
-                                        expectation,
-                                        BlockAllureReport.elementState(element)
-                                );
-                            } catch (RuntimeException | AssertionError error) {
-                                BlockAllureReport.finishStep(
-                                        step,
-                                        stepTitle,
-                                        "НЕ ВЫПОЛНЕНО",
-                                        expectation,
-                                        BlockAllureReport.elementState(element)
-                                );
-                                BlockAllureReport.addError(step, error);
-                                throw error;
-                            }
-                        });
-                    }
-                }
-        );
-
-        return new BlockListStepResult(blocksList,
-                conditionsRows.stream().map(conditionsRow -> conditionsRow.get(0)).collect(Collectors.toList()));
-    }
-
-    private String coordinates(Point point) {
-        return "x=" + point.x + ", y=" + point.y;
-    }
-
-    private String bounds(Rectangle rectangle) {
-        return "x=" + rectangle.x + ", y=" + rectangle.y +
-                ", width=" + rectangle.width + ", height=" + rectangle.height;
-    }
-
-    /**
-     * Метод проверяет что в списке блоков есть блок, текст элемента(ов) которого соответствует условию conditionsTable
-     *
-     * @param blockListContext Название списка блоков
-     * @param conditionsTable  Список проверяемых условий в блоке
-     *                         пример:
-     *                         |<Название элемента 1>|(текст равен|текст содержит|текст в формате|отображается на странице|не отображается на странице|не существует на странице|изображение загрузилось)|<Имя переменной/Имя свойства/Ожидаемый текст/Регулярное выражение>|
-     *                         ...
-     *                         |<Название элемента N>|(текст равен|текст содержит|текст в формате|отображается на странице|не отображается на странице|не существует на странице|изображение загрузилось)|<Имя переменной/Имя свойства/Ожидаемый текст/Регулярное выражение>|
-     */
-    @Step("Ищем блоки в списке, удовлетворяющие сложным условиям из таблицы")
-    private IStepResult checkBlockListForComplexCondition(BlockListContext blockListContext,
-                                                          DataTable conditionsTable) {
-        List<CorePage> resultList =
-                getBlockListWithComplexCondition(blockListContext, conditionsTable);
-
-        return new BlockListStepResult(resultList,
-                conditionsTable.asLists().stream().map(conditionRow -> conditionRow.get(0)).collect(Collectors.toList()));
-    }
-
-    // Helpers for "конкретный блок, где текст ..." and "в любом блоке где текст ..." patterns
-
-    private CorePage waitUntilBlockWhereTextEquals(BlockListContext initialContext,
-                                                   String elementNameSearch,
-                                                   String resolvedExpectedText,
-                                                   Consumer<CorePage> onMatched) {
-        return BlockSearchExecutor.findInContext(
-                initialContext,
-                elementNameSearch,
-                BlockConditions.textEquals(resolvedExpectedText),
-                onMatched,
-                "Во всех блоках в элементах " + elementNameSearch +
-                        " не найден текст:" + resolvedExpectedText
-        );
-    }
-
-    @Step("Ищем блок, где в элементе '{elementNameSearch}' текст равен '{expectedTextSearch}', и проверяем отображение элемента '{expectedElementVisible}'")
-    private IStepResult elementDisplayedInBlockWhereTextEquals(BlockListContext blockListContext,
-                                                               String elementNameSearch,
-                                                               String expectedTextSearch,
-                                                               String expectedElementVisible) {
-        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
-        CorePage corePageByTextInElement =
-                waitUntilBlockWhereTextEquals(
-                        blockListContext,
-                        elementNameSearch,
-                        resolvedExpectedText,
-                        block -> block.getElement(expectedElementVisible).shouldBe(Condition.visible)
-                );
-
-        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, expectedElementVisible);
-    }
-
-    @Step("Ищем блок, где в элементе '{elementNameSearch}' текст равен '{expectedTextSearch}', и проверяем, что элемент '{expectedElementVisible}' не отображается")
-    private IStepResult elementNotDisplayedInBlockWhereTextEquals(BlockListContext blockListContext,
-                                                                  String elementNameSearch,
-                                                                  String expectedTextSearch,
-                                                                  String expectedElementVisible) {
-        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
-        CorePage corePageByTextInElement =
-                waitUntilBlockWhereTextEquals(
-                        blockListContext,
-                        elementNameSearch,
-                        resolvedExpectedText,
-                        block -> block.getElement(expectedElementVisible).shouldNot(Condition.visible)
-                );
-
-        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, expectedElementVisible);
-    }
-
-    @Step("Проверяем, что в каком-либо блоке текст элемента '{elementNameSearch}' соответствует регулярному выражению '{expectedTextSearch}'")
-    private IStepResult checkTextInAnyBlockMatches(BlockListContext blockListContext,
-                                                   String elementNameSearch,
-                                                   String expectedTextSearch,
-                                                   String expectedElementVisible) {
-        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedTextSearch);
-        CorePage corePageByTextInElement = BlockSearchExecutor.findInContext(
-                blockListContext,
-                elementNameSearch,
-                BlockConditions.textMatches(resolvedExpectedText),
-                block -> block.getElement(expectedElementVisible).shouldBe(Condition.visible),
-                "Во всех блоках в элементах " + elementNameSearch +
-                        " не найден текст по выражению:" + resolvedExpectedText
-        );
-
-        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, expectedElementVisible);
-    }
-
-    @Step("Проверяем текст элемента '{elementNameFind}' в блоке, где элемент '{elementNameSearch}' имеет ожидаемый текст '{expectedTextSearch}'")
-    private IStepResult checkTextInAnyBlock(BlockListContext blockListContext,
-                                            String elementNameSearch,
-                                            String expectedTextSearch,
-                                            String elementNameFind,
-                                            String expectedTextFind) {
-        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedTextSearch);
-        String resolvedExpectedTextFind = getPropertyOrStringVariableOrValue(expectedTextFind);
-
-        CorePage corePageByTextInElement =
-                waitUntilBlockWhereTextEquals(
-                        blockListContext,
-                        elementNameSearch,
-                        resolvedExpectedText,
-                        block -> shouldHaveTextMatches(block, elementNameFind, resolvedExpectedTextFind)
-                );
-
-        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, elementNameFind);
-    }
-
-    @Step("Проверяем по регулярным выражениям текст элемента '{elementNameFind}' в блоке, найденном по элементу '{elementNameSearch}'")
-    private IStepResult checkTextInAnyBlockMatches1(BlockListContext blockListContext,
-                                                    String elementNameSearch,
-                                                    String expectedTextSearch,
-                                                    String elementNameFind,
-                                                    String expectedTextFind) {
-        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedTextSearch);
-        String resolvedExpectedTextFind = getPropertyOrStringVariableOrValue(expectedTextFind);
-
-        CorePage corePageByTextInElement = BlockSearchExecutor.findInContext(
-                blockListContext,
-                elementNameSearch,
-                BlockConditions.textMatches(resolvedExpectedText),
-                block -> block.getElement(elementNameFind)
-                        .shouldHave(Condition.matchText(resolvedExpectedTextFind), Duration.ZERO),
-                "Во всех блоках в элементах " + elementNameSearch +
-                        " не найден текст по выражению:" + resolvedExpectedText
-        );
-
-        return new BlockListStepResult(corePageByTextInElement, elementNameSearch, elementNameFind);
-    }
-
-    @Step("Проверяем css '{cssName}={cssValue}' элемента '{elementNameFind}' в блоке, найденном по тексту элемента '{elementNameSearch}'")
-    private IStepResult checkCssInAnyBlock(BlockListContext blockListContext,
-                                           String elementNameSearch,
-                                           String expectedTextSearch,
-                                           String elementNameFind,
-                                           String cssName,
-                                           String cssValue) {
-        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
-        String resolvedCssName = OtherSteps.getPropertyOrStringVariableOrValue(cssName);
-        String resolvedCssValue = OtherSteps.getPropertyOrStringVariableOrValue(cssValue);
-
-        CorePage block = waitUntilBlockWhereTextEquals(
-                blockListContext,
-                elementNameSearch,
-                resolvedExpectedText,
-                matchedBlock -> matchedBlock.getElement(elementNameFind)
-                        .shouldHave(Condition.cssValue(resolvedCssName, resolvedCssValue))
-        );
-        return new BlockListStepResult(block, elementNameSearch, elementNameFind);
-    }
-
-    @Step("Проверяем, что блок с текстом элемента '{elementNameSearch}' = '{expectedTextSearch}' находится '{boundsCondition}' видимой области")
-    private IStepResult checkBlockWithTextInElementInBounds(BlockListContext blockListContext,
-                                                            String elementNameSearch,
-                                                            String expectedTextSearch,
-                                                            String boundsCondition) {
-        String resolvedExpectedText = OtherSteps.getPropertyOrStringVariableOrValue(expectedTextSearch);
-
-        CorePage corePageByTextInElement =
-                waitUntilBlockWhereTextEquals(
-                        blockListContext,
-                        elementNameSearch,
-                        resolvedExpectedText,
-                        block -> inBounds(block.getSelf(), boundsCondition)
-                );
-
-        return new BlockListStepResult(corePageByTextInElement, elementNameSearch);
-    }
-
-    @Step("Сохраняем текст элемента '{elementToSaveText}' из блока, где элемент '{elementToCheckText}' имеет текст '{expectedText}', в переменную '{varName}'")
-    private IStepResult saveElementTextToVarInBlockListWhereTextEquals(BlockListContext blockListContext,
-                                                                       String elementToCheckText,
-                                                                       String expectedText,
-                                                                       String elementToSaveText,
-                                                                       String varName) {
-        String resolvedExpectedText = getPropertyOrStringVariableOrValue(expectedText);
-
-        CorePage corePageByTextInElement =
-                waitUntilBlockWhereTextEquals(
-                        blockListContext,
-                        elementToCheckText,
-                        resolvedExpectedText,
-                        block -> {
-                            String text = block.getElement(elementToSaveText).getText();
-                            CoreScenario.getInstance().getEnvironment().setVar(varName, text);
-                        }
-                );
-
-        return new BlockListStepResult(corePageByTextInElement, elementToCheckText, elementToSaveText);
-    }
-
 }

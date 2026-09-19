@@ -1,4 +1,4 @@
-package ru.at.library.web.step.blockcollection;
+package ru.at.library.web.step.blockcollection.helper;
 
 import org.openqa.selenium.StaleElementReferenceException;
 import org.testng.annotations.Test;

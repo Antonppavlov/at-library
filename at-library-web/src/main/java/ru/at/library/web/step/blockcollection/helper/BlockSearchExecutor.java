@@ -1,4 +1,4 @@
-package ru.at.library.web.step.blockcollection;
+package ru.at.library.web.step.blockcollection.helper;
 
 import com.codeborne.selenide.CheckResult;
 import com.codeborne.selenide.SelenideElement;
@@ -19,30 +19,30 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import static com.codeborne.selenide.CheckResult.Verdict.ACCEPT;
-import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.blockListToString;
-import static ru.at.library.web.step.blockcollection.BlocksCollectionOtherMethod.scrollToElementCenter;
+import static ru.at.library.web.step.blockcollection.helper.BlocksCollectionOtherMethod.blockListToString;
+import static ru.at.library.web.step.blockcollection.helper.BlocksCollectionOtherMethod.scrollToElementCenter;
 
 /**
  * Повторно получает список блоков и выполняет операцию до успеха
  * или до истечения общего таймаута Selenide.
  */
-final class BlockSearchExecutor {
+public final class BlockSearchExecutor {
 
     private BlockSearchExecutor() {
     }
 
-    static CorePage findInContext(BlockListContext context,
-                                  String elementName,
-                                  WebElementCondition condition,
-                                  String notFoundMessage) {
+    public static CorePage findInContext(BlockListContext context,
+                                         String elementName,
+                                         WebElementCondition condition,
+                                         String notFoundMessage) {
         return findInContext(context, elementName, condition, null, notFoundMessage);
     }
 
-    static CorePage findInContext(BlockListContext context,
-                                  String elementName,
-                                  WebElementCondition condition,
-                                  Consumer<CorePage> onMatched,
-                                  String notFoundMessage) {
+    public static CorePage findInContext(BlockListContext context,
+                                         String elementName,
+                                         WebElementCondition condition,
+                                         Consumer<CorePage> onMatched,
+                                         String notFoundMessage) {
         return find(
                 context::freshBlocks,
                 elementName,
@@ -88,9 +88,9 @@ final class BlockSearchExecutor {
         );
     }
 
-    static List<CorePage> filterInSnapshot(List<CorePage> blocks,
-                                           Predicate<CorePage> predicate,
-                                           String notFoundMessage) {
+    public static List<CorePage> filterInSnapshot(List<CorePage> blocks,
+                                                  Predicate<CorePage> predicate,
+                                                  String notFoundMessage) {
         return filter(
                 () -> blocks,
                 predicate,
@@ -99,9 +99,9 @@ final class BlockSearchExecutor {
         );
     }
 
-    static CorePage awaitBlockByNumber(BlockListContext context,
-                                       int blockNumber,
-                                       String notFoundMessage) {
+    public static CorePage awaitBlockByNumber(BlockListContext context,
+                                              int blockNumber,
+                                              String notFoundMessage) {
         validateBlockNumber(blockNumber);
         return retry(
                 context::freshBlocks,
@@ -116,12 +116,12 @@ final class BlockSearchExecutor {
         );
     }
 
-    static CorePage awaitElementInBlock(BlockListContext context,
-                                        int blockNumber,
-                                        String elementName,
-                                        WebElementCondition condition,
-                                        Consumer<SelenideElement> onMatched,
-                                        String notFoundMessage) {
+    public static CorePage awaitElementInBlock(BlockListContext context,
+                                               int blockNumber,
+                                               String elementName,
+                                               WebElementCondition condition,
+                                               Consumer<SelenideElement> onMatched,
+                                               String notFoundMessage) {
         return awaitTargetInBlock(
                 context,
                 blockNumber,
@@ -133,11 +133,11 @@ final class BlockSearchExecutor {
         );
     }
 
-    static CorePage awaitElementInBlock(BlockListContext context,
-                                        int blockNumber,
-                                        String elementName,
-                                        WebElementCondition condition,
-                                        String notFoundMessage) {
+    public static CorePage awaitElementInBlock(BlockListContext context,
+                                               int blockNumber,
+                                               String elementName,
+                                               WebElementCondition condition,
+                                               String notFoundMessage) {
         return awaitElementInBlock(
                 context,
                 blockNumber,
@@ -148,11 +148,11 @@ final class BlockSearchExecutor {
         );
     }
 
-    static CorePage awaitBlockRoot(BlockListContext context,
-                                   int blockNumber,
-                                   WebElementCondition condition,
-                                   Consumer<SelenideElement> onMatched,
-                                   String notFoundMessage) {
+    public static CorePage awaitBlockRoot(BlockListContext context,
+                                          int blockNumber,
+                                          WebElementCondition condition,
+                                          Consumer<SelenideElement> onMatched,
+                                          String notFoundMessage) {
         return awaitTargetInBlock(
                 context,
                 blockNumber,
@@ -164,10 +164,10 @@ final class BlockSearchExecutor {
         );
     }
 
-    static CorePage awaitBlockRoot(BlockListContext context,
-                                   int blockNumber,
-                                   WebElementCondition condition,
-                                   String notFoundMessage) {
+    public static CorePage awaitBlockRoot(BlockListContext context,
+                                          int blockNumber,
+                                          WebElementCondition condition,
+                                          String notFoundMessage) {
         return awaitBlockRoot(
                 context,
                 blockNumber,
@@ -233,12 +233,40 @@ final class BlockSearchExecutor {
                     for (int index = 0; index < blocks.size(); index++) {
                         int blockNumber = index + 1;
                         CorePage block = blocks.get(index);
-                        BlockState state = checkPredicate(
-                                blockNumber,
-                                blocks.size(),
-                                "сложные условия",
-                                () -> predicate.test(block)
-                        );
+                        String blockStepTitle = "Блок №" + blockNumber + " из " + blocks.size();
+                        BlockState state = Allure.step(blockStepTitle, step -> {
+                            try {
+                                boolean matched = BlockAllureReport.withoutSelenideSteps(() -> predicate.test(block));
+                                BlockState blockState = matched ? BlockState.MATCHED : BlockState.NOT_MATCHED;
+                                BlockAllureReport.finishStep(
+                                        step,
+                                        blockStepTitle,
+                                        blockState.description,
+                                        "сложные условия",
+                                        matched ? "условия выполнены" : "условия не выполнены"
+                                );
+                                return blockState;
+                            } catch (StaleElementReferenceException | NoSuchElementException | ElementNotFound error) {
+                                BlockAllureReport.finishStep(
+                                        step,
+                                        blockStepTitle,
+                                        BlockState.RETRY.description,
+                                        "сложные условия",
+                                        "DOM обновился"
+                                );
+                                return BlockState.RETRY;
+                            } catch (RuntimeException | AssertionError error) {
+                                BlockAllureReport.finishStep(
+                                        step,
+                                        blockStepTitle,
+                                        "ОШИБКА",
+                                        "сложные условия",
+                                        "не удалось проверить условие"
+                                );
+                                BlockAllureReport.addError(step, error);
+                                throw error;
+                            }
+                        });
 
                         if (state == BlockState.RETRY) {
                             return Attempt.again("DOM обновился при проверке блока №" + blockNumber);
@@ -333,8 +361,8 @@ final class BlockSearchExecutor {
                         onMatched,
                         targetCheck.element()
                 ) == BlockState.RETRY) {
-                    targetCheck = TargetCheck.retry(
-                            "DOM обновился во время действия"
+                    targetCheck = new TargetCheck(
+                            BlockState.RETRY, null, "DOM обновился во время действия"
                     );
                 }
                 BlockAllureReport.finishStep(
@@ -399,7 +427,11 @@ final class BlockSearchExecutor {
                 return TargetCheck.retry();
             }
 
-            String actualState = describeActualState(checkResult, elementState);
+            Object actualValue = checkResult.actualValue();
+            String actualState = actualValue == null
+                    ? elementState.description()
+                    : "значение условия: " + actualValue +
+                    "; состояние элемента: " + elementState.description();
             return checkResult.verdict() == ACCEPT
                     ? TargetCheck.matched(element, actualState)
                     : TargetCheck.notMatched(element, actualState);
@@ -410,52 +442,15 @@ final class BlockSearchExecutor {
         }
     }
 
-    private static BlockState checkPredicate(int blockNumber,
-                                             int totalBlocks,
-                                             String expectation,
-                                             Supplier<Boolean> operation) {
-        String stepTitle = "Блок №" + blockNumber + " из " + totalBlocks;
-        return Allure.step(stepTitle, step -> {
-            try {
-                boolean matched = BlockAllureReport.withoutSelenideSteps(operation);
-                BlockState state = matched
-                        ? BlockState.MATCHED
-                        : BlockState.NOT_MATCHED;
-                BlockAllureReport.finishStep(
-                        step,
-                        stepTitle,
-                        state.description,
-                        expectation,
-                        matched ? "условия выполнены" : "условия не выполнены"
-                );
-                return state;
-            } catch (StaleElementReferenceException | NoSuchElementException | ElementNotFound error) {
-                BlockAllureReport.finishStep(
-                        step,
-                        stepTitle,
-                        BlockState.RETRY.description,
-                        expectation,
-                        "DOM обновился"
-                );
-                return BlockState.RETRY;
-            }
-        });
-    }
-
     private static <T> BlockState runAction(String description,
                                             Consumer<T> action,
                                             T target) {
         if (action == null) {
             return BlockState.MATCHED;
         }
-        return runAction(description, () -> action.accept(target));
-    }
-
-    private static BlockState runAction(String description,
-                                        Runnable action) {
         return Allure.step(description, step -> {
             try {
-                BlockAllureReport.withoutSelenideSteps(action);
+                BlockAllureReport.withoutSelenideSteps(() -> action.accept(target));
                 step.name(description + " — ВЫПОЛНЕНО");
                 return BlockState.MATCHED;
             } catch (StaleElementReferenceException | NoSuchElementException | ElementNotFound error) {
@@ -519,12 +514,20 @@ final class BlockSearchExecutor {
 
         BlockAllureReport.attachFailureScreenshot();
 
+        String blocksDescription;
+        try {
+            blocksDescription = blockListToString(lastBlocks);
+        } catch (RuntimeException | AssertionError error) {
+            blocksDescription = "<не удалось получить описание: " +
+                    error.getClass().getSimpleName() + ">";
+        }
+
         throw new AssertionError(
                 notFoundMessage +
                         "\nКоличество попыток: " + deadline.attempts() +
                         "\nTimeout: " + deadline.timeoutMs() + " мс" +
                         "\nРазмер блоков: " + lastBlocks.size() +
-                        "\nСодержимое блоков: " + safelyDescribe(lastBlocks)
+                        "\nСодержимое блоков: " + blocksDescription
         );
     }
 
@@ -534,24 +537,6 @@ final class BlockSearchExecutor {
                     "Индекс блока должен начинаться с 1, получено: " + blockNumber
             );
         }
-    }
-
-    private static String safelyDescribe(List<CorePage> blocks) {
-        try {
-            return blockListToString(blocks);
-        } catch (RuntimeException | AssertionError error) {
-            return "<не удалось получить описание: " +
-                    error.getClass().getSimpleName() + ">";
-        }
-    }
-
-    private static String describeActualState(CheckResult checkResult,
-                                              BlockAllureReport.ElementState elementState) {
-        Object actualValue = checkResult.actualValue();
-        return actualValue == null
-                ? elementState.description()
-                : "значение условия: " + actualValue +
-                "; состояние элемента: " + elementState.description();
     }
 
     private enum BlockState {
@@ -580,10 +565,6 @@ final class BlockSearchExecutor {
 
         private static TargetCheck retry() {
             return new TargetCheck(BlockState.RETRY, null, "DOM обновился");
-        }
-
-        private static TargetCheck retry(String actualState) {
-            return new TargetCheck(BlockState.RETRY, null, actualState);
         }
 
         boolean matched() {

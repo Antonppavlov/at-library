@@ -1,4 +1,4 @@
-package ru.at.library.web.step.blockcollection;
+package ru.at.library.web.step.blockcollection.helper;
 
 import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.WebElementCondition;
@@ -8,16 +8,16 @@ import java.util.regex.Pattern;
 /**
  * Общие условия для элементов внутри блоков.
  */
-final class BlockConditions {
+public final class BlockConditions {
 
     private BlockConditions() {
     }
 
-    static WebElementCondition clickable() {
+    public static WebElementCondition clickable() {
         return Condition.and("кликабелен", Condition.visible, Condition.enabled);
     }
 
-    static WebElementCondition textEquals(String expectedText) {
+    public static WebElementCondition textEquals(String expectedText) {
         return Condition.or("текст элемента равен",
                 Condition.exactText(expectedText),
                 Condition.exactValue(expectedText),
@@ -25,7 +25,7 @@ final class BlockConditions {
         );
     }
 
-    static WebElementCondition textContains(String expectedText) {
+    public static WebElementCondition textContains(String expectedText) {
         return Condition.or("текст элемента содержит",
                 Condition.text(expectedText),
                 Condition.value(expectedText),
@@ -36,7 +36,7 @@ final class BlockConditions {
         );
     }
 
-    static WebElementCondition textMatches(String expectedText) {
+    public static WebElementCondition textMatches(String expectedText) {
         return Condition.or("текст элемента соответствует регулярному выражению",
                 Condition.matchText(expectedText),
                 Condition.attributeMatching("value", expectedText),

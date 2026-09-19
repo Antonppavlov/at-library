@@ -1,4 +1,4 @@
-package ru.at.library.web.step.blockcollection;
+package ru.at.library.web.step.blockcollection.helper;
 
 import com.codeborne.selenide.SelenideElement;
 import com.codeborne.selenide.WebDriverRunner;
@@ -29,7 +29,7 @@ import java.util.function.Supplier;
  * Нестандартные имена регистрации Allure-listener можно перечислить через
  * {@value #LISTENER_NAMES_PROPERTY}, разделяя их запятыми.
  */
-final class BlockAllureReport {
+public final class BlockAllureReport {
 
     static final String LISTENER_NAMES_PROPERTY =
             "at.library.blockcollection.selenide-listener-names";
@@ -61,8 +61,28 @@ final class BlockAllureReport {
     private BlockAllureReport() {
     }
 
-    static <T> T withoutSelenideSteps(Supplier<T> operation) {
-        List<RemovedListener> removedListeners = removeAllureListeners();
+    public static <T> T withoutSelenideSteps(Supplier<T> operation) {
+        Set<String> listenerNames = new LinkedHashSet<>(DEFAULT_ALLURE_LISTENER_NAMES);
+        String configuredNames = System.getProperty(LISTENER_NAMES_PROPERTY, "");
+        for (String configuredName : configuredNames.split(",")) {
+            String listenerName = configuredName.trim();
+            if (!listenerName.isEmpty()) {
+                listenerNames.add(listenerName);
+            }
+        }
+
+        List<RemovedListener> removedListeners = new ArrayList<>();
+        for (String listenerName : listenerNames) {
+            if (!SelenideLogger.hasListener(listenerName)) {
+                continue;
+            }
+
+            LogEventListener listener = SelenideLogger.removeListener(listenerName);
+            if (listener != null) {
+                removedListeners.add(new RemovedListener(listenerName, listener));
+            }
+        }
+
         try {
             return operation.get();
         } finally {
@@ -75,14 +95,14 @@ final class BlockAllureReport {
         }
     }
 
-    static void withoutSelenideSteps(Runnable operation) {
+    public static void withoutSelenideSteps(Runnable operation) {
         withoutSelenideSteps(() -> {
             operation.run();
             return null;
         });
     }
 
-    static String elementState(SelenideElement element) {
+    public static String elementState(SelenideElement element) {
         return inspect(element).description();
     }
 
@@ -92,7 +112,7 @@ final class BlockAllureReport {
         } catch (StaleElementReferenceException error) {
             return ElementState.updatedDom();
         } catch (ElementNotFound | NoSuchElementException | IndexOutOfBoundsException error) {
-            return ElementState.missing();
+            return new ElementState(false, "элемент не существует");
         } catch (RuntimeException error) {
             return ElementState.unavailable(error);
         }
@@ -113,9 +133,7 @@ final class BlockAllureReport {
             addValue(description, "text", stateValue(state, "text"));
             addValue(description, "value", stateValue(state, "value"));
             addValue(description, "title", stateValue(state, "title"));
-            return ElementState.available(
-                    compact(String.join(", ", description))
-            );
+            return new ElementState(false, compact(String.join(", ", description)));
         } catch (StaleElementReferenceException | NoSuchElementException | ElementNotFound error) {
             return ElementState.updatedDom();
         } catch (RuntimeException error) {
@@ -123,17 +141,17 @@ final class BlockAllureReport {
         }
     }
 
-    static void finishStep(Allure.StepContext step,
-                           String title,
-                           String status,
-                           String expected,
-                           String actual) {
+    public static void finishStep(Allure.StepContext step,
+                                  String title,
+                                  String status,
+                                  String expected,
+                                  String actual) {
         step.name(title + " — " + status);
         addParameter(step, "Ожидается", expected);
         addParameter(step, "Фактически", actual);
     }
 
-    static void addError(Allure.StepContext step, Throwable error) {
+    public static void addError(Allure.StepContext step, Throwable error) {
         String errorMessage = error.getMessage();
         addParameter(
                 step,
@@ -150,7 +168,7 @@ final class BlockAllureReport {
      * В отличие от full-page screenshot этот вызов не использует общий
      * synchronized lock и не сериализует параллельные тесты.
      */
-    static void attachFailureScreenshot() {
+    public static void attachFailureScreenshot() {
         try {
             if (!WebDriverRunner.hasWebDriverStarted()
                     || !(WebDriverRunner.getWebDriver() instanceof TakesScreenshot screenshotDriver)) {
@@ -169,7 +187,7 @@ final class BlockAllureReport {
         }
     }
 
-    static String compact(String value) {
+    public static String compact(String value) {
         if (value == null) {
             return "<нет значения>";
         }
@@ -204,45 +222,10 @@ final class BlockAllureReport {
         return value == null ? null : String.valueOf(value);
     }
 
-    private static List<RemovedListener> removeAllureListeners() {
-        List<RemovedListener> removedListeners = new ArrayList<>();
-        for (String listenerName : configuredListenerNames()) {
-            if (!SelenideLogger.hasListener(listenerName)) {
-                continue;
-            }
-
-            LogEventListener listener = SelenideLogger.removeListener(listenerName);
-            if (listener != null) {
-                removedListeners.add(new RemovedListener(listenerName, listener));
-            }
-        }
-        return removedListeners;
-    }
-
-    private static Set<String> configuredListenerNames() {
-        Set<String> listenerNames = new LinkedHashSet<>(DEFAULT_ALLURE_LISTENER_NAMES);
-        String configuredNames = System.getProperty(LISTENER_NAMES_PROPERTY, "");
-        for (String configuredName : configuredNames.split(",")) {
-            String listenerName = configuredName.trim();
-            if (!listenerName.isEmpty()) {
-                listenerNames.add(listenerName);
-            }
-        }
-        return listenerNames;
-    }
-
     private record RemovedListener(String name, LogEventListener listener) {
     }
 
     record ElementState(boolean domUpdated, String description) {
-
-        private static ElementState available(String description) {
-            return new ElementState(false, description);
-        }
-
-        private static ElementState missing() {
-            return new ElementState(false, "элемент не существует");
-        }
 
         private static ElementState updatedDom() {
             return new ElementState(true, "DOM обновился");

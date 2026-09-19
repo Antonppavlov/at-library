@@ -1,4 +1,4 @@
-package ru.at.library.web.step.blockcollection;
+package ru.at.library.web.step.blockcollection.helper;
 
 import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.Selenide;
@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
  * цикла даже при некорректном pollingInterval. Для измерения времени
  * используется монотонный System.nanoTime().
  */
-final class BlockPollingDeadline {
+public final class BlockPollingDeadline {
 
     private static final long MIN_POLLING_MS = 50L;
 
@@ -39,7 +39,7 @@ final class BlockPollingDeadline {
         return of(Configuration.timeout, Configuration.pollingInterval);
     }
 
-    static BlockPollingDeadline of(long timeoutMs, long pollingMs) {
+    public static BlockPollingDeadline of(long timeoutMs, long pollingMs) {
         return new BlockPollingDeadline(timeoutMs, pollingMs);
     }
 
@@ -47,19 +47,19 @@ final class BlockPollingDeadline {
      * Разрешает хотя бы одну попытку даже при timeout=0, затем строго
      * ограничивает выполнение общим временем и максимальным числом проходов.
      */
-    boolean tryNextAttempt() {
+    public boolean tryNextAttempt() {
         if (attempts >= maxAttempts) {
             return false;
         }
-        if (attempts > 0 && isExpired()) {
+        if (attempts > 0 && System.nanoTime() - startedNanos >= timeoutNanos) {
             return false;
         }
         attempts++;
         return true;
     }
 
-    void pauseBeforeNextAttempt() {
-        long remainingNanos = remainingNanos();
+    public void pauseBeforeNextAttempt() {
+        long remainingNanos = timeoutNanos - (System.nanoTime() - startedNanos);
         if (remainingNanos <= 0L) {
             return;
         }
@@ -68,19 +68,11 @@ final class BlockPollingDeadline {
         Selenide.sleep(Math.min(pollingMs, remainingMs));
     }
 
-    long timeoutMs() {
+    public long timeoutMs() {
         return timeoutMs;
     }
 
-    int attempts() {
+    public int attempts() {
         return attempts;
-    }
-
-    private boolean isExpired() {
-        return System.nanoTime() - startedNanos >= timeoutNanos;
-    }
-
-    private long remainingNanos() {
-        return timeoutNanos - (System.nanoTime() - startedNanos);
     }
 }
