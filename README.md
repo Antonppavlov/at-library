@@ -91,12 +91,8 @@ distribution    ──► core + web + api
     <artifactId>maven-surefire-plugin</artifactId>
     <version>3.3.1</version>
     <configuration>
-        <threadCount>1</threadCount>
-        <parallel>classes</parallel>
-        <testFailureIgnore>true</testFailureIgnore>
         <argLine>
             -javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/1.9.22/aspectjweaver-1.9.22.jar"
-            -Dcucumber.options="--plugin io.qameta.allure.cucumber7jvm.AllureCucumber7Jvm"
         </argLine>
     </configuration>
     <dependencies>
@@ -108,6 +104,12 @@ distribution    ──► core + web + api
     </dependencies>
 </plugin>
 ```
+
+> ⚠️ `aspectjweaver:1.9.22` не читает байткод JDK 26 (падает с `Unsupported class file major version 70`) — на JDK 26 тесты будут падать с этой ошибкой независимо от ваших шагов. Если вы на JDK 26, проверьте, не вышла ли более новая версия `aspectjweaver` с поддержкой этого class-file version.
+>
+> Регистрация Allure-плагина (`io.qameta.allure.cucumber7jvm.AllureCucumber7Jvm`) задаётся не здесь, а в `plugin = {...}` аннотации `@CucumberOptions` вашего раннера — сюда её дублировать не нужно.
+>
+> `threadCount`/`parallel` (степень параллелизма прогона) зависит от потокобезопасности ваших шагов — единого рекомендуемого значения нет. Сам at-library использует разные настройки в разных модулях: `threadCount=20, parallel=methods` в core/web, `threadCount=1, parallel=classes` в api.
 
 ### Allure-отчёты
 
@@ -155,15 +157,17 @@ mvn -pl at-library-web -am clean test -Dselenide.browser=chrome
 
 ### Фильтрация по тегам
 
+> `-Dcucumber.options=...` не работает в используемой версии Cucumber — способ передачи опций строкой устарел и молча игнорируется (с предупреждением в логе). Используйте отдельные свойства `cucumber.filter.tags` / `cucumber.filter.name`.
+
 ```bash
 # Сценарии с тегом @api
-mvn clean test -Dcucumber.options="--tags @api"
+mvn clean test -Dcucumber.filter.tags="@api"
 
 # Сценарии с любым из тегов (OR)
-mvn clean test -Dcucumber.options="--tags '@api or @web'"
+mvn clean test -Dcucumber.filter.tags="@api or @web"
 
-# Конкретный сценарий по имени
-mvn clean test -Dcucumber.options="--name 'Имя сценария'"
+# Конкретный сценарий по имени (регулярка, OR через |)
+mvn clean test -Dcucumber.filter.name='Имя сценария'
 ```
 
 ### Allure-отчёт

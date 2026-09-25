@@ -183,10 +183,10 @@ mvn -pl at-library-api -am clean test -Dapi.http.log.disable=true
 mvn -pl at-library-api -am clean test
 ```
 
-- Запуск тестов с тегом `@api`:
+- Запуск тестов с тегом `@api` (`-Dcucumber.options=...` не работает в используемой версии Cucumber — используется `cucumber.filter.tags`):
 
 ```bash
-mvn -pl at-library-api -am clean test -Dcucumber.options="--tags @api"
+mvn -pl at-library-api -am clean test -Dcucumber.filter.tags="@api"
 ```
 
 - Генерация Allure-отчёта для модуля:

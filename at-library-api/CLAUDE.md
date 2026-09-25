@@ -11,7 +11,7 @@
 | `RunFeaturesTest` | **без фильтра тегов** | основной suite (`src/test/resources/features/`) — в отличие от `at-library-web`/`at-library-core`, тут нет `tags = "@unit"` |
 | `RunApiLocalStepContractTest` | без фильтра | `local-contract/api_response_steps_local_contract.feature` |
 | `RunApiProxyStepContractIT` | без фильтра | `local-contract/api_proxy_steps_local_contract.feature` |
-| `RunApiKnownGapContractIT` | без фильтра | `local-contract/api_known_gap_contract.feature` — по аналогии с web-модулем, вероятно документирует известные, принятые дефекты; при встрече падения здесь сначала проверить Javadoc/комментарий класса, не чинить вслепую |
+| `RunApiKnownGapContractIT` | без фильтра | `local-contract/api_known_gap_contract.feature` — по Javadoc класса документирует **один** конкретный известный дефект: проверку непустого JSON-массива (в отличие от web-модуля, где `RunWebKnownGapContractIT` документирует сразу 2 разных дефекта); при встрече падения здесь сначала проверить Javadoc/комментарий класса, не чинить вслепую |
 | `RunApiStepCatalogTest` | `dryRun=true`, без браузера | regex-контракт по `src/test/resources/step-catalog/api_steps_catalog.feature` |
 
 Раз `RunFeaturesTest` здесь без тегового фильтра — при фильтрации по имени сценария (`-Dcucumber.filter.name=...`) не нужно дополнительно думать про теги, как в web-модуле.

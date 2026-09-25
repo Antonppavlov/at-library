@@ -62,10 +62,15 @@ at-library-web
 
 Инициализация страницы
 =================================
-Если непобходимо создавать собсвенные шаги по работе с web элементами'
+Если необходимо создавать собственные шаги по работе с web-элементами, используйте `WebScenario.getCurrentPage()` — он возвращает текущую страницу (ту, что была загружена шагом `Когда страница "<Имя страницы>" загрузилась`), а у неё есть методы `getElement`/`getElementsList`/`getBlock` для доступа к полям, описанным аннотацией `@Name`:
 
 ```java
-
+@И("^выполнено нажатие на элемент \"([^\"]*)\"$")
+public void clickOnElement(String elementName) {
+    WebScenario.getCurrentPage()
+            .getElement(elementName)
+            .click();
+}
 ```
 
 - Для страницы инициализируется карта ее элементов - это те поля, что помечены аннотацией Name.
@@ -82,11 +87,13 @@ at-library-web
 
 Доступ к элементам страницы
 ============================
-Данные строки позволяют по имени элемента найти его в карте элементов текущей страницы.
+Данные строки позволяют по имени элемента (значению аннотации `@Name`) найти его в карте элементов текущей страницы:
 
 ```java
+SelenideElement element = WebScenario.getCurrentPage().getElement("Имя элемента");
 
- ```
+ElementsCollection elements = WebScenario.getCurrentPage().getElementsList("Имя списка");
+```
 
 
 Блоки на странице
@@ -149,18 +156,20 @@ test
 -Dproxy=172.18.62.68:8080 
 allure:serve
 ```
+> `-Dcucumber.options=...` не работает в используемой версии Cucumber (молча игнорируется) — используйте `cucumber.filter.tags`. `com.epam.reportportal.cucumber.ScenarioReporter` из старых примеров ниже убран — ReportPortal не подключён в проекте как зависимость.
+
 - Запуск тестов с тегами (И)
 ```mvn
 clean 
 test 
--Dcucumber.options="--tags @api --tags @web --plugin io.qameta.allure.cucumber7jvm.AllureCucumber7Jvm --plugin com.epam.reportportal.cucumber.ScenarioReporter"
+-Dcucumber.filter.tags="@api and @web"
 allure:serve 
 ```
 - Запуск тестов с тегами (ИЛИ)
 ```mvn
 clean
 test
--Dcucumber.options="--tags @api,@web --plugin io.qameta.allure.cucumber7jvm.AllureCucumber7Jvm --plugin com.epam.reportportal.cucumber.ScenarioReporter"
+-Dcucumber.filter.tags="@api or @web"
 allure:serve 
 ```
 
