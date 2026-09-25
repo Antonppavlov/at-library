@@ -4,21 +4,9 @@
 
 ## Сборка и тесты — практические команды
 
-Сборка прибита к **JDK 21 через Maven Toolchains** (`maven-toolchains-plugin` в корневом `pom.xml`, validate-фаза). Причина: JVM, на которой запущен сам `mvn`, и JDK, который нужен проекту (`java.version=21` в properties), на машине с несколькими JDK — не одно и то же. На этой машине, например, `mvn -version` показывает JDK 26 (Homebrew'вский `openjdk`, берётся по умолчанию, т.к. `JAVA_HOME` не выставлен), а обычный `java -version` в шелле — JDK 21 (системный, зарегистрированный через `java_home`). Раньше это молча приводило к тому, что forked JVM surefire получала JDK 26, и `aspectjweaver:1.9.22` падал на её байткоде (`Unsupported class file major version 70`) — подробности и как это проявлялось см. историю в [at-library-core/CLAUDE.md](at-library-core/CLAUDE.md). Теперь toolchain явно прибивает к JDK 21 и `maven-compiler-plugin`, и `maven-surefire-plugin`, независимо от того, на чём запущен сам Maven. Проверено: `mvn -pl at-library-core test` → `Tests run: 41, Failures: 0`.
+`mvn clean test` из корня **упадёт** на `at-library-core`: там 3 теста стабильно падают из-за несовместимости `aspectjweaver:1.9.22` с байткодом JDK 26 (`Unsupported class file major version 70`, class-file version 70 = Java 26). Это окружение/версийная проблема, не баг в тестах — не пытаться «починить» AspectJ, просто не гонять `at-library-core`'s тесты заодно, когда не нужно.
 
-**На новой машине нужно один раз создать `~/.m2/toolchains.xml`** (локальный для машины, в git не хранится):
-```xml
-<toolchains xmlns="http://maven.apache.org/TOOLCHAINS/1.1.0">
-    <toolchain>
-        <type>jdk</type>
-        <provides><version>21</version><vendor>oracle</vendor></provides>
-        <configuration><jdkHome>ПУТЬ_К_JDK_21</jdkHome></configuration>
-    </toolchain>
-</toolchains>
-```
-Путь на macOS — `/usr/libexec/java_home -v 21`. Без этого файла сборка **осознанно** падает уже на `validate` с понятной `Cannot find matching toolchain for type jdk` — это фейл-фаст вместо невнятных AspectJ-ошибок внутри surefire, не баг.
-
-Чтобы прогнать **только web-тесты**, не дожидаясь тестов core/api (`-am` всё равно потянет их тесты тоже — просто теперь они не падают, а лишь отнимают время):
+Чтобы прогнать **только реальные web-тесты**, не упираясь в это:
 ```bash
 mvn -pl at-library-web -am test \
   -Dtest=ru.at.library.web.RunFeaturesTest \

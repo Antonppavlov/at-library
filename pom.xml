@@ -6,7 +6,7 @@
 
     <groupId>ru</groupId>
     <artifactId>at-library</artifactId>
-    <version>19.03.2026</version>
+    <version>25.09.2026</version>
     <name>at-library</name>
     <packaging>pom</packaging>
 
@@ -34,7 +34,6 @@
         <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
         <maven-javadoc-plugin.version>3.7.0</maven-javadoc-plugin.version>
         <maven-surefire-plugin.version>3.3.1</maven-surefire-plugin.version>
-        <maven-toolchains-plugin.version>3.2.0</maven-toolchains-plugin.version>
     </properties>
 
     <build>
@@ -72,28 +71,6 @@
             </plugins>
         </pluginManagement>
         <plugins>
-            <plugin>
-                <!-- Заставляет сборку явно требовать JDK 21 (см. ~/.m2/toolchains.xml) вместо того,
-                     чтобы молча использовать ту JVM, на которой запущен сам Maven — на машинах
-                     с несколькими JDK это не одно и то же (см. java.version в properties). -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-toolchains-plugin</artifactId>
-                <version>${maven-toolchains-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>toolchain</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <toolchains>
-                        <jdk>
-                            <version>${java.version}</version>
-                        </jdk>
-                    </toolchains>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
