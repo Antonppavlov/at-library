@@ -3,6 +3,7 @@ package ru.at.library.web.step.corepage;
 import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.Selenide;
 import com.codeborne.selenide.WebDriverRunner;
+import io.cucumber.java.ru.А;
 import io.cucumber.java.ru.И;
 import lombok.extern.log4j.Log4j2;
 import org.openqa.selenium.JavascriptExecutor;
@@ -140,7 +141,7 @@ public class CorePageStep {
      * @param blockName       имя блока для проверки
      */
     @И("^()блок \"([^\"]*)\" отображается на странице$")
-    @И("^в блоке \"([^\"]*)\" блок \"([^\"]*)\" отображается на странице$")
+    @А("^в блоке \"([^\"]*)\" блок \"([^\"]*)\" отображается на странице$")
     public void blockAppeared(String parentBlockName, String blockName) {
         CorePage owner = (parentBlockName == null || parentBlockName.isEmpty())
                 ? WebScenario.getCurrentPage()

@@ -1,6 +1,7 @@
 package ru.at.library.web.step.elementcollection;
 
 import com.codeborne.selenide.*;
+import io.cucumber.java.ru.А;
 import io.cucumber.java.ru.И;
 import lombok.extern.log4j.Log4j2;
 import ru.at.library.core.cucumber.api.CoreScenario;
@@ -32,7 +33,7 @@ public class ElementsCollectionCheckSteps {
      * Проверка отображения списка на странице
      */
     @И("^()список элементов \"([^\"]*)\" отображается на странице$")
-    @И("^в блоке \"([^\"]*)\" список элементов \"([^\"]*)\" отображается на странице$")
+    @А("^в блоке \"([^\"]*)\" список элементов \"([^\"]*)\" отображается на странице$")
     public IStepResult shouldVisible(String blockName, String listName) {
         SelenideElement first = resolveOwner(blockName).getElementsList(listName).first();
         first.shouldHave(visible);
@@ -43,7 +44,7 @@ public class ElementsCollectionCheckSteps {
      * Проверка не отображения списка на странице
      */
     @И("^()список элементов \"([^\"]*)\" не отображается на странице$")
-    @И("^в блоке \"([^\"]*)\" список элементов \"([^\"]*)\" не отображается на странице$")
+    @А("^в блоке \"([^\"]*)\" список элементов \"([^\"]*)\" не отображается на странице$")
     public IStepResult isHidden(String blockName, String listName) {
         SelenideElement first = resolveOwner(blockName).getElementsList(listName).first();
         first.shouldHave(not(visible));
@@ -51,7 +52,7 @@ public class ElementsCollectionCheckSteps {
     }
 
     @И("^()список элементов \"([^\"]*)\" включает в себя список из таблицы$")
-    @И("^в блоке \"([^\"]*)\" список элементов \"([^\"]*)\" включает в себя список из таблицы$")
+    @А("^в блоке \"([^\"]*)\" список элементов \"([^\"]*)\" включает в себя список из таблицы$")
     public IStepResult containsList(String blockName, String listName, List<String> textTable) {
         textTable = getPropertyOrStringVariableOrValue(textTable);
         ElementsCollection elements = resolveOwner(blockName).getElementsList(listName);
@@ -66,7 +67,7 @@ public class ElementsCollectionCheckSteps {
      * перечисленных в таблице
      */
     @И("^()список элементов \"([^\"]*)\" равен списку из таблицы$")
-    @И("^в блоке \"([^\"]*)\" список элементов \"([^\"]*)\" равен списку из таблицы$")
+    @А("^в блоке \"([^\"]*)\" список элементов \"([^\"]*)\" равен списку из таблицы$")
     public IStepResult equalsToList(String blockName, String listName, List<String> textTable) {
         textTable = getPropertyOrStringVariableOrValue(textTable);
         ElementsCollection elements = resolveOwner(blockName).getElementsList(listName);
@@ -78,7 +79,7 @@ public class ElementsCollectionCheckSteps {
      * Выбор из списка со страницы любого случайного элемента и сохранение его значения в переменную
      */
     @И("^()в списке элементов \"([^\"]*)\" текст любого из элементов сохранен в переменную \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" текст любого из элементов сохранен в переменную \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" текст любого из элементов сохранен в переменную \"([^\"]*)\"$")
     public IStepResult saveRandomListElementTextToVar(String blockName, String listName, String varName) {
         ElementsCollection elements = resolveOwner(blockName).getElementsList(listName);
         SelenideElement element = getRandomElementFromCollection(elements.filter(visible));
@@ -91,7 +92,7 @@ public class ElementsCollectionCheckSteps {
      * Проверка текста в элементе списка
      */
     @И("^()в списке элементов \"([^\"]*)\" текст в элементе \"(\\d+)\" равен \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" текст в элементе \"(\\d+)\" равен \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" текст в элементе \"(\\d+)\" равен \"([^\"]*)\"$")
     public IStepResult listElementWithIndexHasExactText(String blockName, String listName, int number, String expectedValue) {
         expectedValue = getPropertyOrStringVariableOrValue(expectedValue);
         SelenideElement selenideElement = resolveOwner(blockName).getElementsList(listName).get(number - 1);
@@ -103,7 +104,7 @@ public class ElementsCollectionCheckSteps {
      * Проверка что элемент c текстом выбран
      */
     @И("^()в списке элементов \"([^\"]*)\" элемент c текстом \"([^\"]*)\" выбран$")
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" элемент c текстом \"([^\"]*)\" выбран$")
+    @А("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" элемент c текстом \"([^\"]*)\" выбран$")
     public IStepResult listElementWithIndexHasSelected(String blockName, String listName, String elementText) {
         SelenideElement selenideElement = resolveOwner(blockName).getElementsList(listName).find(Condition.text(elementText));
         SelenideElement element = selenideElement.shouldHave(selected);
@@ -114,7 +115,7 @@ public class ElementsCollectionCheckSteps {
      * Проверка, что каждый элемент списка содержит ожидаемый текст
      */
     @И("^()в списке элементов \"([^\"]*)\" содержится элемент с текстом \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" содержится элемент с текстом \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" содержится элемент с текстом \"([^\"]*)\"$")
     public IStepResult containsElementWithText(String blockName, String listName, String expectedValue) {
         expectedValue = getPropertyOrStringVariableOrValue(expectedValue);
         SelenideElement element = resolveOwner(blockName).getElementsList(listName)
@@ -127,7 +128,7 @@ public class ElementsCollectionCheckSteps {
      * Проверка, что каждый элемент списка не содержит ожидаемый текст
      */
     @И("^()в списке элементов \"([^\"]*)\" не содержится элемент с текстом \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" не содержится элемент с текстом \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" не содержится элемент с текстом \"([^\"]*)\"$")
     public void notContainsElementWithExactText(String blockName, String listName, String expectedValue) {
         expectedValue = getPropertyOrStringVariableOrValue(expectedValue);
         resolveOwner(blockName).getElementsList(listName)
@@ -139,7 +140,7 @@ public class ElementsCollectionCheckSteps {
      * Производится проверка соответствия числа элементов списка условию и значению, указанному в шаге
      */
     @И("^()в списке элементов \"([^\"]*)\" количество элементов (равно|не равно|больше|меньше|больше или равно|меньше или равно) (\\d+)$")
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" количество элементов (равно|не равно|больше|меньше|больше или равно|меньше или равно) (\\d+)$")
+    @А("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" количество элементов (равно|не равно|больше|меньше|больше или равно|меньше или равно) (\\d+)$")
     public IStepResult checkSize(String blockName, String listName, String condition, String expectedSize) {
         ElementsCollection elements = resolveOwner(blockName).getElementsList(listName);
         WebElementsCondition webElementsCondition = CustomCondition.getElementsCollectionSizeCondition(

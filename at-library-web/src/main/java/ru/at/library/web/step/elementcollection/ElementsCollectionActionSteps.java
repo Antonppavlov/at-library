@@ -3,6 +3,7 @@ package ru.at.library.web.step.elementcollection;
 import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.ElementsCollection;
 import com.codeborne.selenide.SelenideElement;
+import io.cucumber.java.ru.А;
 import io.cucumber.java.ru.И;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,7 +32,7 @@ public class ElementsCollectionActionSteps {
      * (в приоритете: из property, из переменной сценария, значение аргумента)
      */
     @И("^()в списке элементов \"([^\"]*)\" выполнено нажатие на элемент с текстом \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на элемент с текстом \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на элемент с текстом \"([^\"]*)\"$")
     public IStepResult clickOnListElementWithExactText(String blockName, String listName, String expectedValue) {
         expectedValue = getPropertyOrStringVariableOrValue(expectedValue);
         SelenideElement element = resolveOwner(blockName).getElementsList(listName).find(Condition.or(
@@ -45,7 +46,7 @@ public class ElementsCollectionActionSteps {
     }
 
     @И("^()в списке элементов \"([^\"]*)\" выполнено двойное нажатие на элемент с текстом \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено двойное нажатие на элемент с текстом \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено двойное нажатие на элемент с текстом \"([^\"]*)\"$")
     public IStepResult doubleClickOnListElementWithExactText(String blockName, String listName, String expectedValue) {
         // NB: как и в исходной реализации, здесь выполняется одиночный клик (баг в шаге
         // "двойное нажатие" унаследован из до-рефакторинговового кода).
@@ -58,7 +59,7 @@ public class ElementsCollectionActionSteps {
      * Не чувствителен к регистру
      */
     @И("^()в списке элементов \"([^\"]*)\" выполнено нажатие на элемент содержащий текст \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на элемент содержащий текст \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на элемент содержащий текст \"([^\"]*)\"$")
     public IStepResult clickOnListElementWithContainsText(String blockName, String listName, String expectedValue) {
         expectedValue = getPropertyOrStringVariableOrValue(expectedValue);
         SelenideElement element = resolveOwner(blockName).getElementsList(listName).find(Condition.or(
@@ -75,7 +76,7 @@ public class ElementsCollectionActionSteps {
      * Нумерация элементов начинается с 1
      */
     @И("^()в списке элементов \"([^\"]*)\" выполнено нажатие на \"(\\d+)\" элемент$")
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на \"(\\d+)\" элемент$")
+    @А("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на \"(\\d+)\" элемент$")
     public IStepResult clickOnListElementWithIndex(String blockName, String listName, int number) {
         SelenideElement element = resolveOwner(blockName).getElementsList(listName).get(number - 1);
         element.click();
@@ -86,7 +87,7 @@ public class ElementsCollectionActionSteps {
      * Выполнено нажатие на случайный элемент
      */
     @И("^()в списке элементов \"([^\"]*)\" выполнено нажатие на случайный элемент$")
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на случайный элемент$")
+    @А("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на случайный элемент$")
     public IStepResult clickOnListElementWithRandomIndex(String blockName, String listName) {
         ElementsCollection elements = resolveOwner(blockName).getElementsList(listName).filter(visible);
         SelenideElement element = getRandomElementFromCollection(elements);
@@ -103,7 +104,7 @@ public class ElementsCollectionActionSteps {
      * Выполнено нажатие на последний элемент
      */
     @И("^()в списке элементов \"([^\"]*)\" выполнено нажатие на последний элемент$")
-    @И("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на последний элемент$")
+    @А("^в блоке \"([^\"]*)\" в списке элементов \"([^\"]*)\" выполнено нажатие на последний элемент$")
     public IStepResult clickOnListElementWithLast(String blockName, String listName) {
         SelenideElement element = resolveOwner(blockName).getElementsList(listName).filter(visible).last();
         String text = element.getText();

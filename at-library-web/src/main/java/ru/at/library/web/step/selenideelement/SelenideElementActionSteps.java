@@ -6,6 +6,8 @@ import com.codeborne.selenide.SelenideElement;
 import com.codeborne.selenide.WebDriverRunner;
 import io.cucumber.java.ru.А;
 import io.cucumber.java.ru.И;
+import io.cucumber.java.ru.Но;
+import io.cucumber.java.ru.То;
 import io.qameta.allure.Step;
 import lombok.extern.log4j.Log4j2;
 import org.openqa.selenium.By;
@@ -38,25 +40,25 @@ import static ru.at.library.core.steps.OtherSteps.*;
 public class SelenideElementActionSteps {
 
     @И("^()выполнено нажатие на (?:кнопку|элемент) \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" выполнено нажатие на (?:кнопку|элемент) \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" выполнено нажатие на (?:кнопку|элемент) \"([^\"]*)\"$")
     public void clickOnElement(String blockName, String elementName) {
         resolveOwner(blockName).getElement(elementName).click();
     }
 
     @И("^()выполнено нажатие c ховером на (?:кнопку|элемент) \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" выполнено нажатие c ховером на (?:кнопку|элемент) \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" выполнено нажатие c ховером на (?:кнопку|элемент) \"([^\"]*)\"$")
     public void clickOnElementWithHover(String blockName, String elementName) {
         resolveOwner(blockName).getElement(elementName).hover().click();
     }
 
     @И("^()выполнен ховер на элемент \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" выполнен ховер на элемент \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" выполнен ховер на элемент \"([^\"]*)\"$")
     public void elementHover(String blockName, String elementName) {
         resolveOwner(blockName).getElement(elementName).hover();
     }
 
     @И("^()выполнено нажатие на (?:кнопку|элемент) \"([^\"]*)\" и переход на новую вкладку$")
-    @И("^в блоке \"([^\"]*)\" выполнено нажатие на (?:кнопку|элемент) \"([^\"]*)\" и переход на новую вкладку$")
+    @А("^в блоке \"([^\"]*)\" выполнено нажатие на (?:кнопку|элемент) \"([^\"]*)\" и переход на новую вкладку$")
     public void clickOnElementAndSwitchToNewTab(String blockName, String elementName) {
         resolveOwner(blockName).getElement(elementName).clear();
         Selenide.switchTo().window(WebDriverRunner.getWebDriver().getWindowHandles().size() - 1);
@@ -64,7 +66,7 @@ public class SelenideElementActionSteps {
 
     @SuppressWarnings("deprecation")
     @И("^()выполнено нажатие на элемент с текстом \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" выполнено нажатие на элемент с текстом \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" выполнено нажатие на элемент с текстом \"([^\"]*)\"$")
     public void clickingElementWithText(String blockName, String text) {
         // Блочный вариант шага принимается для совместимости текста (blockName не используется),
         // но не влияет на поиск: элемент с нужным текстом всегда ищется по всему документу.
@@ -78,8 +80,8 @@ public class SelenideElementActionSteps {
      */
     @А("^()в поле \"([^\"]*)\" введено значение$")
     @И("^()в поле \"([^\"]*)\" введено значение \"([^\"]*)\"$")
-    @А("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено значение$")
-    @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено значение \"([^\"]*)\"$")
+    @То("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено значение$")
+    @Но("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено значение \"([^\"]*)\"$")
     public String setFieldValue(String blockName, String elementName, String value) {
         value = getPropertyOrStringVariableOrValue(value);
         SelenideElement element = resolveOwner(blockName).getElement(elementName);
@@ -93,8 +95,8 @@ public class SelenideElementActionSteps {
      */
     @А("^()в поле \"([^\"]*)\" посимвольно набирается значение$")
     @И("^()в поле \"([^\"]*)\" посимвольно набирается значение \"([^\"]*)\"$")
-    @А("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" посимвольно набирается значение$")
-    @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" посимвольно набирается значение \"([^\"]*)\"$")
+    @То("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" посимвольно набирается значение$")
+    @Но("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" посимвольно набирается значение \"([^\"]*)\"$")
     public void sendKeysCharacterByCharacter(String blockName, String elementName, String value) {
         value = getPropertyOrStringVariableOrValue(value);
         SelenideElement element = resolveOwner(blockName).getElement(elementName);
@@ -110,8 +112,8 @@ public class SelenideElementActionSteps {
      */
     @А("^()в поле \"([^\"]*)\" дописывается значение$")
     @И("^()в поле \"([^\"]*)\" дописывается значение \"([^\"]*)\"$")
-    @А("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" дописывается значение$")
-    @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" дописывается значение \"([^\"]*)\"$")
+    @То("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" дописывается значение$")
+    @Но("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" дописывается значение \"([^\"]*)\"$")
     public void valueIsAppended(String blockName, String elementName, String value) {
         value = getPropertyOrStringVariableOrValue(value);
         SelenideElement element = resolveOwner(blockName).getElement(elementName);
@@ -128,7 +130,7 @@ public class SelenideElementActionSteps {
      * При неверном формате используется dd.MM.yyyy
      */
     @И("^()в поле \"([^\"]*)\" набирается текущая дата в формате \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" набирается текущая дата в формате \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" набирается текущая дата в формате \"([^\"]*)\"$")
     public void currentDateIsTypedInTheFormat(String blockName, String elementName, String dateFormat) {
         SelenideElement element = resolveOwner(blockName).getElement(elementName);
 
@@ -150,7 +152,7 @@ public class SelenideElementActionSteps {
      * используя буфер обмена и клавиши SHIFT + INSERT
      */
     @И("^()в поле \"([^\"]*)\" с помощью горячих клавиш вставлено значение \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" с помощью горячих клавиш вставлено значение \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" с помощью горячих клавиш вставлено значение \"([^\"]*)\"$")
     public void pasteValueToTextField(String blockName, String elementName, String value) {
         value = getPropertyOrStringVariableOrValue(value);
         SelenideElement element = resolveOwner(blockName).getElement(elementName);
@@ -167,7 +169,7 @@ public class SelenideElementActionSteps {
      * Очищается заданное поле
      */
     @И("^()очищено поле \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" очищено поле \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" очищено поле \"([^\"]*)\"$")
     public void cleanInput(String blockName, String elementName) {
         SelenideElement element = resolveOwner(blockName).getElement(elementName);
         element.clear();
@@ -184,7 +186,7 @@ public class SelenideElementActionSteps {
     }
 
     @И("^()в поле \"([^\"]*)\" введено \"([^\"]*)\" случайных символов на (кириллице|латинице)$")
-    @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено \"([^\"]*)\" случайных символов на (кириллице|латинице)$")
+    @А("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено \"([^\"]*)\" случайных символов на (кириллице|латинице)$")
     public void setRandomCharSequence(String blockName, String elementName, String seqLengthString, String lang) {
         setRandomCharSequence(resolveOwner(blockName).getElement(elementName), seqLengthString, lang);
     }
@@ -206,14 +208,14 @@ public class SelenideElementActionSteps {
      * Ввод в поле случайной последовательности латинских или кириллических букв задаваемой длины и сохранение этого значения в переменную
      */
     @И("^()в поле \"([^\"]*)\" введено \"([^\"]*)\" случайных символов на (кириллице|латинице) и сохранено в переменную \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено \"([^\"]*)\" случайных символов на (кириллице|латинице) и сохранено в переменную \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено \"([^\"]*)\" случайных символов на (кириллице|латинице) и сохранено в переменную \"([^\"]*)\"$")
     public void setRandomCharSequenceAndSaveToVar(String blockName, String elementName, String seqLengthString, String lang, String varName) {
         String charSeq = setRandomCharSequence(resolveOwner(blockName).getElement(elementName), seqLengthString, lang);
         CoreScenario.getInstance().setVar(varName, charSeq);
     }
 
     @И("^()в поле \"([^\"]*)\" введено случайное число из \"([^\"]*)\" (?:цифр|цифры)$")
-    @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено случайное число из \"([^\"]*)\" (?:цифр|цифры)$")
+    @А("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено случайное число из \"([^\"]*)\" (?:цифр|цифры)$")
     public void inputRandomNumSequence(String blockName, String elementName, String seqLengthString) {
         inputRandomNumSequence(resolveOwner(blockName).getElement(elementName), seqLengthString);
     }
@@ -242,7 +244,7 @@ public class SelenideElementActionSteps {
      * Ввод в поле случайной последовательности цифр задаваемой длины и сохранение этого значения в переменную
      */
     @И("^()в поле \"([^\"]*)\" введено случайное число из (\\d+) (?:цифр|цифры) и сохранено в переменную \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено случайное число из (\\d+) (?:цифр|цифры) и сохранено в переменную \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" в поле \"([^\"]*)\" введено случайное число из (\\d+) (?:цифр|цифры) и сохранено в переменную \"([^\"]*)\"$")
     public void inputAndSetRandomNumSequence(String blockName, String elementName, int seqLengthString, String varName) {
         String value = inputRandomNumSequence(resolveOwner(blockName).getElement(elementName), String.valueOf(seqLengthString));
         CoreScenario.getInstance().setVar(varName, value);
@@ -252,7 +254,7 @@ public class SelenideElementActionSteps {
      * Скроллит экран до нужного элемента, имеющегося на странице, но видимого только в нижней/верхней части страницы.
      */
     @И("^()страница прокручена до элемента \"([^\"]*)\"")
-    @И("^в блоке \"([^\"]*)\" страница прокручена до элемента \"([^\"]*)\"")
+    @А("^в блоке \"([^\"]*)\" страница прокручена до элемента \"([^\"]*)\"")
     public void scrollPageToElement(String blockName, String elementName) {
         resolveOwner(blockName).getElement(elementName).scrollTo();
     }
@@ -262,7 +264,7 @@ public class SelenideElementActionSteps {
      * Selenide ожидает появления элемента в пределах настроенного timeout.
      */
     @И("^()страница прокручена до появления элемента \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" страница прокручена до появления элемента \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" страница прокручена до появления элемента \"([^\"]*)\"$")
     public void scrollWhileElemNotFoundOnPage(String blockName, String elementName) {
         resolveOwner(blockName).getElement(elementName).scrollTo();
     }
@@ -273,7 +275,7 @@ public class SelenideElementActionSteps {
      */
     @SuppressWarnings("deprecation")
     @И("^()страница прокручена до появления элемента с текстом \"([^\"]*)\"$")
-    @И("^в блоке \"([^\"]*)\" страница прокручена до появления элемента с текстом \"([^\"]*)\"$")
+    @А("^в блоке \"([^\"]*)\" страница прокручена до появления элемента с текстом \"([^\"]*)\"$")
     public void scrollWhileElemWithTextNotFoundOnPage(String blockName, String expectedValue) {
         // Блочный вариант шага принимается для совместимости текста (blockName не используется),
         // но не влияет на поиск: элемент с нужным текстом всегда ищется по всему документу,
