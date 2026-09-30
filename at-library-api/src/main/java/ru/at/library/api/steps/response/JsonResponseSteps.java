@@ -1,6 +1,5 @@
 package ru.at.library.api.steps.response;
 
-import com.google.common.collect.Ordering;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,6 +12,7 @@ import io.cucumber.java.ru.И;
 import io.qameta.allure.Allure;
 import io.restassured.response.Response;
 import lombok.extern.log4j.Log4j2;
+import ru.at.library.api.helpers.ArrayValues;
 import ru.at.library.api.helpers.Utils;
 import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.core.utils.helpers.PropertyLoader;
@@ -314,7 +314,7 @@ public class JsonResponseSteps {
      */
     @И("^в ответе \"([^\"]+)\" массив значений найденных по jsonPath \"([^\"]+)\" размер (\\d+)$")
     public void arraySize(String responseVar, String jsonPath, int expectedSize) {
-        List<String> list = getJsonList(responseVar, jsonPath);
+        List<Object> list = getJsonRawList(responseVar, jsonPath);
         assertThat("Размер массива '" + jsonPath + "'", list.size(), equalTo(expectedSize));
     }
 
@@ -328,8 +328,10 @@ public class JsonResponseSteps {
      */
     @И("^в ответе \"([^\"]+)\" массив значений найденных по jsonPath \"([^\"]+)\" не пустой$")
     public void arraySizeNotNull(String responseVar, String jsonPath) {
-        List<String> list = getJsonList(responseVar, jsonPath);
-        assertThat("Размер массива '" + jsonPath + "'", list.size(), is(notNullValue()));
+        List<Object> list = getJsonRawList(responseVar, jsonPath);
+        if (list.isEmpty()) {
+            throw new AssertionError(String.format("Массив '%s' пуст, ожидался непустой массив", jsonPath));
+        }
     }
 
     /**
@@ -342,8 +344,8 @@ public class JsonResponseSteps {
      */
     @И("^в ответе \"([^\"]+)\" массив значений найденных по jsonPath \"([^\"]+)\" отсортирован по возрастанию$")
     public void arraySortedAsc(String responseVar, String jsonPath) {
-        List<String> list = getJsonList(responseVar, jsonPath);
-        if (!Ordering.natural().nullsLast().isOrdered(list)) {
+        List<Object> list = getJsonRawList(responseVar, jsonPath);
+        if (!ArrayValues.isOrdered(list, true, "jsonPath", jsonPath)) {
             throw new AssertionError(String.format("Массив '%s' не отсортирован по возрастанию: %s", jsonPath, list));
         }
     }
@@ -358,8 +360,8 @@ public class JsonResponseSteps {
      */
     @И("^в ответе \"([^\"]+)\" массив значений найденных по jsonPath \"([^\"]+)\" отсортирован по убыванию$")
     public void arraySortedDesc(String responseVar, String jsonPath) {
-        List<String> list = getJsonList(responseVar, jsonPath);
-        if (!Ordering.natural().nullsLast().reverse().isOrdered(list)) {
+        List<Object> list = getJsonRawList(responseVar, jsonPath);
+        if (!ArrayValues.isOrdered(list, false, "jsonPath", jsonPath)) {
             throw new AssertionError(String.format("Массив '%s' не отсортирован по убыванию: %s", jsonPath, list));
         }
     }
@@ -387,6 +389,9 @@ public class JsonResponseSteps {
 
         List<String> list = getJsonList(responseVar, jsonPath);
         for (String item : list) {
+            if (item == null) {
+                throw new AssertionError(String.format("Массив '%s' содержит null вместо даты", jsonPath));
+            }
             OffsetDateTime date = parseOffsetDateTime(item, formatter);
             if (date.isBefore(startDate) || date.isAfter(endDate)) {
                 throw new AssertionError(String.format(
@@ -407,12 +412,15 @@ public class JsonResponseSteps {
     // ВНУТРЕННИЕ МЕТОДЫ
     // =======================================================================
 
+    /** Массив «как есть» (числа, boolean, объекты) — для размера, непустоты и сортировки. */
+    private List<Object> getJsonRawList(String responseVar, String jsonPath) {
+        Object found = ResponseHelper.getResponse(responseVar).getBody().jsonPath().get(jsonPath);
+        return ArrayValues.requireList(found, "jsonPath", jsonPath);
+    }
+
+    /** Массив скалярных значений, приведённых к строкам, — для сравнений со строковым ожиданием. */
     private List<String> getJsonList(String responseVar, String jsonPath) {
-        List<String> list = ResponseHelper.getResponse(responseVar).getBody().jsonPath().getList(jsonPath);
-        if (list == null) {
-            throw new AssertionError(String.format("По jsonPath '%s' массив не найден", jsonPath));
-        }
-        return list;
+        return ArrayValues.toStrings(getJsonRawList(responseVar, jsonPath), "jsonPath", jsonPath);
     }
 
     private String loadJsonSchema(String originalSchemaPath, String resolvedSchemaPath) {

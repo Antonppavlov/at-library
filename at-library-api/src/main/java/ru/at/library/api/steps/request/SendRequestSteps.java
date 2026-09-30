@@ -284,14 +284,18 @@ public class SendRequestSteps {
         if (dataTable != null) {
             for (List<String> requestParam : dataTable.asLists()) {
                 String type = requestParam.get(0);
+                String rawValue = requestParam.get(2);
 
-                String name = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(requestParam.get(1));
-                String value = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(requestParam.get(2));
-                value = PropertyLoader.loadValueFromFileOrVariableOrDefault(value);
+                String name = resolveCell(requestParam.get(1));
+                String value = resolveCell(rawValue);
+                if (!value.isEmpty()) {
+                    value = PropertyLoader.loadValueFromFileOrVariableOrDefault(value);
+                }
 
                 switch (type.toUpperCase()) {
                     case "BASIC_AUTHENTICATION": {
-                        request.auth().basic(name, value);
+                        // preemptive: логин/пароль уходят сразу, а не после 401 с WWW-Authenticate
+                        request.auth().preemptive().basic(name, value);
                         break;
                     }
                     case "RELAXED_HTTPS": {
@@ -334,7 +338,8 @@ public class SendRequestSteps {
                         break;
                     }
                     case "FILE": {
-                        String filePath = PropertyLoader.loadProperty(value, ScopedVariables.resolveVars(value));
+                        String fileRef = rawValue == null ? "" : rawValue;
+                        String filePath = PropertyLoader.loadProperty(fileRef, ScopedVariables.resolveVars(fileRef));
                         request.multiPart("file", new File(filePath), name);
                         break;
                     }
@@ -367,9 +372,11 @@ public class SendRequestSteps {
         for (List<String> responseParam : dataTable.asLists()) {
             String type = responseParam.get(0);
 
-            String name = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(responseParam.get(1));
-            String value = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(responseParam.get(2));
-            value = PropertyLoader.loadValueFromFileOrVariableOrDefault(value);
+            String name = resolveCell(responseParam.get(1));
+            String value = resolveCell(responseParam.get(2));
+            if (!value.isEmpty()) {
+                value = PropertyLoader.loadValueFromFileOrVariableOrDefault(value);
+            }
 
             try {
                 switch (type.toUpperCase()) {
@@ -396,6 +403,17 @@ public class SendRequestSteps {
         if (errorMessage.length() > 0) {
             throw new AssertionError(errorMessage.toString());
         }
+    }
+
+    /**
+     * Значение ячейки таблицы: property, файл, переменная или сама строка.
+     * Пустая ячейка (в DataTable она приходит как {@code null}, например {@code | BODY | | значение |}) остаётся пустой строкой.
+     */
+    private static String resolveCell(String cell) {
+        if (cell == null || cell.isEmpty()) {
+            return "";
+        }
+        return PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(cell);
     }
 
     /**

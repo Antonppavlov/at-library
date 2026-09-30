@@ -7,8 +7,8 @@ import io.cucumber.java.ru.Тогда;
 import io.restassured.RestAssured;
 import io.restassured.builder.ResponseBuilder;
 import io.restassured.http.ContentType;
-import ru.at.library.api.steps.response.JsonResponseSteps;
 import ru.at.library.core.cucumber.api.CoreScenario;
+import ru.at.library.core.utils.helpers.PropertyLoader;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -37,31 +37,44 @@ public class LocalApiContractSteps {
 
     @Дано("^запущен локальный HTTP proxy с адресом в \"([^\"]+)\" и портом в \"([^\"]+)\"$")
     public void startLocalProxy(String hostVariable, String portVariable) throws IOException {
-        proxyServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        proxyServer.createContext("/", exchange -> {
-            byte[] response = "proxy-ok".getBytes(StandardCharsets.UTF_8);
-            exchange.sendResponseHeaders(200, response.length);
-            exchange.getResponseBody().write(response);
-            exchange.close();
-        });
-        proxyServer.start();
-
-        CoreScenario scenario = CoreScenario.getInstance();
-        scenario.setVar(hostVariable, "127.0.0.1");
-        scenario.setVar(portVariable, String.valueOf(proxyServer.getAddress().getPort()));
+        startProxy("proxy-ok", hostVariable, portVariable);
     }
 
-    @Тогда("^шаг проверки непустого массива в ответе \"([^\"]+)\" по jsonPath \"([^\"]+)\" отклоняет пустой массив$")
-    public void emptyJsonArrayIsRejected(String responseVariable, String jsonPath) {
-        try {
-            new JsonResponseSteps().arraySizeNotNull(responseVariable, jsonPath);
-        } catch (AssertionError expected) {
-            return;
+    @Дано("^запущен локальный HTTP proxy с пустым ответом, адрес в \"([^\"]+)\" и порт в \"([^\"]+)\"$")
+    public void startEmptyLocalProxy(String hostVariable, String portVariable) throws IOException {
+        startProxy("", hostVariable, portVariable);
+    }
+
+    @Тогда("^системное свойство \"([^\"]+)\" равно \"([^\"]*)\"$")
+    public void systemPropertyEquals(String name, String expected) {
+        String resolved = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(expected);
+        String actual = System.getProperty(name);
+        if (!resolved.equals(actual)) {
+            throw new AssertionError(String.format("Системное свойство %s: ожидалось '%s', получено '%s'", name, resolved, actual));
         }
-        throw new AssertionError(String.format(
-                "Шаг проверки непустого массива принял пустой массив по jsonPath '%s'",
-                jsonPath
-        ));
+    }
+
+    @Тогда("^системное свойство \"([^\"]+)\" не задано$")
+    public void systemPropertyAbsent(String name) {
+        if (System.getProperty(name) != null) {
+            throw new AssertionError(String.format("Системное свойство %s должно быть не задано, а равно '%s'", name, System.getProperty(name)));
+        }
+    }
+
+    @Тогда("^RestAssured использует proxy с адресом \"([^\"]+)\" и портом \"([^\"]+)\"$")
+    public void restAssuredUsesProxy(String hostVariable, String portVariable) {
+        String host = PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(hostVariable);
+        int port = Integer.parseInt(PropertyLoader.loadValueFromFileOrPropertyOrVariableOrDefault(portVariable));
+        if (RestAssured.proxy == null || !host.equals(RestAssured.proxy.getHost()) || port != RestAssured.proxy.getPort()) {
+            throw new AssertionError("RestAssured.proxy не совпадает с ожидаемым " + host + ":" + port + ", фактически: " + RestAssured.proxy);
+        }
+    }
+
+    @Тогда("^RestAssured не использует proxy$")
+    public void restAssuredWithoutProxy() {
+        if (RestAssured.proxy != null) {
+            throw new AssertionError("RestAssured.proxy должен быть сброшен, а равен: " + RestAssured.proxy);
+        }
     }
 
     @After("@local-api-proxy")
@@ -76,6 +89,25 @@ public class LocalApiContractSteps {
             proxyServer.stop(0);
             proxyServer = null;
         }
+    }
+
+    private void startProxy(String responseBody, String hostVariable, String portVariable) throws IOException {
+        proxyServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        proxyServer.createContext("/", exchange -> {
+            byte[] response = responseBody.getBytes(StandardCharsets.UTF_8);
+            if (response.length == 0) {
+                exchange.sendResponseHeaders(200, -1);
+            } else {
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+            }
+            exchange.close();
+        });
+        proxyServer.start();
+
+        CoreScenario scenario = CoreScenario.getInstance();
+        scenario.setVar(hostVariable, "127.0.0.1");
+        scenario.setVar(portVariable, String.valueOf(proxyServer.getAddress().getPort()));
     }
 
     private ContentType contentType(String format) {

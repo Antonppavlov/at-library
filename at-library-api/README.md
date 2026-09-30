@@ -8,7 +8,7 @@ at-library-api
 <dependency>
       <groupId>ru</groupId>
       <artifactId>at-library-api</artifactId>
-      <version>25.09.2026</version>
+      <version>29.09.2026</version>
 </dependency>
 ```
 
@@ -195,6 +195,31 @@ mvn -pl at-library-api -am clean test -Dcucumber.filter.tags="@api"
 cd at-library-api
 mvn allure:serve
 ```
+
+Оффлайн-тесты шагов (без интернета)
+====================================
+
+Каталог `src/test/resources/offline` содержит контракт **каждого** публичного шага модуля: положительные и
+отрицательные сценарии, которые не зависят от публичного Petstore. Ответы для проверок собираются в памяти,
+а запросы уходят на локальный HTTP/HTTPS-сервер (он возвращает то, что получил, — так видно, что таблица запроса
+дошла до сервера).
+
+```bash
+mvn -o -pl at-library-api -am test \
+  -Dtest='ru.at.library.api.RunApiOfflineStepsTest,ru.at.library.api.ApiStepCoverageTest' \
+  -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+Отрицательный случай пишется одним универсальным шагом — текст проверяемого шага передаётся в DocString:
+
+```gherkin
+Тогда выполнение шага завершается ошибкой, содержащей "не содержит значение 'zzz'":
+  """
+  в ответе "r" массив значений найденных по jsonPath "tags" содержит значение "zzz"
+  """
+```
+
+`ApiStepCoverageTest` следит, чтобы у каждого нового шага появился хотя бы один сценарий.
 
 Готовые feature-файлы для расширения покрытия шагов
 ====================================================

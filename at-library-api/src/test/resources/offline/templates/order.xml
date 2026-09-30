@@ -1,0 +1,4 @@
+<order>
+  <id>{{orderId}}</id>
+  <status>{{status}}</status>
+</order>

@@ -2,12 +2,12 @@ package ru.at.library.api.steps.response;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.google.common.collect.Ordering;
 import io.cucumber.datatable.DataTable;
 import io.cucumber.java.ru.И;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 import lombok.extern.log4j.Log4j2;
+import ru.at.library.api.helpers.ArrayValues;
 import ru.at.library.core.cucumber.api.CoreScenario;
 import ru.at.library.core.utils.helpers.PropertyLoader;
 
@@ -284,7 +284,7 @@ public class YamlResponseSteps {
      */
     @И("^в ответе \"([^\"]+)\" массив значений найденных по yamlPath \"([^\"]+)\" размер (\\d+)$")
     public void arraySize(String responseVar, String yamlPath, int expectedSize) {
-        List<String> list = getYamlList(responseVar, yamlPath);
+        List<Object> list = getYamlRawList(responseVar, yamlPath);
         assertThat("Размер массива '" + yamlPath + "'", list.size(), equalTo(expectedSize));
     }
 
@@ -298,8 +298,8 @@ public class YamlResponseSteps {
      */
     @И("^в ответе \"([^\"]+)\" массив значений найденных по yamlPath \"([^\"]+)\" отсортирован по возрастанию$")
     public void arraySortedAsc(String responseVar, String yamlPath) {
-        List<String> list = getYamlList(responseVar, yamlPath);
-        if (!Ordering.natural().nullsLast().isOrdered(list)) {
+        List<Object> list = getYamlRawList(responseVar, yamlPath);
+        if (!ArrayValues.isOrdered(list, true, "yamlPath", yamlPath)) {
             throw new AssertionError(String.format("Массив '%s' не отсортирован по возрастанию: %s", yamlPath, list));
         }
     }
@@ -314,8 +314,8 @@ public class YamlResponseSteps {
      */
     @И("^в ответе \"([^\"]+)\" массив значений найденных по yamlPath \"([^\"]+)\" отсортирован по убыванию$")
     public void arraySortedDesc(String responseVar, String yamlPath) {
-        List<String> list = getYamlList(responseVar, yamlPath);
-        if (!Ordering.natural().nullsLast().reverse().isOrdered(list)) {
+        List<Object> list = getYamlRawList(responseVar, yamlPath);
+        if (!ArrayValues.isOrdered(list, false, "yamlPath", yamlPath)) {
             throw new AssertionError(String.format("Массив '%s' не отсортирован по убыванию: %s", yamlPath, list));
         }
     }
@@ -343,6 +343,9 @@ public class YamlResponseSteps {
 
         List<String> list = getYamlList(responseVar, yamlPath);
         for (String item : list) {
+            if (item == null) {
+                throw new AssertionError(String.format("Массив '%s' содержит null вместо даты", yamlPath));
+            }
             OffsetDateTime date = OffsetDateTime.parse(item, formatter);
             if (date.isBefore(startDate) || date.isAfter(endDate)) {
                 throw new AssertionError(String.format(
@@ -369,12 +372,14 @@ public class YamlResponseSteps {
         }
     }
 
+    /** Массив «как есть» (числа, boolean, объекты) — для размера и сортировки. */
+    private List<Object> getYamlRawList(String responseVar, String yamlPath) {
+        Object found = getYamlAsJsonPath(responseVar).get(yamlPath);
+        return ArrayValues.requireList(found, "yamlPath", yamlPath);
+    }
+
+    /** Массив скалярных значений, приведённых к строкам, — для сравнений со строковым ожиданием. */
     private List<String> getYamlList(String responseVar, String yamlPath) {
-        JsonPath jsonPath = getYamlAsJsonPath(responseVar);
-        List<String> list = jsonPath.getList(yamlPath);
-        if (list == null) {
-            throw new AssertionError(String.format("По yamlPath '%s' массив не найден", yamlPath));
-        }
-        return list;
+        return ArrayValues.toStrings(getYamlRawList(responseVar, yamlPath), "yamlPath", yamlPath);
     }
 }
